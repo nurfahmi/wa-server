@@ -1,0 +1,4152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp API Testing Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Add Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <!-- Add QR Code library -->
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+    <style>
+      .qr-container {
+        text-align: center;
+        margin: 20px 0;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+      }
+      #qrCode {
+        max-width: 300px;
+        margin: auto;
+        display: block;
+      }
+      .status-badge {
+        font-size: 1.1em;
+      }
+      .message-container {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .message {
+        margin: 5px 0;
+        padding: 8px;
+        border-radius: 5px;
+      }
+      .message.incoming {
+        background-color: #e3f2fd;
+        margin-right: 20%;
+      }
+      .message.outgoing {
+        background-color: #e8f5e9;
+        margin-left: 20%;
+      }
+      .session-card {
+        margin-bottom: 1rem;
+      }
+      .session-card .card-body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .preview-image {
+        max-width: 200px;
+        max-height: 200px;
+        margin: 10px 0;
+      }
+      .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .result-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background-color: #f8f9fa;
+        padding: 1rem;
+      }
+      .tab-pane {
+        padding-top: 1rem;
+      }
+      .nav-tabs .nav-link {
+        color: #495057;
+      }
+      .nav-tabs .nav-link.active {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+      }
+      .nav-tabs .nav-link:hover {
+        border-color: #007bff;
+        color: #007bff;
+      }
+      /* Session status styles */
+      .session-status-ready {
+        background-color: #d4edda !important;
+        border-color: #c3e6cb !important;
+      }
+      .session-status-not-ready {
+        background-color: #fff3cd !important;
+        border-color: #ffeaa7 !important;
+      }
+      #sessionStatusIndicator {
+        padding: 8px 12px;
+        border-radius: 0.375rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-center flex-grow-1">
+          <i class="bi bi-whatsapp text-success"></i>
+          WhatsApp API Testing Dashboard
+        </h1>
+        <a href="settings.html" class="btn btn-primary">
+          <i class="bi bi-gear-fill me-1"></i>Advanced Settings
+        </a>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            id="devices-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#devices"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-phone"></i> Devices
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="messages-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#messages"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-chat-dots"></i> Messages
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="contacts-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#contacts"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-people"></i> Contacts & Data
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="settings-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#settings"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-gear"></i> Settings
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="apikey-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#apikey"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-key"></i> API Key Testing
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="monitoring-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#monitoring"
+            type="button"
+            role="tab"
+          >
+            <i class="bi bi-activity"></i> Monitoring
+          </button>
+        </li>
+      </ul>
+
+      <!-- Tab Content -->
+      <div class="tab-content" id="mainTabContent">
+        <!-- DEVICES TAB -->
+        <div class="tab-pane fade show active" id="devices" role="tabpanel">
+          <div class="row">
+            <!-- Create Device -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Create New Device
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <form id="createDeviceForm">
+                    <div class="mb-3">
+                      <label for="userId" class="form-label">User ID</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="userId"
+                        name="userId"
+                        placeholder="Enter UUID or string ID (e.g., user-123-uuid)"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="alias" class="form-label">Device Alias</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="alias"
+                        name="alias"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="phoneNumber" class="form-label"
+                        >Phone Number (optional)</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="phoneNumber"
+                        name="phoneNumber"
+                      />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="bi bi-plus"></i> Create Device
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- Device Management -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">
+                    <i class="bi bi-tools"></i> Quick Actions
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="quickActionSession" class="form-label"
+                      >Select Session</label
+                    >
+                    <select class="form-control" id="quickActionSession">
+                      <option value="">Choose a session...</option>
+                    </select>
+                  </div>
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-warning" id="quickLoginBtn">
+                      <i class="bi bi-box-arrow-in-right"></i> Login/Relogin
+                    </button>
+                    <button class="btn btn-info" id="quickLogoutBtn">
+                      <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                    <button class="btn btn-danger" id="quickDeleteBtn">
+                      <i class="bi bi-trash"></i> Delete Device
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Sessions List -->
+          <div class="card mt-4">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0"><i class="bi bi-list"></i> Active Sessions</h5>
+              <div class="d-flex gap-2">
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="filterUserId"
+                    placeholder="Filter by User ID"
+                  />
+                  <button class="btn btn-outline-primary" id="filterButton">
+                    <i class="bi bi-funnel"></i> Filter
+                  </button>
+                </div>
+                <button class="btn btn-primary" id="showAllButton">
+                  <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="sessionsList">
+                <!-- Sessions will be added here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MESSAGES TAB -->
+        <div class="tab-pane fade" id="messages" role="tabpanel">
+          <div class="row">
+            <!-- Send Messages -->
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0"><i class="bi bi-send"></i> Send Message</h5>
+                </div>
+                <div class="card-body">
+                  <form id="sendMessageForm">
+                    <!-- Session Selector -->
+                    <div class="mb-3">
+                      <label for="userIdForSending" class="form-label"
+                        >User ID</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="userIdForSending"
+                        name="userId"
+                        placeholder="Enter User ID to load your files"
+                        required
+                      />
+                      <small class="text-muted"
+                        >This will be used to load your stored files for
+                        sending</small
+                      >
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="sessionSelect" class="form-label"
+                        >Select Session</label
+                      >
+                      <select
+                        class="form-control"
+                        id="sessionSelect"
+                        name="sessionId"
+                        required
+                      >
+                        <option value="">Choose a session...</option>
+                      </select>
+                      <!-- Session Status Indicator -->
+                      <div
+                        id="sessionStatusIndicator"
+                        class="mt-2"
+                        style="display: none"
+                      >
+                        <div
+                          id="sessionStatusBadge"
+                          class="d-flex align-items-center"
+                        >
+                          <span id="sessionStatusIcon" class="me-2"></span>
+                          <span id="sessionStatusText" class="small"></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="recipient" class="form-label"
+                        >Recipient Phone Number</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="recipient"
+                        name="recipient"
+                        required
+                      />
+                      <small class="text-muted"
+                        >Format: Country code without + (e.g.,
+                        628123456789)</small
+                      >
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="messageType" class="form-label"
+                        >Message Type</label
+                      >
+                      <select
+                        class="form-control"
+                        id="messageType"
+                        name="messageType"
+                      >
+                        <option value="text">Text Message</option>
+                        <option value="image">Image Message</option>
+                        <option value="video">Video Message</option>
+                        <option value="document">Document Message</option>
+                      </select>
+                    </div>
+
+                    <!-- Text Message Input -->
+                    <div id="textMessageInput" class="mb-3">
+                      <label for="message" class="form-label">Message</label>
+                      <textarea
+                        class="form-control"
+                        id="message"
+                        name="message"
+                        rows="3"
+                        required
+                      ></textarea>
+                    </div>
+
+                    <!-- Image Message Input -->
+                    <div
+                      id="imageMessageInput"
+                      class="mb-3"
+                      style="display: none"
+                    >
+                      <label class="form-label"
+                        >Select Image from Library</label
+                      >
+                      <div class="d-grid gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          id="chooseImageBtn"
+                        >
+                          <i class="bi bi-images"></i> Choose Image from Library
+                        </button>
+                      </div>
+                      <input
+                        type="hidden"
+                        id="selectedImageId"
+                        name="imageFileId"
+                      />
+                      <div id="selectedImagePreview" class="mt-2"></div>
+                      <div class="mt-2">
+                        <label for="imageCaption" class="form-label"
+                          >Caption (optional)</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="imageCaption"
+                          name="imageCaption"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Video Message Input -->
+                    <div
+                      id="videoMessageInput"
+                      class="mb-3"
+                      style="display: none"
+                    >
+                      <label class="form-label"
+                        >Select Video from Library</label
+                      >
+                      <div class="d-grid gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          id="chooseVideoBtn"
+                        >
+                          <i class="bi bi-camera-video"></i> Choose Video from
+                          Library
+                        </button>
+                      </div>
+                      <input
+                        type="hidden"
+                        id="selectedVideoId"
+                        name="videoFileId"
+                      />
+                      <div id="selectedVideoPreview" class="mt-2"></div>
+                      <div class="mt-2">
+                        <label for="videoCaption" class="form-label"
+                          >Caption (optional)</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="videoCaption"
+                          name="videoCaption"
+                        />
+                      </div>
+                    </div>
+
+                    <!-- Document Message Input -->
+                    <div
+                      id="documentMessageInput"
+                      class="mb-3"
+                      style="display: none"
+                    >
+                      <label class="form-label"
+                        >Select Document from Library</label
+                      >
+                      <div class="d-grid gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          id="chooseDocumentBtn"
+                        >
+                          <i class="bi bi-file-earmark"></i> Choose Document
+                          from Library
+                        </button>
+                      </div>
+                      <input
+                        type="hidden"
+                        id="selectedDocumentId"
+                        name="documentFileId"
+                      />
+                      <div id="selectedDocumentPreview" class="mt-2"></div>
+                      <div class="mt-2">
+                        <label for="fileName" class="form-label"
+                          >File Name (optional)</label
+                        >
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="fileName"
+                          name="fileName"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      class="btn btn-success w-100"
+                      disabled
+                    >
+                      <i class="bi bi-send"></i> Send Message
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message History -->
+            <div class="col-md-4">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Live Message History
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div id="messageHistory" class="message-container">
+                    <!-- Messages will be added here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Get Messages -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-download"></i> Retrieve Messages
+              </h5>
+            </div>
+            <div class="card-body">
+              <form id="getMessagesForm" class="row g-3">
+                <div class="col-md-4">
+                  <label for="messagesSessionSelect" class="form-label"
+                    >Select Session</label
+                  >
+                  <select
+                    class="form-control"
+                    id="messagesSessionSelect"
+                    name="sessionId"
+                    required
+                  >
+                    <option value="">Choose a session...</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="remoteJid" class="form-label"
+                    >Remote JID (Chat/Contact)</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="remoteJid"
+                    name="remoteJid"
+                    placeholder="e.g., 628123456789@s.whatsapp.net"
+                  />
+                  <small class="text-muted"
+                    >Leave empty to get all messages</small
+                  >
+                </div>
+                <div class="col-md-2">
+                  <label for="messageLimit" class="form-label">Limit</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="messageLimit"
+                    name="limit"
+                    value="50"
+                    min="1"
+                    max="100"
+                  />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <button type="submit" class="btn btn-info w-100">
+                    <i class="bi bi-search"></i> Get Messages
+                  </button>
+                </div>
+              </form>
+              <div
+                id="messagesResult"
+                class="mt-3 result-container"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTACTS & DATA TAB -->
+        <div class="tab-pane fade" id="contacts" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-people"></i> Extract Contacts, Chats & Groups
+              </h5>
+            </div>
+            <div class="card-body">
+              <form id="getContactsForm" class="row g-3">
+                <div class="col-md-6">
+                  <label for="contactsSessionSelect" class="form-label"
+                    >Select Session</label
+                  >
+                  <select
+                    class="form-control"
+                    id="contactsSessionSelect"
+                    name="sessionId"
+                    required
+                  >
+                    <option value="">Choose a session...</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="dataType" class="form-label">Data Type</label>
+                  <select
+                    class="form-control"
+                    id="dataType"
+                    name="dataType"
+                    required
+                  >
+                    <option value="contacts">📞 Contacts</option>
+                    <option value="chats">💬 Chats</option>
+                    <option value="groups">👥 Groups</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <button type="submit" class="btn btn-info w-100">
+                    <i class="bi bi-download"></i> Extract Data
+                  </button>
+                </div>
+              </form>
+              <div
+                id="contactsResult"
+                class="mt-3 result-container"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+
+          <!-- User-based Data Extraction -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-person-gear"></i> User-based Data Extraction
+              </h5>
+            </div>
+            <div class="card-body">
+              <form id="getUserDataForm" class="row g-3">
+                <div class="col-md-8">
+                  <label for="userIdForData" class="form-label">User ID</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="userIdForData"
+                    placeholder="Enter User ID"
+                    required
+                  />
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <button
+                    type="button"
+                    class="btn btn-warning w-100"
+                    id="getUserDevicesBtn"
+                  >
+                    <i class="bi bi-phone"></i> Get Devices
+                  </button>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">&nbsp;</label>
+                  <button
+                    type="button"
+                    class="btn btn-info w-100"
+                    id="getUserContactsBtn"
+                  >
+                    <i class="bi bi-people"></i> Get Contacts
+                  </button>
+                </div>
+              </form>
+              <div
+                id="userDataResult"
+                class="mt-3 result-container"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div class="tab-pane fade" id="settings" role="tabpanel">
+          <div class="row">
+            <!-- AI Settings -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0"><i class="bi bi-robot"></i> AI Settings</h5>
+                </div>
+                <div class="card-body">
+                  <form id="aiSettingsForm">
+                    <div class="mb-3">
+                      <label for="aiSessionSelect" class="form-label"
+                        >Select Session</label
+                      >
+                      <select
+                        class="form-control"
+                        id="aiSessionSelect"
+                        name="sessionId"
+                        required
+                      >
+                        <option value="">Choose a session...</option>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="aiEnabled"
+                          name="enabled"
+                        />
+                        <label class="form-check-label" for="aiEnabled"
+                          >AI Enabled</label
+                        >
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="aiAutoReply"
+                          name="autoReply"
+                        />
+                        <label class="form-check-label" for="aiAutoReply"
+                          >Auto Reply</label
+                        >
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="aiBotName" class="form-label">Bot Name</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="aiBotName"
+                        name="botName"
+                      />
+                    </div>
+                    <div class="d-grid gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-info"
+                        id="getAISettings"
+                      >
+                        <i class="bi bi-download"></i> Load Current Settings
+                      </button>
+                      <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check"></i> Update Settings
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- Webhook Settings -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">
+                    <i class="bi bi-link-45deg"></i> Webhook Settings
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <form id="webhookSettingsForm">
+                    <div class="mb-3">
+                      <label for="webhookSessionSelect" class="form-label"
+                        >Select Session</label
+                      >
+                      <select
+                        class="form-control"
+                        id="webhookSessionSelect"
+                        name="sessionId"
+                        required
+                      >
+                        <option value="">Choose a session...</option>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="webhookEnabled"
+                          name="enabled"
+                        />
+                        <label class="form-check-label" for="webhookEnabled"
+                          >Webhook Enabled</label
+                        >
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="webhookUrl" class="form-label"
+                        >Webhook URL</label
+                      >
+                      <input
+                        type="url"
+                        class="form-control"
+                        id="webhookUrl"
+                        name="url"
+                        placeholder="https://your-webhook-url.com"
+                      />
+                    </div>
+                    <div class="d-grid gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-info"
+                        id="getWebhookSettings"
+                      >
+                        <i class="bi bi-download"></i> Load Current Settings
+                      </button>
+                      <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check"></i> Update Settings
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- API KEY TESTING TAB -->
+        <div class="tab-pane fade" id="apikey" role="tabpanel">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-key"></i> API Key Testing</h5>
+              <small class="text-muted"
+                >Test sending messages using device API keys instead of session
+                authentication</small
+              >
+            </div>
+            <div class="card-body">
+              <form id="apiKeyMessageForm">
+                <div class="mb-3">
+                  <label for="deviceApiKey" class="form-label"
+                    >Device API Key</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="deviceApiKey"
+                    name="apiKey"
+                    required
+                  />
+                  <small class="text-muted"
+                    >You can find the API key in the device settings or session
+                    list</small
+                  >
+                </div>
+                <div class="mb-3">
+                  <label for="apiKeyRecipient" class="form-label"
+                    >Recipient Phone Number</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="apiKeyRecipient"
+                    name="recipient"
+                    required
+                  />
+                  <small class="text-muted"
+                    >Format: Country code without + (e.g., 628123456789)</small
+                  >
+                </div>
+                <div class="mb-3">
+                  <label for="apiKeyMessage" class="form-label">Message</label>
+                  <textarea
+                    class="form-control"
+                    id="apiKeyMessage"
+                    name="message"
+                    rows="4"
+                    required
+                    placeholder="Enter your message here..."
+                  ></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning w-100">
+                  <i class="bi bi-send"></i> Send via API Key
+                </button>
+              </form>
+
+              <!-- API Key Testing with File Upload -->
+              <div class="card mt-4">
+                <div class="card-header">
+                  <h6 class="mb-0">Send Image via API Key</h6>
+                </div>
+                <div class="card-body">
+                  <form id="apiKeyImageForm">
+                    <div class="mb-3">
+                      <label for="deviceApiKey2" class="form-label"
+                        >Device API Key</label
+                      >
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="deviceApiKey2"
+                        name="apiKey"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="apiKeyRecipient2" class="form-label"
+                        >Recipient Phone Number</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="apiKeyRecipient2"
+                        name="recipient"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="apiKeyImageFile" class="form-label"
+                        >Image File</label
+                      >
+                      <input
+                        type="file"
+                        class="form-control"
+                        id="apiKeyImageFile"
+                        name="imageFile"
+                        accept="image/*"
+                        required
+                      />
+                      <div id="apiKeyImagePreview"></div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="apiKeyImageCaption" class="form-label"
+                        >Caption (optional)</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="apiKeyImageCaption"
+                        name="caption"
+                      />
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                      <i class="bi bi-image"></i> Send Image via API Key
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MONITORING TAB -->
+        <div class="tab-pane fade" id="monitoring" role="tabpanel">
+          <div class="row">
+            <!-- Connection Status -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">
+                    <i class="bi bi-wifi"></i> Connection Status
+                  </h5>
+                </div>
+                <div class="card-body text-center">
+                  <div class="mb-3">
+                    <span
+                      id="connectionStatus"
+                      class="badge status-badge bg-secondary"
+                      >Not Connected</span
+                    >
+                  </div>
+                  <div class="d-grid gap-2">
+                    <button
+                      class="btn btn-outline-info"
+                      id="checkAllConnectionsBtn"
+                    >
+                      <i class="bi bi-arrow-clockwise"></i> Check All
+                      Connections
+                    </button>
+                    <!-- Main WebSocket no longer needed - devices use individual connections -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- QR Code Display -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0"><i class="bi bi-qr-code"></i> QR Code</h5>
+                </div>
+                <div class="card-body">
+                  <div
+                    class="qr-container"
+                    id="qrContainer"
+                    style="display: none"
+                  >
+                    <h6>Scan this QR code with WhatsApp</h6>
+                    <div id="qrCode"></div>
+                  </div>
+                  <div class="text-center" id="noQrMessage">
+                    <p class="text-muted">
+                      No QR code available. Create a device and wait for
+                      connection.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Server Statistics -->
+          <div class="card mt-4">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">
+                <i class="bi bi-server"></i> Server Statistics
+              </h5>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                id="refreshStatsBtn"
+              >
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
+            <div class="card-body">
+              <!-- WhatsApp API Process Memory (Highlighted) -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                      <h6 class="mb-0">
+                        <i class="bi bi-laptop"></i> WhatsApp API Process Memory
+                        Usage
+                      </h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <!-- Process RSS Memory -->
+                        <div class="col-md-3 mb-3">
+                          <div class="text-center">
+                            <div class="stat-icon mb-2">
+                              <i
+                                class="bi bi-memory text-primary"
+                                style="font-size: 1.5rem"
+                              ></i>
+                            </div>
+                            <h6 class="card-title">RSS Memory</h6>
+                            <p class="card-text">
+                              <span id="processRSS" class="h5 text-primary"
+                                >--MB</span
+                              ><br />
+                              <small class="text-muted">Physical RAM</small>
+                            </p>
+                          </div>
+                        </div>
+                        <!-- Heap Used -->
+                        <div class="col-md-3 mb-3">
+                          <div class="text-center">
+                            <div class="stat-icon mb-2">
+                              <i
+                                class="bi bi-stack text-success"
+                                style="font-size: 1.5rem"
+                              ></i>
+                            </div>
+                            <h6 class="card-title">Heap Used</h6>
+                            <p class="card-text">
+                              <span id="processHeap" class="h5 text-success"
+                                >--MB</span
+                              ><br />
+                              <small class="text-muted"
+                                >JavaScript Objects</small
+                              >
+                            </p>
+                          </div>
+                        </div>
+                        <!-- External Memory -->
+                        <div class="col-md-3 mb-3">
+                          <div class="text-center">
+                            <div class="stat-icon mb-2">
+                              <i
+                                class="bi bi-cpu text-info"
+                                style="font-size: 1.5rem"
+                              ></i>
+                            </div>
+                            <h6 class="card-title">External</h6>
+                            <p class="card-text">
+                              <span id="processExternal" class="h5 text-info"
+                                >--MB</span
+                              ><br />
+                              <small class="text-muted">C++ Objects</small>
+                            </p>
+                          </div>
+                        </div>
+                        <!-- Process PID & Uptime -->
+                        <div class="col-md-3 mb-3">
+                          <div class="text-center">
+                            <div class="stat-icon mb-2">
+                              <i
+                                class="bi bi-clock text-warning"
+                                style="font-size: 1.5rem"
+                              ></i>
+                            </div>
+                            <h6 class="card-title">Process Info</h6>
+                            <p class="card-text">
+                              <span
+                                id="processPidDisplay"
+                                class="h6 text-warning"
+                                >PID: --</span
+                              ><br />
+                              <small
+                                class="text-muted"
+                                id="processUptimeDisplay"
+                                >Uptime: --</small
+                              >
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row" id="serverStatsContainer">
+                <!-- CPU Usage -->
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <div class="stat-icon mb-2">
+                        <i
+                          class="bi bi-cpu text-primary"
+                          style="font-size: 2rem"
+                        ></i>
+                      </div>
+                      <h6 class="card-title">System CPU</h6>
+                      <div class="progress mb-2" style="height: 8px">
+                        <div
+                          class="progress-bar bg-primary"
+                          id="cpuProgress"
+                          role="progressbar"
+                          style="width: 0%"
+                        ></div>
+                      </div>
+                      <p class="card-text">
+                        <span id="cpuUsage" class="h5 text-primary">--%</span
+                        ><br />
+                        <small class="text-muted"
+                          ><span id="cpuCores">-- cores</span></small
+                        >
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- System Memory Usage -->
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <div class="stat-icon mb-2">
+                        <i
+                          class="bi bi-memory text-success"
+                          style="font-size: 2rem"
+                        ></i>
+                      </div>
+                      <h6 class="card-title">System RAM</h6>
+                      <div class="progress mb-2" style="height: 8px">
+                        <div
+                          class="progress-bar bg-success"
+                          id="ramProgress"
+                          role="progressbar"
+                          style="width: 0%"
+                        ></div>
+                      </div>
+                      <p class="card-text">
+                        <span id="ramUsage" class="h5 text-success">--GB</span
+                        ><br />
+                        <small class="text-muted"
+                          >of <span id="ramTotal">--GB</span></small
+                        >
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Disk Usage -->
+                <div class="col-md-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body text-center">
+                      <div class="stat-icon mb-2">
+                        <i
+                          class="bi bi-hdd text-warning"
+                          style="font-size: 2rem"
+                        ></i>
+                      </div>
+                      <h6 class="card-title">Disk Usage</h6>
+                      <div class="progress mb-2" style="height: 8px">
+                        <div
+                          class="progress-bar bg-warning"
+                          id="diskProgress"
+                          role="progressbar"
+                          style="width: 0%"
+                        ></div>
+                      </div>
+                      <p class="card-text">
+                        <span id="diskUsage" class="h5 text-warning">--GB</span
+                        ><br />
+                        <small class="text-muted"
+                          >of <span id="diskTotal">--GB</span></small
+                        >
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- System Info -->
+              <div class="row mt-3">
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-body">
+                      <h6 class="card-title">
+                        <i class="bi bi-info-circle"></i> System Info
+                      </h6>
+                      <ul class="list-unstyled mb-0" id="systemInfo">
+                        <li>
+                          <strong>Platform:</strong>
+                          <span id="sysPlatform">--</span>
+                        </li>
+                        <li>
+                          <strong>Architecture:</strong>
+                          <span id="sysArch">--</span>
+                        </li>
+                        <li>
+                          <strong>Hostname:</strong>
+                          <span id="sysHostname">--</span>
+                        </li>
+                        <li>
+                          <strong>Uptime:</strong>
+                          <span id="sysUptime">--</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-body">
+                      <h6 class="card-title">
+                        <i class="bi bi-gear"></i> Process Info
+                      </h6>
+                      <ul class="list-unstyled mb-0" id="processInfo">
+                        <li>
+                          <strong>PID:</strong> <span id="processPid">--</span>
+                        </li>
+                        <li>
+                          <strong>Node Uptime:</strong>
+                          <span id="nodeUptime">--</span>
+                        </li>
+                        <li>
+                          <strong>Heap Used:</strong>
+                          <span id="heapUsed">--</span>
+                        </li>
+                        <li>
+                          <strong>RSS Memory:</strong>
+                          <span id="rssMemory">--</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WebSocket Logs -->
+          <div class="card mt-4">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">
+                <i class="bi bi-terminal"></i> WebSocket Logs
+              </h5>
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                id="clearLogsBtn"
+              >
+                <i class="bi bi-trash"></i> Clear Logs
+              </button>
+            </div>
+            <div class="card-body">
+              <div
+                id="websocketLogs"
+                class="result-container"
+                style="
+                  min-height: 200px;
+                  font-family: monospace;
+                  font-size: 0.9em;
+                "
+              >
+                <div class="text-muted">WebSocket logs will appear here...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Selection Modals -->
+    <!-- Image Selection Modal -->
+    <div
+      class="modal fade"
+      id="imageSelectionModal"
+      tabindex="-1"
+      aria-labelledby="imageSelectionModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imageSelectionModalLabel">
+              <i class="bi bi-images"></i> Choose Image from Library
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="imageList" class="row g-3">
+              <!-- Images will be loaded here -->
+            </div>
+            <div
+              id="imageListEmpty"
+              class="text-center text-muted"
+              style="display: none"
+            >
+              <i class="bi bi-images display-4"></i>
+              <p class="mt-2">No images found</p>
+              <small>Upload some images to your library first</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video Selection Modal -->
+    <div
+      class="modal fade"
+      id="videoSelectionModal"
+      tabindex="-1"
+      aria-labelledby="videoSelectionModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="videoSelectionModalLabel">
+              <i class="bi bi-camera-video"></i> Choose Video from Library
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="videoList" class="row g-3">
+              <!-- Videos will be loaded here -->
+            </div>
+            <div
+              id="videoListEmpty"
+              class="text-center text-muted"
+              style="display: none"
+            >
+              <i class="bi bi-camera-video display-4"></i>
+              <p class="mt-2">No videos found</p>
+              <small>Upload some videos to your library first</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Selection Modal -->
+    <div
+      class="modal fade"
+      id="documentSelectionModal"
+      tabindex="-1"
+      aria-labelledby="documentSelectionModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="documentSelectionModalLabel">
+              <i class="bi bi-file-earmark"></i> Choose Document from Library
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="documentList" class="list-group">
+              <!-- Documents will be loaded here -->
+            </div>
+            <div
+              id="documentListEmpty"
+              class="text-center text-muted"
+              style="display: none"
+            >
+              <i class="bi bi-file-earmark display-4"></i>
+              <p class="mt-2">No documents found</p>
+              <small>Upload some documents to your library first</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div
+      class="modal fade"
+      id="qrModal"
+      tabindex="-1"
+      aria-labelledby="qrModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="qrModalLabel">
+              <i class="bi bi-qr-code"></i> Scan QR Code
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+              id="qrModalCloseBtn"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <div id="modalQrContainer">
+              <div id="modalQrCode"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-warning" id="reloadQrBtn">
+              <i class="bi bi-arrow-clockwise"></i> Reload QR
+            </button>
+            <button type="button" class="btn btn-danger" id="cancelQrBtn">
+              <i class="bi bi-x-circle"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Global variables
+      let currentSessionId = null;
+      let ws = null;
+      let reconnectAttempts = 0;
+      const MAX_RECONNECT_ATTEMPTS = 5;
+      let shouldReconnect = true;
+
+      // Device-specific WebSocket variables
+      let currentDeviceSession = null;
+      let deviceWs = null;
+      let deviceReconnectAttempts = 0;
+
+      const API_TOKEN = "test123";
+      const API_BASE_URL = "http://localhost:3000/api/whatsapp";
+      const WS_BASE_URL = "ws://localhost:3001";
+
+      // Logging functionality
+      function addLogEntry(type, message, data = null) {
+        const logsContainer = document.getElementById("websocketLogs");
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement("div");
+        logEntry.className = `mb-1 ${
+          type === "error"
+            ? "text-danger"
+            : type === "success"
+            ? "text-success"
+            : type === "warning"
+            ? "text-warning"
+            : "text-info"
+        }`;
+
+        let logText = `[${timestamp}] ${message}`;
+        if (data) {
+          logText += `\n${JSON.stringify(data, null, 2)}`;
+        }
+
+        logEntry.innerHTML = `<pre class="mb-0" style="white-space: pre-wrap;">${logText}</pre>`;
+        logsContainer.appendChild(logEntry);
+
+        // Auto-scroll to bottom
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+
+        // Keep only last 50 entries
+        while (logsContainer.children.length > 50) {
+          logsContainer.removeChild(logsContainer.firstChild);
+        }
+      }
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        addLogEntry("info", "WhatsApp API Testing Dashboard loaded with tabs!");
+
+        // Event listeners
+        document
+          .getElementById("clearLogsBtn")
+          .addEventListener("click", () => {
+            document.getElementById("websocketLogs").innerHTML =
+              '<div class="text-muted">WebSocket logs will appear here...</div>';
+          });
+
+        // Handle message type selection
+        document
+          .getElementById("messageType")
+          .addEventListener("change", function (e) {
+            const textInput = document.getElementById("textMessageInput");
+            const imageInput = document.getElementById("imageMessageInput");
+            const videoInput = document.getElementById("videoMessageInput");
+            const documentInput = document.getElementById(
+              "documentMessageInput"
+            );
+            const messageTextarea = document.getElementById("message");
+
+            // Hide all inputs first
+            textInput.style.display = "none";
+            imageInput.style.display = "none";
+            videoInput.style.display = "none";
+            documentInput.style.display = "none";
+
+            // Reset requirements
+            messageTextarea.required = false;
+
+            // Clear any selected files
+            clearSelectedFile("image");
+            clearSelectedFile("video");
+            clearSelectedFile("document");
+
+            // Show appropriate input based on selection
+            switch (e.target.value) {
+              case "image":
+                imageInput.style.display = "block";
+                break;
+              case "video":
+                videoInput.style.display = "block";
+                break;
+              case "document":
+                documentInput.style.display = "block";
+                break;
+              default: // text
+                textInput.style.display = "block";
+                messageTextarea.required = true;
+            }
+          });
+
+        // File selection handlers
+        document
+          .getElementById("chooseImageBtn")
+          .addEventListener("click", function () {
+            openFileSelectionModal("image");
+          });
+
+        document
+          .getElementById("chooseVideoBtn")
+          .addEventListener("click", function () {
+            openFileSelectionModal("video");
+          });
+
+        document
+          .getElementById("chooseDocumentBtn")
+          .addEventListener("click", function () {
+            openFileSelectionModal("document");
+          });
+
+        // API Key image preview
+        document
+          .getElementById("apiKeyImageFile")
+          .addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = function (e) {
+                document.getElementById(
+                  "apiKeyImagePreview"
+                ).innerHTML = `<img src="${e.target.result}" class="preview-image mt-2" />`;
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+
+        // Session selector change handler
+        document
+          .getElementById("sessionSelect")
+          .addEventListener("change", function (e) {
+            currentSessionId = e.target.value;
+            const sendButton = document.querySelector(
+              "#sendMessageForm button[type='submit']"
+            );
+
+            // Get the selected option to check its status
+            const selectedOption = e.target.selectedOptions[0];
+            const sessionStatus = selectedOption?.dataset.status;
+            const isReady = selectedOption?.dataset.isReady === "true";
+
+            // Enable button only if session is selected and ready
+            sendButton.disabled = !currentSessionId || !isReady;
+
+            // Update button text and title based on status
+            if (currentSessionId) {
+              // Show status indicator
+              const statusIndicator = document.getElementById(
+                "sessionStatusIndicator"
+              );
+              const statusIcon = document.getElementById("sessionStatusIcon");
+              const statusText = document.getElementById("sessionStatusText");
+
+              statusIndicator.style.display = "block";
+              statusIcon.textContent = getStatusEmoji(sessionStatus);
+
+              if (isReady) {
+                sendButton.innerHTML =
+                  '<i class="bi bi-send"></i> Send Message';
+                sendButton.title = "Ready to send messages";
+                sendButton.className = "btn btn-success w-100";
+                statusText.innerHTML = `<span class="text-success"><strong>Ready to send messages</strong> - Session is connected</span>`;
+
+                // Apply ready styles to session selector
+                sessionSelect.className = "form-control session-status-ready";
+
+                addLogEntry(
+                  "success",
+                  `Session ready for messaging: ${currentSessionId} [${sessionStatus}]`
+                );
+              } else {
+                sendButton.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Session Not Ready [${sessionStatus?.toUpperCase()}]`;
+                sendButton.title = `Cannot send messages - Session status: ${sessionStatus}. Please wait for connection or scan QR code.`;
+                sendButton.className = "btn btn-warning w-100";
+
+                // Provide specific status messages
+                let statusMessage = "";
+                switch (sessionStatus) {
+                  case "pending":
+                    statusMessage =
+                      "Waiting for QR code scan - Please scan the QR code with WhatsApp";
+                    break;
+                  case "connecting":
+                    statusMessage = "Connecting to WhatsApp - Please wait...";
+                    break;
+                  case "disconnected":
+                    statusMessage =
+                      "Disconnected - Please reconnect the session";
+                    break;
+                  case "logged_out":
+                    statusMessage = "Logged out - Please login again";
+                    break;
+                  case "error":
+                    statusMessage = "Error occurred - Please check the session";
+                    break;
+                  default:
+                    statusMessage = `Status: ${sessionStatus} - Cannot send messages`;
+                }
+                statusText.innerHTML = `<span class="text-warning"><strong>Cannot send messages</strong> - ${statusMessage}</span>`;
+
+                // Apply not-ready styles to session selector
+                sessionSelect.className =
+                  "form-control session-status-not-ready";
+
+                addLogEntry(
+                  "warning",
+                  `Session not ready for messaging: ${currentSessionId} [${sessionStatus}]`
+                );
+              }
+            } else {
+              // Hide status indicator when no session selected
+              document.getElementById("sessionStatusIndicator").style.display =
+                "none";
+              sendButton.innerHTML = '<i class="bi bi-send"></i> Send Message';
+              sendButton.title = "Select a session first";
+              sendButton.className = "btn btn-success w-100";
+
+              // Reset session selector styling
+              sessionSelect.className = "form-control";
+            }
+          });
+
+        // Filter functionality
+        document
+          .getElementById("filterButton")
+          .addEventListener("click", filterByUserId);
+        document
+          .getElementById("showAllButton")
+          .addEventListener("click", refreshSessions);
+        document
+          .getElementById("filterUserId")
+          .addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              filterByUserId();
+            }
+          });
+
+        // Quick action handlers
+        document
+          .getElementById("quickLoginBtn")
+          .addEventListener("click", handleQuickLogin);
+        document
+          .getElementById("quickLogoutBtn")
+          .addEventListener("click", handleQuickLogout);
+        document
+          .getElementById("quickDeleteBtn")
+          .addEventListener("click", handleQuickDelete);
+
+        // Form event listeners
+        document
+          .getElementById("createDeviceForm")
+          .addEventListener("submit", createDevice);
+        document
+          .getElementById("sendMessageForm")
+          .addEventListener("submit", sendMessage);
+        document
+          .getElementById("getContactsForm")
+          .addEventListener("submit", extractContacts);
+        // Note: getUserDataForm doesn't have a submit button, only individual action buttons
+
+        // Additional button event listeners for user data
+        document
+          .getElementById("getUserDevicesBtn")
+          .addEventListener("click", getUserDevices);
+        document
+          .getElementById("getUserContactsBtn")
+          .addEventListener("click", getUserContacts);
+        document
+          .getElementById("aiSettingsForm")
+          .addEventListener("submit", updateAISettings);
+        document
+          .getElementById("webhookSettingsForm")
+          .addEventListener("submit", updateWebhookSettings);
+        document
+          .getElementById("apiKeyMessageForm")
+          .addEventListener("submit", sendApiKeyMessage);
+        document
+          .getElementById("apiKeyImageForm")
+          .addEventListener("submit", sendApiKeyImage);
+        document
+          .getElementById("getMessagesForm")
+          .addEventListener("submit", getMessages);
+
+        // Load AI/Webhook settings buttons
+        document
+          .getElementById("getAISettings")
+          .addEventListener("click", loadAISettings);
+        document
+          .getElementById("getWebhookSettings")
+          .addEventListener("click", loadWebhookSettings);
+
+        // Monitoring buttons
+        document
+          .getElementById("checkAllConnectionsBtn")
+          .addEventListener("click", checkAllConnections);
+        document
+          .getElementById("refreshStatsBtn")
+          .addEventListener("click", refreshServerStats);
+        // Main WebSocket reconnect button removed - using device-specific connections
+
+        // QR Modal related listeners
+        document
+          .getElementById("qrModalCloseBtn")
+          .addEventListener("click", handleQRCancel);
+        document
+          .getElementById("cancelQrBtn")
+          .addEventListener("click", handleQRCancel);
+        document
+          .getElementById("reloadQrBtn")
+          .addEventListener("click", handleQRReload);
+        const qrModal = document.getElementById("qrModal");
+        qrModal.addEventListener("hidden.bs.modal", handleQRCancel);
+
+        // Initialize
+        refreshSessions();
+
+        // Initialize WebSocket connection
+        initWebSocket();
+      });
+
+      // Session management functions
+      async function refreshSessions() {
+        const sessionsList = document.getElementById("sessionsList");
+
+        // Update all session selectors
+        const sessionSelectors = [
+          "sessionSelect",
+          "messagesSessionSelect",
+          "contactsSessionSelect",
+          "aiSessionSelect",
+          "webhookSessionSelect",
+          "quickActionSession",
+        ];
+
+        try {
+          sessionsList.innerHTML =
+            '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+          const response = await fetch(`${API_BASE_URL}/sessions`, {
+            headers: {
+              "X-API-Token": API_TOKEN,
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || "Failed to fetch sessions");
+          }
+
+          sessionSelectors.forEach((selectorId) => {
+            const selector = document.getElementById(selectorId);
+            if (selector) {
+              while (selector.options.length > 1) {
+                selector.remove(1);
+              }
+            }
+          });
+
+          sessionsList.innerHTML = "";
+
+          if (data.sessions.length === 0) {
+            sessionsList.innerHTML =
+              '<div class="alert alert-info">No active sessions found. Create a new device to get started.</div>';
+            return;
+          }
+
+          data.sessions.forEach((session) => {
+            sessionsList.appendChild(createSessionCard(session));
+
+            sessionSelectors.forEach((selectorId) => {
+              const selector = document.getElementById(selectorId);
+              if (selector) {
+                // Create status emoji and text
+                const statusEmoji = getStatusEmoji(session.status);
+                const statusText = session.status.toUpperCase();
+
+                // Create option with status information
+                const optionText = `${statusEmoji} ${session.userId} - ${session.alias} [${statusText}]`;
+                const option = new Option(optionText, session.sessionId);
+
+                // Add data attributes for status checking
+                option.dataset.deviceId = session.id;
+                option.dataset.status = session.status;
+                option.dataset.isReady =
+                  session.status === "connected" ? "true" : "false";
+
+                // Style non-connected options differently
+                if (session.status !== "connected") {
+                  option.style.color = "#6c757d";
+                  option.style.fontStyle = "italic";
+                }
+
+                selector.add(option);
+              }
+            });
+          });
+
+          addLogEntry("success", `Loaded ${data.sessions.length} sessions`);
+        } catch (error) {
+          console.error("Error refreshing sessions:", error);
+          addLogEntry("error", "Failed to refresh sessions", error.message);
+          sessionsList.innerHTML = `
+            <div class="alert alert-danger">
+              <p>Error loading sessions: ${error.message}</p>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="refreshSessions()">Try Again</button>
+            </div>
+          `;
+        }
+      }
+
+      // Create session card
+      function createSessionCard(session) {
+        const sessionCard = document.createElement("div");
+        sessionCard.className = "card session-card";
+
+        const cardContent = document.createElement("div");
+        cardContent.className = "card-body";
+
+        // Info section
+        const infoDiv = document.createElement("div");
+        infoDiv.innerHTML = `
+          <h6 class="mb-0">Session ID: ${session.sessionId}</h6>
+          <small class="text-muted">User: ${session.userId} | Alias: ${
+          session.alias
+        }</small>
+          ${
+            session.phoneNumber
+              ? `<br><small class="text-muted">Phone: ${session.phoneNumber}</small>`
+              : ""
+          }
+          ${
+            session.apiKey
+              ? `<br><small class="text-muted">API Key: <code>${session.apiKey.substring(
+                  0,
+                  16
+                )}...</code></small>`
+              : ""
+          }
+        `;
+
+        // Actions section
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "d-flex align-items-center";
+
+        // Status badge
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `badge bg-${getStatusColor(
+          session.status
+        )} me-2`;
+        statusBadge.textContent = session.status;
+        actionsDiv.appendChild(statusBadge);
+
+        // Buttons group
+        const btnGroup = document.createElement("div");
+        btnGroup.className = "btn-group ms-2";
+
+        // Select button - switches to Messages tab
+        const selectBtn = document.createElement("button");
+        selectBtn.className = "btn btn-sm btn-primary";
+        selectBtn.innerHTML = '<i class="bi bi-cursor"></i>';
+        selectBtn.title = "Select for Messaging";
+        selectBtn.onclick = () => selectSession(session.sessionId);
+
+        // QR Code button - only show for non-connected devices
+        if (session.status !== "connected") {
+          const qrBtn = document.createElement("button");
+          qrBtn.className = "btn btn-sm btn-warning";
+          qrBtn.innerHTML = '<i class="bi bi-qr-code"></i>';
+          qrBtn.title = "Show QR Code";
+          qrBtn.onclick = () => showQRModal(session);
+          btnGroup.appendChild(qrBtn);
+        }
+
+        // Login button - only show for logged_out devices
+        if (session.status === "logged_out") {
+          const loginBtn = document.createElement("button");
+          loginBtn.className = "btn btn-sm btn-success";
+          loginBtn.title = "Login (scan QR code to reconnect)";
+          loginBtn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i>';
+          loginBtn.onclick = () => loginDevice(session.id);
+          btnGroup.appendChild(loginBtn);
+        }
+
+        btnGroup.appendChild(selectBtn);
+
+        // Logout button - only show for connected devices
+        if (session.status === "connected") {
+          const logoutBtn = document.createElement("button");
+          logoutBtn.className = "btn btn-sm btn-warning";
+          logoutBtn.title = "Logout (clear session, keep device)";
+          logoutBtn.innerHTML = '<i class="bi bi-box-arrow-right"></i>';
+          logoutBtn.onclick = () => logoutDevice(session.id);
+          btnGroup.appendChild(logoutBtn);
+        }
+
+        // Delete button
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn btn-sm btn-danger";
+        deleteBtn.title = "Delete Device (Permanent - removes everything)";
+        deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        deleteBtn.onclick = () => deleteDevice(session.id);
+
+        btnGroup.appendChild(deleteBtn);
+        actionsDiv.appendChild(btnGroup);
+
+        cardContent.appendChild(infoDiv);
+        cardContent.appendChild(actionsDiv);
+        sessionCard.appendChild(cardContent);
+
+        return sessionCard;
+      }
+
+      // Utility functions
+      function selectSession(sessionId) {
+        const sessionSelect = document.getElementById("sessionSelect");
+        sessionSelect.value = sessionId;
+        sessionSelect.dispatchEvent(new Event("change"));
+
+        // Switch to Messages tab
+        const messagesTab = new bootstrap.Tab(
+          document.getElementById("messages-tab")
+        );
+        messagesTab.show();
+        addLogEntry("info", `Selected session: ${sessionId}`);
+      }
+
+      async function logoutDevice(deviceId) {
+        if (
+          !confirm(
+            "Are you sure you want to logout this device? You'll need to scan QR code to reconnect."
+          )
+        )
+          return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/logout`,
+            {
+              method: "POST",
+              headers: {
+                "X-API-Token": API_TOKEN,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (!response.ok) throw new Error("Failed to logout device");
+
+          const data = await response.json();
+          addLogEntry("success", `Device logged out: ${deviceId}`);
+          refreshSessions();
+        } catch (error) {
+          addLogEntry("error", "Failed to logout device", error.message);
+          alert("Error logging out device: " + error.message);
+        }
+      }
+
+      async function loginDevice(deviceId) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/login`,
+            {
+              method: "POST",
+              headers: {
+                "X-API-Token": API_TOKEN,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (!response.ok) throw new Error("Failed to login device");
+
+          const data = await response.json();
+          addLogEntry("success", `Device login initiated: ${deviceId}`);
+
+          // Show QR modal if QR code is available
+          if (data.qr) {
+            showQRModal(data.device, data.qr);
+          } else {
+            // Connect to device WebSocket for QR codes
+            currentDeviceSession = data.device.sessionId;
+            connectDeviceWebSocket(data.device.sessionId);
+            showQRModal(data.device, null);
+          }
+
+          refreshSessions();
+        } catch (error) {
+          addLogEntry("error", "Failed to login device", error.message);
+          alert("Error logging in device: " + error.message);
+        }
+      }
+
+      async function deleteDevice(deviceId) {
+        if (
+          !confirm(
+            "Are you sure you want to delete this device? This action cannot be undone."
+          )
+        )
+          return;
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+            method: "DELETE",
+            headers: { "X-API-Token": API_TOKEN },
+          });
+
+          if (!response.ok) throw new Error("Failed to delete device");
+
+          addLogEntry("success", `Deleted device: ${deviceId}`);
+          refreshSessions();
+        } catch (error) {
+          addLogEntry("error", "Failed to delete device", error.message);
+          alert("Error deleting device: " + error.message);
+        }
+      }
+
+      function getStatusColor(status) {
+        switch (status) {
+          case "connected":
+            return "success";
+          case "pending":
+            return "warning";
+          case "disconnected":
+            return "danger";
+          case "error":
+            return "danger";
+          default:
+            return "secondary";
+        }
+      }
+
+      // Helper function to get status emoji
+      function getStatusEmoji(status) {
+        switch (status) {
+          case "connected":
+            return "🟢";
+          case "pending":
+            return "🟡";
+          case "connecting":
+            return "🔄";
+          case "disconnected":
+            return "🔴";
+          case "error":
+            return "❌";
+          case "auth_failed":
+            return "🚫";
+          case "logged_out":
+            return "⚪";
+          case "reconnecting":
+            return "🔄";
+          default:
+            return "⚫";
+        }
+      }
+
+      // Helper function to check if session is ready for messaging
+      function isSessionReady(status) {
+        return status === "connected";
+      }
+
+      // Quick action handlers
+      async function handleQuickLogin() {
+        const sessionId = document.getElementById("quickActionSession").value;
+        if (!sessionId) return alert("Please select a session");
+
+        const deviceId = document.querySelector("#quickActionSession")
+          .selectedOptions[0].dataset.deviceId;
+        await loginDevice(deviceId);
+      }
+
+      async function handleQuickLogout() {
+        const sessionId = document.getElementById("quickActionSession").value;
+        if (!sessionId) return alert("Please select a session");
+
+        const deviceId = document.querySelector("#quickActionSession")
+          .selectedOptions[0].dataset.deviceId;
+        await logoutDevice(deviceId);
+      }
+
+      async function handleQuickDelete() {
+        const sessionId = document.getElementById("quickActionSession").value;
+        if (!sessionId) return alert("Please select a session");
+
+        const deviceId = document.querySelector("#quickActionSession")
+          .selectedOptions[0].dataset.deviceId;
+        await deleteDevice(deviceId);
+      }
+
+      // Filter sessions by user ID
+      async function filterByUserId() {
+        const userId = document.getElementById("filterUserId").value.trim();
+        if (!userId) {
+          alert("Please enter a User ID");
+          return;
+        }
+
+        const sessionsList = document.getElementById("sessionsList");
+        const sessionSelectors = [
+          "sessionSelect",
+          "messagesSessionSelect",
+          "contactsSessionSelect",
+          "aiSessionSelect",
+          "webhookSessionSelect",
+          "quickActionSession",
+        ];
+
+        try {
+          sessionsList.innerHTML =
+            '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+          const response = await fetch(
+            `${API_BASE_URL}/users/${userId}/devices`,
+            {
+              headers: { "X-API-Token": API_TOKEN, Accept: "application/json" },
+            }
+          );
+
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+
+          // Clear existing options
+          sessionSelectors.forEach((selectorId) => {
+            const selector = document.getElementById(selectorId);
+            if (selector) {
+              while (selector.options.length > 1) {
+                selector.remove(1);
+              }
+            }
+          });
+
+          sessionsList.innerHTML = "";
+
+          if (!data.devices || data.devices.length === 0) {
+            sessionsList.innerHTML =
+              '<div class="alert alert-info">No devices found for this user ID.</div>';
+            return;
+          }
+
+          data.devices.forEach((session) => {
+            sessionsList.appendChild(createSessionCard(session));
+
+            sessionSelectors.forEach((selectorId) => {
+              const selector = document.getElementById(selectorId);
+              if (selector) {
+                const option = new Option(
+                  `${session.userId} - ${session.alias}`,
+                  session.sessionId
+                );
+                option.dataset.deviceId = session.id;
+                selector.add(option);
+              }
+            });
+          });
+
+          addLogEntry(
+            "success",
+            `Filtered to ${data.devices.length} devices for user: ${userId}`
+          );
+        } catch (error) {
+          addLogEntry("error", "Failed to filter sessions", error.message);
+          sessionsList.innerHTML = `
+            <div class="alert alert-danger">
+              <p>Error loading sessions: ${error.message}</p>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterByUserId()">Try Again</button>
+            </div>
+          `;
+        }
+      }
+
+      // Device creation function
+      async function createDevice(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+
+          const response = await fetch(`${API_BASE_URL}/devices`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Token": API_TOKEN,
+            },
+            body: JSON.stringify({
+              userId: formData.get("userId"),
+              alias: formData.get("alias"),
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to create device");
+          }
+
+          addLogEntry("success", "Device created successfully", data);
+          form.reset();
+          refreshSessions();
+
+          // Handle QR code display
+          if (data.device && data.device.sessionId) {
+            currentDeviceSession = data.device.sessionId;
+
+            // Show QR modal first
+            showQRModal(data.device, null);
+
+            // Connect to device-specific WebSocket for real-time QR codes
+            connectDeviceWebSocket(data.device.sessionId);
+
+            addLogEntry(
+              "info",
+              "Device created, connecting to device WebSocket for QR codes...",
+              {
+                sessionId: data.device.sessionId,
+              }
+            );
+
+            // If QR is immediately available in response, show it
+            if (data.qr) {
+              showQRModal(data.device, data.qr);
+              addLogEntry("success", "QR code received immediately", {
+                sessionId: data.device.sessionId,
+              });
+            }
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to create device", error.message);
+          alert("Error creating device: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-plus-circle"></i> Create Device';
+        }
+      }
+
+      // Message sending function
+      async function sendMessage(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const messageType = formData.get("messageType");
+        const recipient = formData.get("recipient");
+        const sessionId = formData.get("sessionId");
+
+        if (!sessionId) {
+          alert("Please select a session");
+          return;
+        }
+
+        // Check if the selected session is ready for messaging
+        const sessionSelect = document.getElementById("sessionSelect");
+        const selectedOption = sessionSelect.selectedOptions[0];
+        const sessionStatus = selectedOption?.dataset.status;
+        const isReady = selectedOption?.dataset.isReady === "true";
+
+        if (!isReady) {
+          const statusMessage = sessionStatus
+            ? ` (Status: ${sessionStatus})`
+            : "";
+          alert(
+            `Cannot send message - Session is not connected${statusMessage}. Please wait for the session to connect or scan the QR code.`
+          );
+          addLogEntry(
+            "error",
+            `Attempted to send message with non-ready session: ${sessionId} [${sessionStatus}]`
+          );
+          return;
+        }
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+
+          let endpoint;
+          let requestData = {
+            sessionId,
+            recipient,
+          };
+
+          if (messageType === "text") {
+            endpoint = `${API_BASE_URL}/send`;
+            requestData.message = formData.get("message");
+          } else {
+            endpoint = `${API_BASE_URL}/send/${messageType}`;
+
+            // Get selected file ID
+            let fileId;
+            if (messageType === "image") {
+              fileId = document.getElementById("selectedImageId").value;
+              requestData.caption = formData.get("imageCaption");
+            } else if (messageType === "video") {
+              fileId = document.getElementById("selectedVideoId").value;
+              requestData.caption = formData.get("videoCaption");
+            } else if (messageType === "document") {
+              fileId = document.getElementById("selectedDocumentId").value;
+              requestData.fileName = formData.get("fileName");
+            }
+
+            if (!fileId) {
+              throw new Error(
+                `Please select a ${messageType} file from your library`
+              );
+            }
+
+            requestData.fileId = fileId;
+          }
+
+          // All requests now use JSON
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Token": API_TOKEN,
+            },
+            body: JSON.stringify(requestData),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to send message");
+          }
+
+          addLogEntry(
+            "success",
+            `${messageType} message sent successfully`,
+            data
+          );
+
+          // Reset form
+          form.reset();
+          document
+            .getElementById("messageType")
+            .dispatchEvent(new Event("change"));
+
+          // Clear selected files and previews
+          clearSelectedFile("image");
+          clearSelectedFile("video");
+          clearSelectedFile("document");
+
+          // Update message history
+          loadMessageHistory(sessionId);
+        } catch (error) {
+          addLogEntry("error", "Failed to send message", error.message);
+          alert("Error sending message: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-send"></i> Send Message';
+        }
+      }
+
+      // Load message history
+      async function loadMessageHistory(sessionId) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/messages?sessionId=${sessionId}&limit=20`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          if (!response.ok) return;
+
+          const data = await response.json();
+          const historyContainer = document.getElementById("messageHistory");
+
+          if (data.messages && data.messages.length > 0) {
+            historyContainer.innerHTML = data.messages
+              .map(
+                (msg) => `
+              <div class="mb-2 p-2 border rounded ${
+                msg.direction === "outgoing" ? "bg-light" : ""
+              }">
+                <small class="text-muted">${new Date(
+                  msg.timestamp
+                ).toLocaleString()}</small>
+                <div><strong>${
+                  msg.direction === "outgoing" ? "Sent to" : "From"
+                }:</strong> ${msg.recipient || msg.from}</div>
+                <div>${msg.message || msg.caption || "[Media]"}</div>
+              </div>
+            `
+              )
+              .join("");
+          } else {
+            historyContainer.innerHTML =
+              '<div class="text-muted">No messages found</div>';
+          }
+        } catch (error) {
+          console.error("Failed to load message history:", error);
+        }
+      }
+
+      // Get messages function
+      async function getMessages(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+
+          const sessionId = formData.get("sessionId");
+          const limit = formData.get("limit") || 50;
+          const offset = formData.get("offset") || 0;
+
+          const response = await fetch(
+            `${API_BASE_URL}/messages?sessionId=${sessionId}&limit=${limit}&offset=${offset}`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to get messages");
+          }
+
+          addLogEntry("success", `Retrieved ${data.messages.length} messages`);
+
+          const resultContainer = document.getElementById("messagesResult");
+          resultContainer.style.display = "block";
+          if (data.messages.length > 0) {
+            resultContainer.innerHTML = `
+              <h6>Messages (${data.messages.length})</h6>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Direction</th>
+                      <th>Contact</th>
+                      <th>Message</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.messages
+                      .map(
+                        (msg) => `
+                      <tr>
+                        <td><small>${new Date(
+                          msg.timestamp
+                        ).toLocaleString()}</small></td>
+                        <td><span class="badge bg-${
+                          msg.direction === "outgoing" ? "primary" : "secondary"
+                        }">${msg.direction}</span></td>
+                        <td>${msg.recipient || msg.from}</td>
+                        <td>${msg.message || msg.caption || "[Media]"}</td>
+                      </tr>
+                    `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            resultContainer.innerHTML =
+              '<div class="alert alert-info">No messages found</div>';
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to get messages", error.message);
+          document.getElementById(
+            "messagesResult"
+          ).innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-download"></i> Get Messages';
+        }
+      }
+
+      // Contact and data extraction functions
+      async function extractContacts(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const sessionId = formData.get("sessionId");
+        const dataType = formData.get("dataType");
+
+        if (!sessionId) {
+          alert("Please select a session");
+          return;
+        }
+
+        const submitButton = form.querySelector('button[type="submit"]');
+        try {
+          submitButton.disabled = true;
+          submitButton.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Extracting...';
+
+          // Get device ID from session selector
+          const sessionSelect = document.getElementById(
+            "contactsSessionSelect"
+          );
+          const deviceId = sessionSelect.selectedOptions[0]?.dataset.deviceId;
+
+          if (!deviceId) {
+            throw new Error("Device ID not found for selected session");
+          }
+
+          let endpoint;
+          switch (dataType) {
+            case "contacts":
+              endpoint = `${API_BASE_URL}/contacts/${deviceId}`;
+              break;
+            case "chats":
+              endpoint = `${API_BASE_URL}/chats/${deviceId}`;
+              break;
+            case "groups":
+              endpoint = `${API_BASE_URL}/groups/${deviceId}`;
+              break;
+            default:
+              endpoint = `${API_BASE_URL}/contacts/${deviceId}`;
+          }
+
+          const response = await fetch(endpoint, {
+            method: "GET",
+            headers: {
+              "X-API-Token": API_TOKEN,
+            },
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || `Failed to extract ${dataType}`);
+          }
+
+          const resultContainer = document.getElementById("contactsResult");
+          resultContainer.style.display = "block";
+
+          let resultData;
+          let resultTitle;
+
+          if (dataType === "contacts") {
+            resultData = data.contacts;
+            resultTitle = "Contacts";
+          } else if (dataType === "chats") {
+            resultData = data.chats;
+            resultTitle = "Chats";
+          } else if (dataType === "groups") {
+            resultData = data.groups;
+            resultTitle = "Groups";
+          }
+
+          addLogEntry(
+            "success",
+            `Extracted ${resultData?.length || 0} ${dataType}`
+          );
+
+          if (resultData && resultData.length > 0) {
+            let tableHeaders = "";
+            let tableRows = "";
+
+            if (dataType === "contacts") {
+              tableHeaders = "<tr><th>Name</th><th>Phone</th></tr>";
+              tableRows = resultData
+                .map(
+                  (contact) => `
+                <tr>
+                  <td>${contact.name || "N/A"}</td>
+                  <td>${contact.id || contact.phoneNumber}</td>
+                </tr>
+              `
+                )
+                .join("");
+            } else if (dataType === "chats") {
+              tableHeaders =
+                "<tr><th>Name</th><th>ID</th><th>Unread</th><th>Last Message</th></tr>";
+              tableRows = resultData
+                .map(
+                  (chat) => `
+                <tr>
+                  <td>${chat.name || "N/A"}</td>
+                  <td>${chat.id}</td>
+                  <td>${chat.unreadCount || 0}</td>
+                  <td>${
+                    chat.lastMessage
+                      ? new Date(chat.lastMessage).toLocaleString()
+                      : "N/A"
+                  }</td>
+                </tr>
+              `
+                )
+                .join("");
+            } else if (dataType === "groups") {
+              tableHeaders =
+                "<tr><th>Name</th><th>ID</th><th>Participants</th><th>Description</th></tr>";
+              tableRows = resultData
+                .map(
+                  (group) => `
+                <tr>
+                  <td>${group.subject || "N/A"}</td>
+                  <td>${group.id}</td>
+                  <td>${group.participants?.length || 0}</td>
+                  <td>${group.desc || "No description"}</td>
+                </tr>
+              `
+                )
+                .join("");
+            }
+
+            resultContainer.innerHTML = `
+              <h6>${resultTitle} (${resultData.length})</h6>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>${tableHeaders}</thead>
+                  <tbody>${tableRows}</tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            resultContainer.innerHTML = `<div class="alert alert-info">No ${dataType} found</div>`;
+          }
+        } catch (error) {
+          addLogEntry("error", `Failed to extract ${dataType}`, error.message);
+          const resultContainer = document.getElementById("contactsResult");
+          resultContainer.style.display = "block";
+          resultContainer.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+          submitButton.disabled = false;
+          submitButton.innerHTML =
+            '<i class="bi bi-download"></i> Extract Data';
+        }
+      }
+
+      // Note: extractUserData function removed as getUserDataForm doesn't have a submit button
+      // Individual buttons (getUserDevicesBtn, getUserContactsBtn) handle their own actions
+
+      // Settings functions
+      async function loadAISettings() {
+        const sessionSelect = document.getElementById("aiSessionSelect");
+        const deviceId = sessionSelect.selectedOptions[0]?.dataset.deviceId;
+
+        if (!deviceId) {
+          alert("Please select a session");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/settings/ai`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById("aiEnabled").checked =
+              data.aiEnabled || false;
+            document.getElementById("aiAutoReply").checked =
+              data.aiAutoReply || false;
+            document.getElementById("aiBotName").value = data.aiBotName || "";
+            addLogEntry("success", "AI settings loaded");
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to load AI settings", error.message);
+        }
+      }
+
+      async function updateAISettings(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+
+          const sessionSelect = document.getElementById("aiSessionSelect");
+          const deviceId = sessionSelect.selectedOptions[0]?.dataset.deviceId;
+
+          if (!deviceId) {
+            throw new Error("Please select a session");
+          }
+
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/settings/ai`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-API-Token": API_TOKEN,
+              },
+              body: JSON.stringify({
+                aiEnabled: formData.has("enabled"),
+                aiAutoReply: formData.has("autoReply"),
+                aiBotName: formData.get("botName"),
+                aiMaxTokens: 500,
+                aiTemperature: 0.7,
+                aiLanguage: "en",
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to update AI settings");
+          }
+
+          addLogEntry("success", "AI settings updated successfully");
+          alert("AI settings updated successfully!");
+        } catch (error) {
+          addLogEntry("error", "Failed to update AI settings", error.message);
+          alert("Error updating AI settings: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-check"></i> Update Settings';
+        }
+      }
+
+      async function loadWebhookSettings() {
+        const sessionSelect = document.getElementById("webhookSessionSelect");
+        const deviceId = sessionSelect.selectedOptions[0]?.dataset.deviceId;
+
+        if (!deviceId) {
+          alert("Please select a session");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/settings/webhook`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById("webhookEnabled").checked =
+              data.webhookEnabled || false;
+            document.getElementById("webhookUrl").value = data.webhookUrl || "";
+            addLogEntry("success", "Webhook settings loaded");
+          }
+        } catch (error) {
+          addLogEntry(
+            "error",
+            "Failed to load webhook settings",
+            error.message
+          );
+        }
+      }
+
+      async function updateWebhookSettings(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+
+          const sessionSelect = document.getElementById("webhookSessionSelect");
+          const deviceId = sessionSelect.selectedOptions[0]?.dataset.deviceId;
+
+          if (!deviceId) {
+            throw new Error("Please select a session");
+          }
+
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/settings/webhook`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-API-Token": API_TOKEN,
+              },
+              body: JSON.stringify({
+                webhookEnabled: formData.has("enabled"),
+                webhookUrl: formData.get("url"),
+                webhookEvents: ["message", "connection", "qr"],
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to update webhook settings");
+          }
+
+          addLogEntry("success", "Webhook settings updated successfully");
+          alert("Webhook settings updated successfully!");
+        } catch (error) {
+          addLogEntry(
+            "error",
+            "Failed to update webhook settings",
+            error.message
+          );
+          alert("Error updating webhook settings: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-check"></i> Update Settings';
+        }
+      }
+
+      // API Key testing functions
+      async function sendApiKeyMessage(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+
+          const response = await fetch(`${API_BASE_URL}/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Token": API_TOKEN,
+              "X-Device-API-Key": formData.get("apiKey"),
+            },
+            body: JSON.stringify({
+              recipient: formData.get("recipient"),
+              message: formData.get("message"),
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to send message via API key");
+          }
+
+          addLogEntry("success", "Message sent via API key successfully", data);
+          alert("Message sent successfully!");
+          form.reset();
+        } catch (error) {
+          addLogEntry(
+            "error",
+            "Failed to send message via API key",
+            error.message
+          );
+          alert("Error sending message: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-send"></i> Send via API Key';
+        }
+      }
+
+      async function sendApiKeyImage(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          form.querySelector('button[type="submit"]').disabled = true;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+
+          const uploadFormData = new FormData();
+          uploadFormData.append("recipient", formData.get("recipient"));
+          uploadFormData.append("file", formData.get("imageFile"));
+          if (formData.get("caption")) {
+            uploadFormData.append("caption", formData.get("caption"));
+          }
+
+          const response = await fetch(`${API_BASE_URL}/send/image`, {
+            method: "POST",
+            headers: {
+              "X-API-Token": API_TOKEN,
+              "X-Device-API-Key": formData.get("apiKey"),
+            },
+            body: uploadFormData,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to send image via API key");
+          }
+
+          addLogEntry("success", "Image sent via API key successfully", data);
+          alert("Image sent successfully!");
+          form.reset();
+          document.getElementById("apiKeyImagePreview").innerHTML = "";
+        } catch (error) {
+          addLogEntry(
+            "error",
+            "Failed to send image via API key",
+            error.message
+          );
+          alert("Error sending image: " + error.message);
+        } finally {
+          form.querySelector('button[type="submit"]').disabled = false;
+          form.querySelector('button[type="submit"]').innerHTML =
+            '<i class="bi bi-image"></i> Send Image via API Key';
+        }
+      }
+
+      // QR Code and monitoring functions
+      async function showQRModal(device, immediateQR = null) {
+        const modal = new bootstrap.Modal(document.getElementById("qrModal"));
+        const qrContainer = document.getElementById("modalQrContainer");
+        const reloadBtn = document.getElementById("reloadQrBtn");
+
+        // Store current session for reload functionality
+        reloadBtn.dataset.deviceId = device.id;
+        reloadBtn.dataset.sessionId = device.sessionId;
+
+        modal.show();
+
+        if (immediateQR) {
+          // Display immediate QR code from API response
+          qrContainer.innerHTML = `
+            <div class="text-center">
+              <p class="text-success"><i class="bi bi-wifi"></i> Device Created Successfully</p>
+              <p>Scan this QR code with WhatsApp</p>
+              <img src="data:image/png;base64,${immediateQR}" class="img-fluid" style="max-width: 300px;" />
+              <p class="text-muted mt-2">Session: ${device.sessionId}</p>
+              <small class="text-info">QR code received immediately</small>
+            </div>
+          `;
+          addLogEntry(
+            "success",
+            `QR code displayed for session: ${device.sessionId}`
+          );
+        } else {
+          // Show loading state and wait for WebSocket or fetch from API
+          qrContainer.innerHTML =
+            '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading QR Code...</span></div><p class="mt-2">Waiting for QR code...</p></div>';
+
+          try {
+            const response = await fetch(
+              `${API_BASE_URL}/devices/${device.id}/qr`,
+              {
+                headers: { "X-API-Token": API_TOKEN },
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.qrCode) {
+                qrContainer.innerHTML = `
+                  <div class="text-center">
+                    <p>Scan this QR code with WhatsApp</p>
+                    <img src="${data.qrCode}" class="img-fluid" style="max-width: 300px;" />
+                    <p class="text-muted mt-2">Session: ${device.sessionId}</p>
+                  </div>
+                `;
+                addLogEntry(
+                  "success",
+                  `QR code loaded for session: ${device.sessionId}`
+                );
+              } else {
+                qrContainer.innerHTML =
+                  '<div class="alert alert-warning">QR code not available. Device may already be connected.</div>';
+              }
+            } else {
+              qrContainer.innerHTML = `
+                <div class="text-center">
+                  <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Waiting for QR Code...</span>
+                  </div>
+                  <p>Waiting for QR code via WebSocket...</p>
+                  <p class="text-muted">Session: ${device.sessionId}</p>
+                  <small class="text-info">Using main WebSocket connection</small>
+                </div>
+              `;
+            }
+          } catch (error) {
+            addLogEntry("error", "Failed to load QR code", error.message);
+            qrContainer.innerHTML = `
+              <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                  <span class="visually-hidden">Waiting for QR Code...</span>
+                </div>
+                <p>Waiting for QR code via WebSocket...</p>
+                <p class="text-muted">Session: ${device.sessionId}</p>
+                <small class="text-info">Using main WebSocket connection</small>
+              </div>
+            `;
+          }
+        }
+      }
+
+      async function handleQRReload() {
+        const deviceId =
+          document.getElementById("reloadQrBtn").dataset.deviceId;
+        const sessionId =
+          document.getElementById("reloadQrBtn").dataset.sessionId;
+
+        if (deviceId && sessionId) {
+          await reloadQR(deviceId);
+
+          // Reconnect device WebSocket if needed
+          if (
+            currentDeviceSession === sessionId &&
+            (!deviceWs || deviceWs.readyState !== WebSocket.OPEN)
+          ) {
+            addLogEntry("info", "Reconnecting device WebSocket for QR reload");
+            connectDeviceWebSocket(sessionId);
+          }
+        }
+      }
+
+      async function reloadQR(deviceId) {
+        const qrContainer = document.getElementById("modalQrContainer");
+
+        try {
+          qrContainer.innerHTML =
+            '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Reloading QR Code...</span></div></div>';
+
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/login`,
+            {
+              method: "POST",
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+
+            // Show QR immediately if available
+            if (data.qr) {
+              updateQRModalWithWebSocketData({
+                qr: data.qr,
+                sessionId: data.device.sessionId,
+              });
+              addLogEntry(
+                "success",
+                "QR code received immediately from login endpoint"
+              );
+            } else {
+              qrContainer.innerHTML = `
+                <div class="text-center">
+                  <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Waiting for new QR Code...</span>
+                  </div>
+                  <p>Login/relogin initiated. Connecting to WebSocket for real-time updates...</p>
+                </div>
+              `;
+            }
+
+            // Always connect to WebSocket for real-time updates
+            currentDeviceSession = data.device.sessionId;
+            connectDeviceWebSocket(data.device.sessionId);
+
+            addLogEntry(
+              "success",
+              `Login/relogin initiated for session: ${data.device.sessionId}`
+            );
+          } else {
+            qrContainer.innerHTML =
+              '<div class="alert alert-danger">Failed to reload QR code. Please try again.</div>';
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to reload QR code", error.message);
+          qrContainer.innerHTML =
+            '<div class="alert alert-danger">Error reloading QR code. Please try again.</div>';
+        }
+      }
+
+      async function handleQRCancel() {
+        // Clear device tracking and cleanup if active
+        if (currentDeviceSession) {
+          const sessionId = currentDeviceSession;
+          addLogEntry("info", `Cancelling session: ${sessionId}`);
+
+          try {
+            // Cancel the session on the server
+            const response = await fetch(
+              `${API_BASE_URL}/sessions/${sessionId}/cancel`,
+              {
+                method: "POST",
+                headers: { "X-API-Token": API_TOKEN },
+              }
+            );
+
+            if (response.ok) {
+              addLogEntry(
+                "success",
+                `Session cancelled successfully: ${sessionId}`
+              );
+            } else {
+              addLogEntry(
+                "warning",
+                `Failed to cancel session on server: ${sessionId}`
+              );
+            }
+          } catch (error) {
+            addLogEntry(
+              "error",
+              "Error cancelling session on server",
+              error.message
+            );
+          }
+
+          // Close device WebSocket connection
+          if (deviceWs && deviceWs.readyState === WebSocket.OPEN) {
+            deviceWs.close(1000, "User cancelled");
+            deviceWs = null;
+            addLogEntry("info", "Device WebSocket connection closed");
+          }
+
+          // Clear tracking
+          currentDeviceSession = null;
+        }
+
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("qrModal")
+        );
+        if (modal) {
+          modal.hide();
+        }
+
+        addLogEntry("info", "QR code modal closed and session cancelled");
+      }
+
+      function updateQRModalWithWebSocketData(data) {
+        const qrContainer = document.getElementById("modalQrContainer");
+
+        if (data.qr) {
+          // Use QRCode library to generate QR code from text data
+          qrContainer.innerHTML = `
+            <div class="text-center">
+              <p>Scan this QR code with WhatsApp</p>
+              <div id="modalQrCodeCanvas" style="display: inline-block;"></div>
+              <p class="text-muted mt-2">Session: ${data.sessionId}</p>
+              <p class="text-success"><i class="bi bi-wifi"></i> Connected via Device WebSocket</p>
+            </div>
+          `;
+
+          // Generate QR code using QRCode library
+          const generateQR = () => {
+            if (typeof QRCode !== "undefined") {
+              try {
+                const qrDiv = document.getElementById("modalQrCodeCanvas");
+                qrDiv.innerHTML = ""; // Clear previous QR code
+                new QRCode(qrDiv, {
+                  text: data.qr,
+                  width: 300,
+                  height: 300,
+                  colorDark: "#000000",
+                  colorLight: "#ffffff",
+                  correctLevel: QRCode.CorrectLevel.H,
+                });
+                addLogEntry(
+                  "success",
+                  `QR code generated for session: ${data.sessionId}`
+                );
+              } catch (error) {
+                console.error("Error generating QR code:", error);
+                qrContainer.innerHTML = `
+                  <div class="alert alert-danger text-center">
+                    <p>Error generating QR code</p>
+                    <small>${error.message}</small>
+                  </div>
+                `;
+              }
+            } else {
+              console.log("QRCode library not ready, retrying...");
+              setTimeout(generateQR, 100);
+            }
+          };
+          generateQR();
+
+          addLogEntry(
+            "success",
+            `QR code received via Device WebSocket: ${data.sessionId}`
+          );
+        } else {
+          qrContainer.innerHTML = `
+            <div class="alert alert-warning text-center">
+              <p>QR code not available</p>
+              <p class="text-muted">Session: ${data.sessionId}</p>
+            </div>
+          `;
+        }
+      }
+
+      function hideQRModal() {
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("qrModal")
+        );
+        if (modal) {
+          modal.hide();
+        }
+
+        // Hide monitoring QR as well
+        const monitoringQRContainer = document.getElementById("qrContainer");
+        if (monitoringQRContainer) {
+          monitoringQRContainer.style.display = "none";
+          document.getElementById("noQrMessage").style.display = "block";
+        }
+      }
+
+      // Monitoring functions
+      async function checkAllConnections() {
+        try {
+          document.getElementById("checkAllConnectionsBtn").disabled = true;
+          document.getElementById("checkAllConnectionsBtn").innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Checking...';
+
+          const response = await fetch(`${API_BASE_URL}/sessions`, {
+            headers: { "X-API-Token": API_TOKEN },
+          });
+
+          const data = await response.json();
+          const statusElement = document.getElementById("connectionStatus");
+
+          if (response.ok && data.success) {
+            statusElement.className = "badge status-badge bg-success";
+            statusElement.textContent = `${
+              data.sessions?.length || 0
+            } Sessions Active`;
+            addLogEntry("success", "Health check passed", data);
+          } else {
+            statusElement.className = "badge status-badge bg-warning";
+            statusElement.textContent = "Some Issues Detected";
+            addLogEntry("warning", "Health check issues detected", data);
+          }
+        } catch (error) {
+          const statusElement = document.getElementById("connectionStatus");
+          statusElement.className = "badge status-badge bg-danger";
+          statusElement.textContent = "Connection Failed";
+          addLogEntry("error", "Health check failed", error.message);
+        } finally {
+          document.getElementById("checkAllConnectionsBtn").disabled = false;
+          document.getElementById("checkAllConnectionsBtn").innerHTML =
+            '<i class="bi bi-arrow-clockwise"></i> Check All Connections';
+        }
+      }
+
+      function reconnectWebSocket() {
+        if (ws) {
+          ws.close();
+        }
+        initWebSocket();
+      }
+
+      // WebSocket functionality
+      function initWebSocket() {
+        try {
+          if (ws) {
+            ws.close();
+          }
+
+          ws = new WebSocket(`${WS_BASE_URL}?token=${API_TOKEN}`);
+
+          ws.onopen = function () {
+            addLogEntry("success", "Main WebSocket connected");
+            document.getElementById("connectionStatus").className =
+              "badge status-badge bg-success";
+            document.getElementById("connectionStatus").textContent =
+              "Connected";
+            reconnectAttempts = 0;
+
+            // Main WebSocket is for general monitoring, not QR codes
+            console.log("Main WebSocket connected for general monitoring");
+          };
+
+          ws.onmessage = function (event) {
+            try {
+              const data = JSON.parse(event.data);
+              addLogEntry("info", "Main WebSocket message received", data);
+
+              // Handle general messages (not QR codes, those are handled by device WebSocket)
+              if (
+                (data.type === "connection" ||
+                  data.type === "session_update") &&
+                data.status === "connected"
+              ) {
+                addLogEntry("success", `Device connected: ${data.sessionId}`);
+                refreshSessions();
+              } else if (data.type === "message") {
+                // New message received
+                if (currentSessionId === data.sessionId) {
+                  loadMessageHistory(data.sessionId);
+                }
+              } else if (data.type === "session_update" && data.status) {
+                addLogEntry(
+                  "info",
+                  `Session status update: ${data.sessionId} -> ${data.status}`
+                );
+                // Refresh sessions on any status change to keep UI in sync
+                refreshSessions();
+              }
+            } catch (error) {
+              addLogEntry(
+                "error",
+                "Failed to parse main WebSocket message",
+                error.message
+              );
+            }
+          };
+
+          ws.onclose = function (event) {
+            addLogEntry("warning", "Main WebSocket disconnected", {
+              code: event.code,
+              reason: event.reason,
+            });
+            document.getElementById("connectionStatus").className =
+              "badge status-badge bg-warning";
+            document.getElementById("connectionStatus").textContent =
+              "Disconnected";
+
+            // Attempt reconnection
+            if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+              reconnectAttempts++;
+              addLogEntry(
+                "info",
+                `Attempting main WebSocket reconnection ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`
+              );
+              setTimeout(initWebSocket, 5000 * reconnectAttempts);
+            }
+          };
+
+          ws.onerror = function (error) {
+            addLogEntry("error", "Main WebSocket error", error);
+            document.getElementById("connectionStatus").className =
+              "badge status-badge bg-danger";
+            document.getElementById("connectionStatus").textContent = "Error";
+          };
+        } catch (error) {
+          addLogEntry(
+            "error",
+            "Failed to initialize main WebSocket",
+            error.message
+          );
+        }
+      }
+
+      // User data functions
+      async function getUserDevices() {
+        const userId = document.getElementById("userIdForData").value.trim();
+        if (!userId) {
+          alert("Please enter a User ID");
+          return;
+        }
+
+        const button = document.getElementById("getUserDevicesBtn");
+        try {
+          button.disabled = true;
+          button.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+
+          const response = await fetch(
+            `${API_BASE_URL}/users/${userId}/devices`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to get user devices");
+          }
+
+          addLogEntry(
+            "success",
+            `Retrieved ${data.devices?.length || 0} devices for user: ${userId}`
+          );
+
+          const resultContainer = document.getElementById("userDataResult");
+          resultContainer.style.display = "block";
+
+          if (data.devices && data.devices.length > 0) {
+            resultContainer.innerHTML = `
+              <h6>Devices for User: ${userId} (${data.devices.length})</h6>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr><th>Alias</th><th>Session ID</th><th>Status</th><th>Phone</th><th>API Key</th></tr>
+                  </thead>
+                  <tbody>
+                    ${data.devices
+                      .map(
+                        (device) => `
+                      <tr>
+                        <td>${device.alias}</td>
+                        <td>${device.sessionId}</td>
+                        <td><span class="badge bg-${getStatusColor(
+                          device.status
+                        )}">${device.status}</span></td>
+                        <td>${device.phoneNumber || "N/A"}</td>
+                        <td><small><code>${
+                          device.apiKey
+                            ? device.apiKey.substring(0, 16) + "..."
+                            : "N/A"
+                        }</code></small></td>
+                      </tr>
+                    `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            resultContainer.innerHTML =
+              '<div class="alert alert-info">No devices found for this user.</div>';
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to get user devices", error.message);
+          const resultContainer = document.getElementById("userDataResult");
+          resultContainer.style.display = "block";
+          resultContainer.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-phone"></i> Get Devices';
+        }
+      }
+
+      async function getUserContacts() {
+        const userId = document.getElementById("userIdForData").value.trim();
+        if (!userId) {
+          alert("Please enter a User ID");
+          return;
+        }
+
+        const button = document.getElementById("getUserContactsBtn");
+        try {
+          button.disabled = true;
+          button.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+
+          const response = await fetch(
+            `${API_BASE_URL}/contacts/user/${userId}`,
+            {
+              headers: { "X-API-Token": API_TOKEN },
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to get user contacts");
+          }
+
+          addLogEntry(
+            "success",
+            `Retrieved ${
+              data.contacts?.length || 0
+            } contacts for user: ${userId}`
+          );
+
+          const resultContainer = document.getElementById("userDataResult");
+          resultContainer.style.display = "block";
+
+          if (data.contacts && data.contacts.length > 0) {
+            resultContainer.innerHTML = `
+              <h6>Contacts for User: ${userId} (${data.contacts.length})</h6>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr><th>Contact Name</th><th>WhatsApp Name</th><th>Phone</th><th>Source</th><th>Last Seen</th></tr>
+                  </thead>
+                  <tbody>
+                    ${data.contacts
+                      .map(
+                        (contact) => `
+                      <tr>
+                        <td>${contact.contactName || "N/A"}</td>
+                        <td>${contact.whatsappName || "N/A"}</td>
+                        <td>${contact.phoneNumber}</td>
+                        <td><span class="badge bg-info">${
+                          contact.source
+                        }</span></td>
+                        <td>${
+                          contact.lastSeen
+                            ? new Date(contact.lastSeen).toLocaleDateString()
+                            : "N/A"
+                        }</td>
+                      </tr>
+                    `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            resultContainer.innerHTML =
+              '<div class="alert alert-info">No contacts found for this user.</div>';
+          }
+        } catch (error) {
+          addLogEntry("error", "Failed to get user contacts", error.message);
+          const resultContainer = document.getElementById("userDataResult");
+          resultContainer.style.display = "block";
+          resultContainer.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+          button.disabled = false;
+          button.innerHTML = '<i class="bi bi-people"></i> Get Contacts';
+        }
+      }
+
+      // Device-specific WebSocket connection for QR codes
+      function connectDeviceWebSocket(sessionId) {
+        if (deviceWs) {
+          console.log("Closing existing device WebSocket connection");
+          deviceWs.close();
+        }
+
+        const wsUrl = `${WS_BASE_URL}?token=${API_TOKEN}`;
+        console.log("Connecting to device WebSocket:", wsUrl);
+        addLogEntry("info", "Connecting to device WebSocket", {
+          sessionId,
+          wsUrl,
+        });
+
+        deviceWs = new WebSocket(wsUrl);
+
+        deviceWs.onopen = () => {
+          console.log("Device WebSocket connected for session:", sessionId);
+          addLogEntry("success", "Device WebSocket connected", { sessionId });
+          deviceReconnectAttempts = 0;
+
+          // CRITICAL: Subscribe to the specific session to receive QR codes
+          const subscribeMessage = {
+            type: "subscribe",
+            sessionId: sessionId,
+          };
+          console.log("Sending subscribe message:", subscribeMessage);
+          deviceWs.send(JSON.stringify(subscribeMessage));
+          addLogEntry("info", "Subscribed to session for QR codes", {
+            sessionId,
+          });
+        };
+
+        deviceWs.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("Device WebSocket message received:", {
+              type: data.type,
+              sessionId: data.sessionId,
+              hasQR: data.type === "qr" && !!data.qr,
+            });
+            addLogEntry("info", "Device WebSocket message received", data);
+
+            // Only handle messages for our tracked session
+            if (data.sessionId === currentDeviceSession) {
+              switch (data.type) {
+                case "qr":
+                  if (data.qr) {
+                    updateQRModalWithWebSocketData(data);
+                  }
+                  break;
+                case "connection":
+                case "connected":
+                case "session_update":
+                  console.log(
+                    "Device connection status:",
+                    data.status || data.type
+                  );
+                  if (
+                    data.status === "connected" ||
+                    data.type === "connected"
+                  ) {
+                    // Hide QR modal when device connects
+                    hideQRModal();
+                    currentDeviceSession = null;
+                    addLogEntry("success", "Device connected successfully");
+                    // Close device WebSocket
+                    if (deviceWs) {
+                      deviceWs.close();
+                      deviceWs = null;
+                    }
+                    // Refresh sessions list
+                    refreshSessions();
+                  } else if (data.status) {
+                    // Handle other status updates (connecting, pending, etc.)
+                    addLogEntry("info", `Device status: ${data.status}`, {
+                      sessionId: data.sessionId,
+                    });
+                  }
+                  break;
+                case "message":
+                  addLogEntry("info", "New message received", data.message);
+                  break;
+              }
+            }
+          } catch (error) {
+            console.error("Error parsing device WebSocket message:", error);
+            addLogEntry(
+              "error",
+              "Failed to parse device WebSocket message",
+              error.message
+            );
+          }
+        };
+
+        deviceWs.onclose = (event) => {
+          console.log(
+            "Device WebSocket disconnected, code:",
+            event.code,
+            "reason:",
+            event.reason
+          );
+          addLogEntry("warning", "Device WebSocket disconnected", {
+            code: event.code,
+            reason: event.reason,
+            sessionId: sessionId,
+          });
+
+          // Don't reconnect if closed normally or session completed
+          if (
+            event.code === 1000 ||
+            event.code === 1001 ||
+            !currentDeviceSession
+          ) {
+            console.log(
+              "Device WebSocket closed normally or session completed"
+            );
+            return;
+          }
+
+          // Reconnect for unexpected disconnections
+          if (
+            deviceReconnectAttempts < MAX_RECONNECT_ATTEMPTS &&
+            currentDeviceSession === sessionId
+          ) {
+            deviceReconnectAttempts++;
+            const delay = Math.min(
+              1000 * Math.pow(2, deviceReconnectAttempts),
+              30000
+            );
+            console.log(
+              `Reconnecting device WebSocket in ${
+                delay / 1000
+              }s... (${deviceReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
+            );
+            addLogEntry(
+              "info",
+              `Reconnecting device WebSocket in ${
+                delay / 1000
+              }s... (${deviceReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`
+            );
+            setTimeout(() => connectDeviceWebSocket(sessionId), delay);
+          } else {
+            console.log("Max reconnection attempts reached or session changed");
+            addLogEntry(
+              "error",
+              "Max reconnection attempts reached for device WebSocket"
+            );
+          }
+        };
+
+        deviceWs.onerror = (error) => {
+          console.error("Device WebSocket error:", error);
+          addLogEntry("error", "Device WebSocket error", error);
+        };
+      }
+
+      // Server Monitoring Functions
+      let serverStatsInterval = null;
+
+      async function refreshServerStats() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/server/stats`, {
+            headers: {
+              "X-API-Token": API_TOKEN,
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const stats = await response.json();
+          updateServerStatsDisplay(stats);
+          addLogEntry("success", "Server stats refreshed");
+        } catch (error) {
+          console.error("Error fetching server stats:", error);
+          addLogEntry("error", "Failed to fetch server stats", error.message);
+        }
+      }
+
+      function updateServerStatsDisplay(stats) {
+        // Update WhatsApp API Process Memory (Highlighted Section)
+        document.getElementById("processRSS").textContent =
+          stats.process.memory.formatted.rss;
+        document.getElementById("processHeap").textContent =
+          stats.process.memory.formatted.heapUsed;
+        document.getElementById("processExternal").textContent =
+          stats.process.memory.formatted.external;
+        document.getElementById(
+          "processPidDisplay"
+        ).textContent = `PID: ${stats.process.pid}`;
+        document.getElementById(
+          "processUptimeDisplay"
+        ).textContent = `Uptime: ${stats.uptime.formatted.process}`;
+
+        // Update CPU usage
+        const cpuUsage = Math.round(stats.cpu.usage);
+        document.getElementById("cpuUsage").textContent = `${cpuUsage}%`;
+        document.getElementById("cpuProgress").style.width = `${cpuUsage}%`;
+        document.getElementById(
+          "cpuCores"
+        ).textContent = `${stats.cpu.cores} cores`;
+
+        // Update CPU progress bar color based on usage
+        const cpuProgressBar = document.getElementById("cpuProgress");
+        cpuProgressBar.className = "progress-bar";
+        if (cpuUsage < 50) {
+          cpuProgressBar.classList.add("bg-success");
+        } else if (cpuUsage < 80) {
+          cpuProgressBar.classList.add("bg-warning");
+        } else {
+          cpuProgressBar.classList.add("bg-danger");
+        }
+
+        // Update Memory usage
+        const ramUsagePercent = Math.round(stats.memory.usagePercent);
+        document.getElementById("ramUsage").textContent =
+          stats.memory.formatted.used;
+        document.getElementById("ramTotal").textContent =
+          stats.memory.formatted.total;
+        document.getElementById(
+          "ramProgress"
+        ).style.width = `${ramUsagePercent}%`;
+
+        // Update RAM progress bar color based on usage
+        const ramProgressBar = document.getElementById("ramProgress");
+        ramProgressBar.className = "progress-bar";
+        if (ramUsagePercent < 60) {
+          ramProgressBar.classList.add("bg-success");
+        } else if (ramUsagePercent < 85) {
+          ramProgressBar.classList.add("bg-warning");
+        } else {
+          ramProgressBar.classList.add("bg-danger");
+        }
+
+        // Update Disk usage
+        const diskUsagePercent = stats.disk.usagePercent || 0;
+        document.getElementById("diskUsage").textContent =
+          stats.disk.used || "N/A";
+        document.getElementById("diskTotal").textContent =
+          stats.disk.total || "N/A";
+        document.getElementById(
+          "diskProgress"
+        ).style.width = `${diskUsagePercent}%`;
+
+        // Update Disk progress bar color based on usage
+        const diskProgressBar = document.getElementById("diskProgress");
+        diskProgressBar.className = "progress-bar";
+        if (diskUsagePercent < 70) {
+          diskProgressBar.classList.add("bg-success");
+        } else if (diskUsagePercent < 90) {
+          diskProgressBar.classList.add("bg-warning");
+        } else {
+          diskProgressBar.classList.add("bg-danger");
+        }
+
+        // Update System Info
+        document.getElementById(
+          "sysPlatform"
+        ).textContent = `${stats.platform.type} (${stats.platform.platform})`;
+        document.getElementById("sysArch").textContent = stats.platform.arch;
+        document.getElementById("sysHostname").textContent =
+          stats.platform.hostname;
+        document.getElementById("sysUptime").textContent =
+          stats.uptime.formatted.system;
+
+        // Update Process Info (keeping the existing section for compatibility)
+        document.getElementById("processPid").textContent = stats.process.pid;
+        document.getElementById("nodeUptime").textContent =
+          stats.uptime.formatted.process;
+        document.getElementById("heapUsed").textContent =
+          stats.process.memory.formatted.heapUsed;
+        document.getElementById("rssMemory").textContent =
+          stats.process.memory.formatted.rss;
+      }
+
+      // Start auto-refresh when monitoring tab is active
+      function startServerStatsAutoRefresh() {
+        if (serverStatsInterval) {
+          clearInterval(serverStatsInterval);
+        }
+
+        // Initial load
+        refreshServerStats();
+
+        // Auto-refresh every 5 seconds
+        serverStatsInterval = setInterval(refreshServerStats, 5000);
+      }
+
+      function stopServerStatsAutoRefresh() {
+        if (serverStatsInterval) {
+          clearInterval(serverStatsInterval);
+          serverStatsInterval = null;
+        }
+      }
+
+      // Auto-refresh server stats when monitoring tab is shown
+      document.addEventListener("DOMContentLoaded", function () {
+        const monitoringTab = document.getElementById("monitoring-tab");
+        if (monitoringTab) {
+          monitoringTab.addEventListener("shown.bs.tab", function (e) {
+            console.log("Monitoring tab activated, starting auto-refresh");
+            startServerStatsAutoRefresh();
+          });
+
+          monitoringTab.addEventListener("hidden.bs.tab", function (e) {
+            console.log("Monitoring tab hidden, stopping auto-refresh");
+            stopServerStatsAutoRefresh();
+          });
+        }
+      });
+
+      // File Selection Functions
+      async function openFileSelectionModal(fileType) {
+        const userId = document.getElementById("userIdForSending").value.trim();
+        if (!userId) {
+          alert("Please enter a User ID first");
+          return;
+        }
+
+        const modal = new bootstrap.Modal(
+          document.getElementById(`${fileType}SelectionModal`)
+        );
+        const listContainer = document.getElementById(`${fileType}List`);
+        const emptyContainer = document.getElementById(`${fileType}ListEmpty`);
+
+        // Show loading
+        listContainer.innerHTML =
+          '<div class="text-center"><div class="spinner-border" role="status"></div><p>Loading files...</p></div>';
+        emptyContainer.style.display = "none";
+
+        modal.show();
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/files/users/${userId}/${fileType}`,
+            {
+              headers: {
+                "X-API-Token": API_TOKEN,
+                Accept: "application/json",
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to load ${fileType} files`);
+          }
+
+          const data = await response.json();
+
+          if (data.files && data.files.length > 0) {
+            displayFiles(fileType, data.files);
+            emptyContainer.style.display = "none";
+          } else {
+            listContainer.innerHTML = "";
+            emptyContainer.style.display = "block";
+          }
+        } catch (error) {
+          console.error(`Error loading ${fileType} files:`, error);
+          listContainer.innerHTML = `<div class="alert alert-danger">Error loading files: ${error.message}</div>`;
+          emptyContainer.style.display = "none";
+        }
+      }
+
+      function displayFiles(fileType, files) {
+        const listContainer = document.getElementById(`${fileType}List`);
+
+        if (fileType === "image") {
+          // Grid layout for images
+          listContainer.innerHTML = files
+            .map(
+              (file) => `
+            <div class="col-md-4 col-6">
+              <div class="card file-card" style="cursor: pointer;" onclick="selectFile('${fileType}', '${
+                file.id
+              }', '${file.originalName}')">
+                               <img src="${API_BASE_URL}/files/${
+                file.id
+              }/preview" class="card-img-top" style="height: 150px; object-fit: cover;" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg=='" />
+                <div class="card-body p-2">
+                  <h6 class="card-title small mb-1" title="${
+                    file.originalName
+                  }">${
+                file.originalName.length > 20
+                  ? file.originalName.substring(0, 20) + "..."
+                  : file.originalName
+              }</h6>
+                  <small class="text-muted">${formatFileSize(
+                    file.size
+                  )} • Used ${file.usageCount} times</small>
+                </div>
+              </div>
+            </div>
+          `
+            )
+            .join("");
+        } else {
+          // List layout for videos and documents
+          listContainer.innerHTML = files
+            .map(
+              (file) => `
+            <a href="#" class="list-group-item list-group-item-action" onclick="selectFile('${fileType}', '${
+                file.id
+              }', '${file.originalName}'); return false;">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${file.originalName}</h6>
+                <small class="text-muted">${formatFileSize(file.size)}</small>
+              </div>
+              <p class="mb-1">${file.description || "No description"}</p>
+              <small class="text-muted">Used ${
+                file.usageCount
+              } times • ${new Date(file.createdAt).toLocaleDateString()}</small>
+            </a>
+          `
+            )
+            .join("");
+        }
+      }
+
+      function selectFile(fileType, fileId, fileName) {
+        // Store selected file ID
+        document.getElementById(
+          `selected${fileType.charAt(0).toUpperCase() + fileType.slice(1)}Id`
+        ).value = fileId;
+
+        // Update preview
+        const previewContainer = document.getElementById(
+          `selected${
+            fileType.charAt(0).toUpperCase() + fileType.slice(1)
+          }Preview`
+        );
+
+        if (fileType === "image") {
+          previewContainer.innerHTML = `
+            <div class="alert alert-success">
+              <i class="bi bi-check-circle"></i> Selected: ${fileName}
+                             <br><img src="${API_BASE_URL}/files/${fileId}/preview" class="mt-2" style="max-width: 200px; max-height: 150px;" />
+            </div>
+          `;
+        } else {
+          previewContainer.innerHTML = `
+            <div class="alert alert-success">
+              <i class="bi bi-check-circle"></i> Selected: ${fileName}
+            </div>
+          `;
+        }
+
+        // Auto-fill filename for documents
+        if (fileType === "document") {
+          const fileNameInput = document.getElementById("fileName");
+          if (!fileNameInput.value) {
+            fileNameInput.value = fileName;
+          }
+        }
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById(`${fileType}SelectionModal`)
+        );
+        modal.hide();
+
+        addLogEntry("success", `Selected ${fileType} file: ${fileName}`, {
+          fileId,
+          fileName,
+        });
+      }
+
+      function clearSelectedFile(fileType) {
+        document.getElementById(
+          `selected${fileType.charAt(0).toUpperCase() + fileType.slice(1)}Id`
+        ).value = "";
+        document.getElementById(
+          `selected${
+            fileType.charAt(0).toUpperCase() + fileType.slice(1)
+          }Preview`
+        ).innerHTML = "";
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+    </script>
+  </body>
+</html>

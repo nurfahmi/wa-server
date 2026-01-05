@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Management - WhatsApp API</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+    />
+    <style>
+      .upload-zone {
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+      .upload-zone:hover {
+        border-color: #0d6efd;
+        background: #e7f1ff;
+      }
+      .upload-zone.dragover {
+        border-color: #198754;
+        background: #d1e7dd;
+      }
+      .file-card {
+        transition: all 0.2s ease;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: white;
+      }
+      .file-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #0d6efd;
+      }
+      .file-preview {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid #dee2e6;
+      }
+      .file-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        background: linear-gradient(45deg, #0d6efd, #6610f2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+      }
+      .progress-container {
+        display: none;
+        margin-top: 15px;
+      }
+      .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+      }
+      .user-panel {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+      }
+      .notification.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid mt-4">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-1">
+            <i class="bi bi-cloud-upload text-primary"></i>
+            File Management
+          </h1>
+          <p class="text-muted mb-0">
+            Upload, manage, and send files via WhatsApp
+          </p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary" id="refreshFiles">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <a href="index.html" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+
+      <!-- User Panel -->
+      <div class="user-panel">
+        <div class="row align-items-center">
+          <div class="col-md-4">
+            <label for="userId" class="form-label"
+              ><strong>User ID</strong></label
+            >
+            <input
+              type="text"
+              class="form-control"
+              id="userId"
+              placeholder="Enter your user ID"
+              value="test-user-123"
+            />
+            <small class="text-muted"
+              >All files will be associated with this user ID</small
+            >
+          </div>
+          <div class="col-md-4">
+            <label class="form-label"><strong>Quick Actions</strong></label>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm" id="loadUserFiles">
+                <i class="bi bi-folder2-open"></i> Load My Files
+              </button>
+              <button class="btn btn-info btn-sm" id="loadUserStats">
+                <i class="bi bi-bar-chart"></i> View Stats
+              </button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card card-body text-center">
+              <div class="row">
+                <div class="col">
+                  <div class="h5 mb-0" id="totalFiles">0</div>
+                  <small>Total Files</small>
+                </div>
+                <div class="col">
+                  <div class="h5 mb-0" id="totalSize">0 MB</div>
+                  <small>Total Size</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Upload Section -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-cloud-upload"></i> Upload Files
+              </h5>
+            </div>
+            <div class="card-body">
+              <!-- Upload Zone -->
+              <div class="upload-zone" id="uploadZone">
+                <i class="bi bi-cloud-upload display-4 text-muted mb-3"></i>
+                <h5>Drag files here or click to browse</h5>
+                <p class="text-muted mb-3">
+                  Supports images, videos, documents, and audio files
+                </p>
+                <button class="btn btn-primary" type="button">
+                  <i class="bi bi-folder"></i> Choose Files
+                </button>
+                <input
+                  type="file"
+                  id="fileInput"
+                  class="d-none"
+                  multiple
+                  accept="image/*,video/*,.pdf,.doc,.docx,.txt,.mp3,.wav,.ogg"
+                />
+              </div>
+
+              <!-- Upload Form -->
+              <div class="mt-3">
+                <label for="fileDescription" class="form-label"
+                  >Description (Optional)</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="fileDescription"
+                  placeholder="Enter file description..."
+                />
+              </div>
+
+              <div class="mt-3">
+                <label for="expiresIn" class="form-label"
+                  >Expires In (Optional)</label
+                >
+                <select class="form-select" id="expiresIn">
+                  <option value="">Never expires</option>
+                  <option value="24">24 hours</option>
+                  <option value="168">1 week</option>
+                  <option value="720">1 month</option>
+                </select>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="progress-container">
+                <div
+                  class="d-flex justify-content-between align-items-center mb-2"
+                >
+                  <span>Uploading...</span>
+                  <span id="uploadPercent">0%</span>
+                </div>
+                <div class="progress">
+                  <div
+                    class="progress-bar"
+                    id="uploadProgress"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Upload Button -->
+              <button
+                class="btn btn-success w-100 mt-3"
+                id="uploadBtn"
+                disabled
+              >
+                <i class="bi bi-upload"></i> Upload Selected Files
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk Actions -->
+          <div class="card mt-3" id="bulkActionsCard" style="display: none">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="bi bi-check-square"></i> Bulk Actions
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="d-flex gap-2">
+                <button class="btn btn-danger btn-sm" id="bulkDeleteBtn">
+                  <i class="bi bi-trash"></i> Delete Selected (<span
+                    id="selectedCount"
+                    >0</span
+                  >)
+                </button>
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  id="selectAllBtn"
+                >
+                  <i class="bi bi-check-all"></i> Select All
+                </button>
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  id="clearSelectionBtn"
+                >
+                  <i class="bi bi-square"></i> Clear Selection
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File List -->
+        <div class="col-md-6">
+          <div class="card">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0"><i class="bi bi-files"></i> My Files</h5>
+              <div class="d-flex gap-2">
+                <select
+                  class="form-select form-select-sm"
+                  id="fileTypeFilter"
+                  style="width: auto"
+                >
+                  <option value="">All Types</option>
+                  <option value="image">Images</option>
+                  <option value="video">Videos</option>
+                  <option value="document">Documents</option>
+                  <option value="audio">Audio</option>
+                </select>
+                <select
+                  class="form-select form-select-sm"
+                  id="sortBy"
+                  style="width: auto"
+                >
+                  <option value="createdAt">Newest First</option>
+                  <option value="size">Size</option>
+                  <option value="usageCount">Most Used</option>
+                </select>
+              </div>
+            </div>
+            <div
+              class="card-body p-0"
+              style="max-height: 600px; overflow-y: auto"
+            >
+              <div id="filesList">
+                <div class="text-center p-4 text-muted">
+                  <i class="bi bi-files display-4"></i>
+                  <p class="mt-2">No files uploaded yet</p>
+                  <small>Upload some files to see them here</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send File Modal -->
+    <div class="modal fade" id="sendFileModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-whatsapp text-success"></i> Send File via WhatsApp
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">File</label>
+              <div class="d-flex align-items-center">
+                <div id="sendFilePreview" class="me-3"></div>
+                <div>
+                  <div class="fw-bold" id="sendFileName">filename.jpg</div>
+                  <small class="text-muted" id="sendFileInfo"
+                    >Type • Size</small
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="sendToNumber" class="form-label">Phone Number</label>
+              <input
+                type="text"
+                class="form-control"
+                id="sendToNumber"
+                placeholder="1234567890"
+                required
+              />
+              <small class="text-muted"
+                >Enter phone number without country code (e.g.,
+                1234567890)</small
+              >
+            </div>
+            <div class="mb-3">
+              <label for="sendCaption" class="form-label"
+                >Caption (Optional)</label
+              >
+              <textarea
+                class="form-control"
+                id="sendCaption"
+                rows="3"
+                placeholder="Enter a caption for your file..."
+              ></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="sendDeviceId" class="form-label">Device ID</label>
+              <input
+                type="text"
+                class="form-control"
+                id="sendDeviceId"
+                placeholder="device-123"
+                value="device-123"
+              />
+              <small class="text-muted">Device to send the message from</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-success" id="confirmSendFile">
+              <i class="bi bi-send"></i> Send File
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Global variables
+      let selectedFiles = [];
+      let allFiles = [];
+      let selectedFileIds = [];
+      let currentFileToSend = null;
+
+      // API Configuration
+      const API_BASE = window.location.origin;
+      const API_TOKEN = "test123"; // Replace with actual token
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", function () {
+        setupEventListeners();
+        loadUserFiles();
+      });
+
+      function setupEventListeners() {
+        // Upload zone events
+        const uploadZone = document.getElementById("uploadZone");
+        const fileInput = document.getElementById("fileInput");
+
+        uploadZone.addEventListener("click", () => fileInput.click());
+        uploadZone.addEventListener("dragover", handleDragOver);
+        uploadZone.addEventListener("drop", handleDrop);
+        uploadZone.addEventListener("dragleave", handleDragLeave);
+
+        fileInput.addEventListener("change", handleFileSelect);
+
+        // Button events
+        document
+          .getElementById("uploadBtn")
+          .addEventListener("click", uploadFiles);
+        document
+          .getElementById("refreshFiles")
+          .addEventListener("click", loadUserFiles);
+        document
+          .getElementById("loadUserFiles")
+          .addEventListener("click", loadUserFiles);
+        document
+          .getElementById("loadUserStats")
+          .addEventListener("click", loadUserStats);
+
+        // Bulk actions
+        document
+          .getElementById("bulkDeleteBtn")
+          .addEventListener("click", bulkDeleteFiles);
+        document
+          .getElementById("selectAllBtn")
+          .addEventListener("click", selectAllFiles);
+        document
+          .getElementById("clearSelectionBtn")
+          .addEventListener("click", clearSelection);
+
+        // Filters
+        document
+          .getElementById("fileTypeFilter")
+          .addEventListener("change", filterFiles);
+        document
+          .getElementById("sortBy")
+          .addEventListener("change", filterFiles);
+
+        // Send file modal
+        document
+          .getElementById("confirmSendFile")
+          .addEventListener("click", sendFile);
+
+        // File list events (delegated)
+        document
+          .getElementById("filesList")
+          .addEventListener("click", handleFileListClick);
+      }
+
+      // Drag and drop handlers
+      function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("uploadZone").classList.add("dragover");
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("uploadZone").classList.remove("dragover");
+
+        const files = Array.from(e.dataTransfer.files);
+        handleFileSelect({ target: { files } });
+      }
+
+      function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById("uploadZone").classList.remove("dragover");
+      }
+
+      // File selection handler
+      function handleFileSelect(e) {
+        selectedFiles = Array.from(e.target.files);
+        updateUploadButton();
+        showSelectedFiles();
+      }
+
+      function updateUploadButton() {
+        const userId = document.getElementById("userId").value;
+        const uploadBtn = document.getElementById("uploadBtn");
+
+        if (selectedFiles.length > 0 && userId.trim()) {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = `<i class="bi bi-upload"></i> Upload ${selectedFiles.length} File(s)`;
+        } else {
+          uploadBtn.disabled = true;
+          uploadBtn.innerHTML =
+            '<i class="bi bi-upload"></i> Upload Selected Files';
+        }
+      }
+
+      function showSelectedFiles() {
+        if (selectedFiles.length === 0) return;
+
+        const container = document.getElementById("uploadZone");
+        container.innerHTML = `
+                <i class="bi bi-files display-4 text-success mb-3"></i>
+                <h5>${selectedFiles.length} file(s) selected</h5>
+                <p class="text-muted mb-3">${selectedFiles
+                  .map((f) => f.name)
+                  .join(", ")}</p>
+                <button class="btn btn-outline-primary" type="button">
+                    <i class="bi bi-plus"></i> Add More Files
+                </button>
+            `;
+      }
+
+      // Upload files
+      async function uploadFiles() {
+        if (selectedFiles.length === 0) return;
+
+        const userId = document.getElementById("userId").value.trim();
+        if (!userId) {
+          showNotification("Please enter a User ID", "warning");
+          return;
+        }
+
+        const description = document.getElementById("fileDescription").value;
+        const expiresIn = document.getElementById("expiresIn").value;
+
+        showProgress();
+
+        try {
+          for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const formData = new FormData();
+
+            formData.append("file", file);
+            formData.append("userId", userId);
+            if (description) formData.append("description", description);
+            if (expiresIn) formData.append("expiresIn", expiresIn);
+
+            const response = await fetch(
+              `${API_BASE}/api/whatsapp/files/upload`,
+              {
+                method: "POST",
+                headers: {
+                  "X-API-TOKEN": `${API_TOKEN}`,
+                },
+                body: formData,
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log("File uploaded:", result);
+
+            // Update progress
+            const percent = Math.round(((i + 1) / selectedFiles.length) * 100);
+            updateProgress(percent);
+          }
+
+          showNotification("Files uploaded successfully!", "success");
+          resetUploadForm();
+          loadUserFiles();
+        } catch (error) {
+          console.error("Upload error:", error);
+          showNotification("Upload failed: " + error.message, "error");
+        } finally {
+          hideProgress();
+        }
+      }
+
+      // Progress functions
+      function showProgress() {
+        document.getElementById("uploadBtn").disabled = true;
+        document.querySelector(".progress-container").style.display = "block";
+      }
+
+      function updateProgress(percent) {
+        document.getElementById("uploadProgress").style.width = percent + "%";
+        document.getElementById("uploadPercent").textContent = percent + "%";
+      }
+
+      function hideProgress() {
+        document.querySelector(".progress-container").style.display = "none";
+        document.getElementById("uploadBtn").disabled = false;
+      }
+
+      function resetUploadForm() {
+        selectedFiles = [];
+        document.getElementById("fileInput").value = "";
+        document.getElementById("fileDescription").value = "";
+        document.getElementById("expiresIn").value = "";
+
+        // Reset upload zone
+        document.getElementById("uploadZone").innerHTML = `
+                <i class="bi bi-cloud-upload display-4 text-muted mb-3"></i>
+                <h5>Drag files here or click to browse</h5>
+                <p class="text-muted mb-3">Supports images, videos, documents, and audio files</p>
+                <button class="btn btn-primary" type="button">
+                    <i class="bi bi-folder"></i> Choose Files
+                </button>
+                <input type="file" id="fileInput" class="d-none" multiple 
+                       accept="image/*,video/*,.pdf,.doc,.docx,.txt,.mp3,.wav,.ogg">
+            `;
+
+        // Re-attach event listener
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", handleFileSelect);
+        updateUploadButton();
+      }
+
+      // Load user files
+      async function loadUserFiles() {
+        const userId = document.getElementById("userId").value.trim();
+        if (!userId) {
+          showNotification("Please enter a User ID", "warning");
+          return;
+        }
+
+        try {
+          const fileType = document.getElementById("fileTypeFilter").value;
+          const sortBy = document.getElementById("sortBy").value;
+
+          let url = `${API_BASE}/api/whatsapp/files?userId=${userId}&sortBy=${sortBy}&sortOrder=DESC&limit=100`;
+          if (fileType) url += `&fileType=${fileType}`;
+
+          const response = await fetch(url, {
+            headers: {
+              "X-API-TOKEN": `${API_TOKEN}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to load files: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          allFiles = data.files || [];
+
+          renderFilesList(allFiles);
+          updateBulkActions();
+        } catch (error) {
+          console.error("Error loading files:", error);
+          showNotification("Failed to load files: " + error.message, "error");
+        }
+      }
+
+      // Load user stats
+      async function loadUserStats() {
+        const userId = document.getElementById("userId").value.trim();
+        if (!userId) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/whatsapp/files/users/${userId}/stats`,
+            {
+              headers: {
+                "X-API-TOKEN": `${API_TOKEN}`,
+              },
+            }
+          );
+
+          if (!response.ok) throw new Error("Failed to load stats");
+
+          const data = await response.json();
+          const stats = data.stats;
+
+          document.getElementById("totalFiles").textContent = stats.totalFiles;
+          document.getElementById("totalSize").textContent = formatFileSize(
+            stats.totalSize
+          );
+        } catch (error) {
+          console.error("Error loading stats:", error);
+        }
+      }
+
+      // Render files list
+      function renderFilesList(files) {
+        const container = document.getElementById("filesList");
+
+        if (files.length === 0) {
+          container.innerHTML = `
+                    <div class="text-center p-4 text-muted">
+                        <i class="bi bi-files display-4"></i>
+                        <p class="mt-2">No files found</p>
+                        <small>Upload some files to see them here</small>
+                    </div>
+                `;
+          return;
+        }
+
+        const filesHtml = files
+          .map(
+            (file) => `
+                <div class="file-card" data-file-id="${file.id}">
+                    <div class="d-flex align-items-center">
+                        <input type="checkbox" class="form-check-input me-3 file-checkbox" 
+                               data-file-id="${file.id}" ${
+              selectedFileIds.includes(file.id) ? "checked" : ""
+            }>
+                        
+                        <div class="me-3">
+                            ${getFilePreview(file)}
+                        </div>
+                        
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">${file.originalName}</h6>
+                                    <small class="text-muted">
+                                        ${getFileTypeIcon(
+                                          file.fileType
+                                        )} ${file.fileType.toUpperCase()} • 
+                                        ${formatFileSize(file.size)} • 
+                                        Used ${file.usageCount} times
+                                    </small>
+                                    ${
+                                      file.description
+                                        ? `<br><small class="text-info">${file.description}</small>`
+                                        : ""
+                                    }
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">${formatTimeAgo(
+                                      file.createdAt
+                                    )}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="ms-3">
+                            <div class="btn-group-vertical btn-group-sm">
+                                <button class="btn btn-outline-success btn-sm send-file-btn" 
+                                        data-file-id="${
+                                          file.id
+                                        }" title="Send via WhatsApp">
+                                    <i class="bi bi-whatsapp"></i>
+                                </button>
+                                <button class="btn btn-outline-info btn-sm preview-file-btn" 
+                                        data-file-id="${
+                                          file.id
+                                        }" title="Preview">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm delete-file-btn" 
+                                        data-file-id="${
+                                          file.id
+                                        }" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+
+        container.innerHTML = filesHtml;
+      }
+
+      // File preview helper
+      function getFilePreview(file) {
+        if (file.fileType === "image") {
+          return `<img src="${API_BASE}/api/whatsapp/files/${file.id}/preview" class="file-preview" 
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="file-icon" style="display: none;">📷</div>`;
+        } else {
+          const icon = getFileTypeIcon(file.fileType);
+          return `<div class="file-icon">${icon}</div>`;
+        }
+      }
+
+      function getFileTypeIcon(type) {
+        const icons = {
+          image: "🖼️",
+          video: "🎥",
+          document: "📄",
+          audio: "🎵",
+        };
+        return icons[type] || "📁";
+      }
+
+      // File list click handler (delegated events)
+      function handleFileListClick(e) {
+        const fileId = e.target.closest("[data-file-id]")?.dataset.fileId;
+
+        if (e.target.classList.contains("file-checkbox")) {
+          toggleFileSelection(fileId, e.target.checked);
+        } else if (e.target.closest(".send-file-btn")) {
+          openSendFileModal(fileId);
+        } else if (e.target.closest(".preview-file-btn")) {
+          previewFile(fileId);
+        } else if (e.target.closest(".delete-file-btn")) {
+          deleteFile(fileId);
+        }
+      }
+
+      // Selection functions
+      function toggleFileSelection(fileId, selected) {
+        if (selected) {
+          if (!selectedFileIds.includes(fileId)) {
+            selectedFileIds.push(fileId);
+          }
+        } else {
+          selectedFileIds = selectedFileIds.filter((id) => id !== fileId);
+        }
+        updateBulkActions();
+      }
+
+      function selectAllFiles() {
+        selectedFileIds = allFiles.map((file) => file.id);
+        document
+          .querySelectorAll(".file-checkbox")
+          .forEach((cb) => (cb.checked = true));
+        updateBulkActions();
+      }
+
+      function clearSelection() {
+        selectedFileIds = [];
+        document
+          .querySelectorAll(".file-checkbox")
+          .forEach((cb) => (cb.checked = false));
+        updateBulkActions();
+      }
+
+      function updateBulkActions() {
+        const bulkCard = document.getElementById("bulkActionsCard");
+        const count = selectedFileIds.length;
+
+        if (count > 0) {
+          bulkCard.style.display = "block";
+          document.getElementById("selectedCount").textContent = count;
+        } else {
+          bulkCard.style.display = "none";
+        }
+      }
+
+      // File actions
+      async function deleteFile(fileId) {
+        if (!confirm("Are you sure you want to delete this file?")) return;
+
+        try {
+          const userId = document.getElementById("userId").value;
+          const response = await fetch(
+            `${API_BASE}/api/whatsapp/files/${fileId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "X-API-TOKEN": `${API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ userId }),
+            }
+          );
+
+          if (!response.ok) throw new Error("Delete failed");
+
+          showNotification("File deleted successfully", "success");
+          loadUserFiles();
+        } catch (error) {
+          console.error("Delete error:", error);
+          showNotification("Delete failed: " + error.message, "error");
+        }
+      }
+
+      async function bulkDeleteFiles() {
+        if (selectedFileIds.length === 0) return;
+        if (!confirm(`Delete ${selectedFileIds.length} selected files?`))
+          return;
+
+        try {
+          const userId = document.getElementById("userId").value;
+          const response = await fetch(`${API_BASE}/api/whatsapp/files/bulk`, {
+            method: "DELETE",
+            headers: {
+              "X-API-TOKEN": `${API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userId, fileIds: selectedFileIds }),
+          });
+
+          if (!response.ok) throw new Error("Bulk delete failed");
+
+          const result = await response.json();
+          showNotification(
+            `${result.deletedCount} files deleted successfully`,
+            "success"
+          );
+          selectedFileIds = [];
+          loadUserFiles();
+        } catch (error) {
+          console.error("Bulk delete error:", error);
+          showNotification("Bulk delete failed: " + error.message, "error");
+        }
+      }
+
+      function previewFile(fileId) {
+        const file = allFiles.find((f) => f.id === fileId);
+        if (!file) return;
+
+        if (file.fileType === "image") {
+          window.open(
+            `${API_BASE}/api/whatsapp/files/${fileId}/preview?token=${API_TOKEN}`,
+            "_blank"
+          );
+        } else {
+          alert(
+            `File: ${file.originalName}\nType: ${
+              file.fileType
+            }\nSize: ${formatFileSize(file.size)}\nUploaded: ${new Date(
+              file.createdAt
+            ).toLocaleString()}`
+          );
+        }
+      }
+
+      // Send file functions
+      function openSendFileModal(fileId) {
+        const file = allFiles.find((f) => f.id === fileId);
+        if (!file) return;
+
+        currentFileToSend = file;
+
+        // Update modal content
+        document.getElementById("sendFileName").textContent = file.originalName;
+        document.getElementById(
+          "sendFileInfo"
+        ).textContent = `${file.fileType.toUpperCase()} • ${formatFileSize(
+          file.size
+        )}`;
+
+        const previewContainer = document.getElementById("sendFilePreview");
+        previewContainer.innerHTML = getFilePreview(file);
+
+        // Show modal
+        const modal = new bootstrap.Modal(
+          document.getElementById("sendFileModal")
+        );
+        modal.show();
+      }
+
+      async function sendFile() {
+        if (!currentFileToSend) return;
+
+        const phoneNumber = document
+          .getElementById("sendToNumber")
+          .value.trim();
+        const caption = document.getElementById("sendCaption").value.trim();
+        const sessionId = document.getElementById("sendDeviceId").value.trim();
+
+        if (!phoneNumber) {
+          alert("Please enter a phone number");
+          return;
+        }
+
+        try {
+          const recipient = phoneNumber.includes("@")
+            ? phoneNumber
+            : `${phoneNumber}@c.us`;
+
+          // Use the main send endpoint based on file type
+          const endpoint = `${API_BASE}/api/whatsapp/send/${currentFileToSend.fileType}`;
+
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "X-API-TOKEN": `${API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fileId: currentFileToSend.id,
+              sessionId: sessionId,
+              recipient: recipient,
+              caption: caption || undefined,
+            }),
+          });
+
+          if (!response.ok) throw new Error("Send failed");
+
+          const result = await response.json();
+          showNotification("File sent successfully!", "success");
+
+          // Close modal
+          bootstrap.Modal.getInstance(
+            document.getElementById("sendFileModal")
+          ).hide();
+
+          // Refresh files to update usage count
+          loadUserFiles();
+        } catch (error) {
+          console.error("Send error:", error);
+          showNotification("Send failed: " + error.message, "error");
+        }
+      }
+
+      // Filter files
+      function filterFiles() {
+        loadUserFiles(); // Reload with new filters
+      }
+
+      // Utility functions
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+      }
+
+      function formatTimeAgo(dateString) {
+        const now = new Date();
+        const date = new Date(dateString);
+        const diff = now - date;
+
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (days > 0) return `${days}d ago`;
+        if (hours > 0) return `${hours}h ago`;
+        if (minutes > 0) return `${minutes}m ago`;
+        return "Just now";
+      }
+
+      function showNotification(message, type = "info") {
+        const alertClass =
+          {
+            success: "alert-success",
+            error: "alert-danger",
+            warning: "alert-warning",
+            info: "alert-info",
+          }[type] || "alert-info";
+
+        const notification = document.createElement("div");
+        notification.className = `alert ${alertClass} alert-dismissible notification`;
+        notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+
+        document.body.appendChild(notification);
+
+        // Show notification
+        setTimeout(() => notification.classList.add("show"), 100);
+
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.classList.remove("show");
+            setTimeout(() => notification.remove(), 300);
+          }
+        }, 5000);
+      }
+
+      // Auto-load on user ID change
+      document.getElementById("userId").addEventListener("input", function () {
+        updateUploadButton();
+        if (this.value.trim()) {
+          loadUserStats();
+        }
+      });
+    </script>
+  </body>
+</html>

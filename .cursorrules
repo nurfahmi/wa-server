@@ -1,0 +1,13 @@
+# Cursor AI Rules
+
+## Documentation Files
+- NEVER create Markdown (.md) files unless explicitly requested by the user
+- NEVER create README files proactively
+- NEVER create documentation files without explicit user request
+- Only create .md files when user specifically asks for them
+
+## Code Changes
+- Always prefer editing existing files over creating new ones
+- Focus on implementing functionality, not documentation
+- Keep responses concise and action-oriented
+

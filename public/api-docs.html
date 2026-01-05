@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp API Documentation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    :root {
+      --primary: #25D366;
+      --dark: #075E54;
+      --light-bg: #f8f9fa;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      overflow-y: auto;
+      background: #1a1a2e;
+      color: #fff;
+      padding: 20px 0;
+    }
+    .sidebar .logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+    }
+    .sidebar .logo h4 {
+      color: var(--primary);
+      margin: 0;
+    }
+    .sidebar .nav-section {
+      padding: 10px 20px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.5);
+    }
+    .sidebar a {
+      display: block;
+      padding: 8px 20px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: rgba(37, 211, 102, 0.2);
+      color: var(--primary);
+    }
+    .sidebar a i { margin-right: 8px; width: 16px; }
+    .main-content {
+      margin-left: 280px;
+      padding: 30px 40px;
+    }
+    .endpoint-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .endpoint-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .method {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .method-get { background: #61affe; color: #fff; }
+    .method-post { background: #49cc90; color: #fff; }
+    .method-put { background: #fca130; color: #fff; }
+    .method-delete { background: #f93e3e; color: #fff; }
+    .method-patch { background: #50e3c2; color: #fff; }
+    .endpoint-path {
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+      color: #333;
+    }
+    .endpoint-body { padding: 20px; }
+    .endpoint-desc { color: #666; margin-bottom: 16px; }
+    .params-table {
+      width: 100%;
+      font-size: 13px;
+    }
+    .params-table th {
+      background: var(--light-bg);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .params-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .param-name { font-family: monospace; color: var(--dark); }
+    .param-required { color: #f93e3e; font-size: 11px; }
+    .param-optional { color: #999; font-size: 11px; }
+    pre {
+      background: #2d2d2d;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+    code { font-family: 'Monaco', 'Consolas', monospace; font-size: 13px; }
+    .code-tabs { display: flex; gap: 8px; margin-bottom: -1px; }
+    .code-tab {
+      padding: 8px 16px;
+      background: #444;
+      color: #ccc;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .code-tab.active { background: #2d2d2d; color: #fff; }
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 40px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid var(--primary);
+    }
+    .section-title:first-child { margin-top: 0; }
+    .auth-box {
+      background: linear-gradient(135deg, #075E54, #128C7E);
+      color: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+    .auth-box h5 { margin-bottom: 16px; }
+    .auth-box code {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .base-url-box {
+      background: var(--light-bg);
+      padding: 16px 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+      margin-bottom: 20px;
+    }
+    .tag { 
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    .tag-auth { background: #ffe0e0; color: #c00; }
+    .tag-admin { background: #fff3cd; color: #856404; }
+    .tag-public { background: #d4edda; color: #155724; }
+    @media (max-width: 992px) {
+      .sidebar { width: 100%; height: auto; position: relative; }
+      .main-content { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="logo">
+      <h4><i class="bi bi-whatsapp"></i> WhatsApp API</h4>
+      <small>REST API Documentation</small>
+    </div>
+    
+    <div class="nav-section">Getting Started</div>
+    <a href="#auth"><i class="bi bi-shield-lock"></i> Authentication</a>
+    <a href="#base-url"><i class="bi bi-link-45deg"></i> Base URLs</a>
+    
+    <div class="nav-section">Device Management</div>
+    <a href="#devices"><i class="bi bi-phone"></i> Devices</a>
+    <a href="#sessions"><i class="bi bi-qr-code"></i> Sessions & QR</a>
+    
+    <div class="nav-section">Messaging</div>
+    <a href="#send-messages"><i class="bi bi-chat-dots"></i> Send Messages</a>
+    <a href="#send-media"><i class="bi bi-image"></i> Send Media</a>
+    <a href="#bulk-sending"><i class="bi bi-collection"></i> Bulk Sending</a>
+    <a href="#message-logs"><i class="bi bi-journal-text"></i> Message Logs</a>
+    
+    <div class="nav-section">Contacts & Chats</div>
+    <a href="#contacts"><i class="bi bi-person-lines-fill"></i> Contacts</a>
+    <a href="#chats"><i class="bi bi-chat-left-text"></i> Chats</a>
+    <a href="#groups"><i class="bi bi-people"></i> Groups</a>
+    <a href="#chat-settings"><i class="bi bi-sliders"></i> Chat Settings</a>
+    
+    <div class="nav-section">AI & Settings</div>
+    <a href="#ai-settings"><i class="bi bi-robot"></i> AI Settings</a>
+    <a href="#ai-providers"><i class="bi bi-cpu"></i> AI Providers</a>
+    <a href="#webhook-settings"><i class="bi bi-broadcast"></i> Webhooks</a>
+    
+    <div class="nav-section">File Management</div>
+    <a href="#files"><i class="bi bi-folder"></i> Files API</a>
+    
+    <div class="nav-section">Business Templates</div>
+    <a href="#business-templates"><i class="bi bi-file-earmark-text"></i> Templates</a>
+    
+    <div class="nav-section">Warmer System</div>
+    <a href="#warmer"><i class="bi bi-fire"></i> Campaigns</a>
+    
+    <div class="nav-section">Admin</div>
+    <a href="#admin"><i class="bi bi-gear-wide-connected"></i> Admin API</a>
+    
+    <div class="nav-section">Other</div>
+    <a href="#device-api-key"><i class="bi bi-key"></i> Device API Key</a>
+    <a href="#websocket"><i class="bi bi-plug"></i> WebSocket</a>
+    <a href="#errors"><i class="bi bi-exclamation-triangle"></i> Error Codes</a>
+  </nav>
+
+  <main class="main-content">
+    <!-- AUTHENTICATION -->
+    <h2 class="section-title" id="auth">Authentication</h2>
+    
+    <div class="auth-box">
+      <h5><i class="bi bi-shield-lock me-2"></i>API Token Authentication</h5>
+      <p>All API endpoints (except Device API Key routes and public file previews) require an API token in the header:</p>
+      <pre><code class="language-bash">Authorization: Bearer YOUR_API_TOKEN</code></pre>
+      <p class="mb-0">Set your token in <code>.env</code> file as <code>API_TOKEN=your-secret-token</code></p>
+    </div>
+
+    <div class="auth-box" style="background: linear-gradient(135deg, #6c5ce7, #a55eea);">
+      <h5><i class="bi bi-shield-check me-2"></i>Admin Token Authentication</h5>
+      <p>Admin routes (AI provider management, usage logs) require an admin token:</p>
+      <pre><code class="language-bash">Authorization: Bearer YOUR_ADMIN_TOKEN</code></pre>
+      <p class="mb-0">Set in <code>.env</code> as <code>ADMIN_TOKEN=your-admin-token</code></p>
+    </div>
+
+    <!-- BASE URL -->
+    <h2 class="section-title" id="base-url">Base URLs</h2>
+    
+    <div class="base-url-box">
+      <strong>Main API:</strong> <code>http://localhost:3000/api/whatsapp</code>
+    </div>
+    <div class="base-url-box">
+      <strong>Business Templates:</strong> <code>http://localhost:3000/api/business-templates</code>
+    </div>
+    <div class="base-url-box">
+      <strong>Warmer System:</strong> <code>http://localhost:3000/api/warmer</code>
+    </div>
+    <div class="base-url-box">
+      <strong>WebSocket:</strong> <code>ws://localhost:3001</code>
+    </div>
+
+    <!-- DEVICE MANAGEMENT -->
+    <h2 class="section-title" id="devices">Device Management</h2>
+
+    <!-- Create Device -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/devices</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Create a new WhatsApp device and initialize a session. Returns QR code for pairing.</p>
+        
+        <h6>Request Body</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">userId</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>User ID (UUID or string) who owns this device</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">alias</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Device alias/name for identification</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">phoneNumber</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Phone number associated with this device</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">description</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Device description</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X POST http://localhost:3000/api/whatsapp/devices \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123-uuid",
+    "alias": "primary_phone",
+    "phoneNumber": "+1234567890",
+    "description": "Main business WhatsApp"
+  }'</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "message": "Device creation and session initialization started",
+  "device": {
+    "id": 1,
+    "userId": "user-123-uuid",
+    "sessionId": "user_user-123-uuid_device_primary_phone",
+    "alias": "primary_phone",
+    "phoneNumber": "+1234567890",
+    "status": "pending",
+    "apiKey": "a1b2c3d4e5f6g7h8i9j0...",
+    "description": "Main business WhatsApp",
+    "aiEnabled": true,
+    "aiAutoReply": true,
+    "createdAt": "2024-03-20T10:00:00.000Z"
+  },
+  "qr": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get User Devices -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/users/:userId/devices</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">List all WhatsApp devices registered to a specific user.</p>
+        
+        <h6>Path Parameters</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">userId</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>The user ID to fetch devices for</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/users/user-123-uuid/devices" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "devices": [
+    {
+      "id": 1,
+      "userId": "user-123-uuid",
+      "sessionId": "user_user-123-uuid_device_primary_phone",
+      "alias": "primary_phone",
+      "phoneNumber": "+1234567890",
+      "status": "connected",
+      "isConnected": true,
+      "apiKey": "a1b2c3d4e5f6g7h8i9j0...",
+      "aiEnabled": true,
+      "aiAutoReply": true,
+      "aiBotName": "Assistant",
+      "lastConnection": "2024-03-20T10:30:00.000Z",
+      "createdAt": "2024-03-20T10:00:00.000Z"
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Device Details -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get detailed information about a specific device including connection status and QR code if available.</p>
+        
+        <h6>Path Parameters</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">deviceId</span> <span class="param-required">required</span></td>
+            <td>integer</td>
+            <td>The device ID</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "device": {
+    "id": 1,
+    "userId": "user-123-uuid",
+    "sessionId": "user_user-123-uuid_device_primary_phone",
+    "alias": "primary_phone",
+    "phoneNumber": "+1234567890",
+    "status": "connected",
+    "isConnected": true,
+    "qr": null,
+    "apiKey": "a1b2c3d4e5f6g7h8i9j0...",
+    "description": "Main business WhatsApp",
+    "aiEnabled": true,
+    "aiAutoReply": true,
+    "aiBotName": "Assistant",
+    "aiProvider": "openai",
+    "aiModel": "gpt-3.5-turbo",
+    "webhookEnabled": false,
+    "webhookUrl": null,
+    "lastConnection": "2024-03-20T10:30:00.000Z",
+    "lastError": null,
+    "createdAt": "2024-03-20T10:00:00.000Z",
+    "updatedAt": "2024-03-20T10:30:00.000Z"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Update Device -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-put">PUT</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Update device metadata (alias, description, phone number).</p>
+        
+        <h6>Request Body</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">alias</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>New device alias</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">phoneNumber</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>New phone number</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">description</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>New description</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X PUT "http://localhost:3000/api/whatsapp/devices/1" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alias": "work_phone",
+    "description": "Work WhatsApp account"
+  }'</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "device": {
+    "id": 1,
+    "alias": "work_phone",
+    "description": "Work WhatsApp account",
+    "updatedAt": "2024-03-20T11:00:00.000Z"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Delete Device -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-delete">DELETE</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Delete a device and cleanup its WhatsApp session completely.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X DELETE "http://localhost:3000/api/whatsapp/devices/1" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "message": "Device deleted successfully"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- SESSIONS & QR -->
+    <h2 class="section-title" id="sessions">Sessions & QR Code</h2>
+
+    <!-- Login Device -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/login</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Login or re-login a device. Generates a new QR code for WhatsApp pairing.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/devices/1/login" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "message": "Device login initiated",
+  "qr": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+  "device": {
+    "id": 1,
+    "status": "connecting"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Logout Device -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/logout</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Logout device from WhatsApp. Clears session but keeps device record.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/devices/1/logout" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "message": "Device logged out successfully",
+  "device": {
+    "id": 1,
+    "status": "disconnected"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get QR Code -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/qr</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get the current QR code for device pairing.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/qr" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "status": "pending",
+  "qr": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+  "device": {
+    "id": 1,
+    "status": "connecting"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Sessions -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/sessions</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all active sessions and their status.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/sessions" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "sessions": [
+    {
+      "sessionId": "user_user-123-uuid_device_primary_phone",
+      "status": "connected",
+      "deviceId": 1
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- SEND MESSAGES -->
+    <h2 class="section-title" id="send-messages">Send Messages</h2>
+
+    <!-- Send Text -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send a text message to a WhatsApp contact.</p>
+        
+        <h6>Request Body</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">deviceId</span> <span class="param-required">required</span></td>
+            <td>integer</td>
+            <td>Device ID to send from</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">recipient</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Phone number (with country code, no +) or JID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">message</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Text message to send</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deviceId": 1,
+    "recipient": "6281234567890",
+    "message": "Hello from the API!"
+  }'</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "success": true,
+  "message": "Message sent successfully",
+  "messageId": "3EB0A1B2C3D4E5F6",
+  "to": "6281234567890@s.whatsapp.net",
+  "timestamp": "2024-03-20T11:00:00.000Z"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- SEND MEDIA -->
+    <h2 class="section-title" id="send-media">Send Media</h2>
+
+    <!-- Send Image -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/image</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send an image message with optional caption. Supports file upload or URL.</p>
+        
+        <h6>Request Body (multipart/form-data or JSON)</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">deviceId</span> <span class="param-required">required</span></td>
+            <td>integer</td>
+            <td>Device ID to send from</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">recipient</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Phone number or JID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">image</span> <span class="param-required">required*</span></td>
+            <td>file</td>
+            <td>Image file (if using form-data)</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">imageUrl</span> <span class="param-required">required*</span></td>
+            <td>string</td>
+            <td>Image URL (if not uploading file)</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">caption</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Image caption</td>
+          </tr>
+        </table>
+        <small>* Either <code>image</code> file or <code>imageUrl</code> is required</small>
+
+        <h6 class="mt-4">Example Request (URL)</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/image" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deviceId": 1,
+    "recipient": "6281234567890",
+    "imageUrl": "https://example.com/image.jpg",
+    "caption": "Check this out!"
+  }'</code></pre>
+
+        <h6 class="mt-4">Example Request (File Upload)</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/image" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "deviceId=1" \
+  -F "recipient=6281234567890" \
+  -F "image=@/path/to/image.jpg" \
+  -F "caption=Check this out!"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "success": true,
+  "message": "Image sent successfully",
+  "messageId": "3EB0A1B2C3D4E5F6",
+  "to": "6281234567890@s.whatsapp.net"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Send Video -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/video</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send a video message with optional caption.</p>
+        
+        <h6>Request Body</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">deviceId</span> <span class="param-required">required</span></td>
+            <td>integer</td>
+            <td>Device ID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">recipient</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Phone number or JID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">videoUrl</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Video URL</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">caption</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Video caption</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/video" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deviceId": 1,
+    "recipient": "6281234567890",
+    "videoUrl": "https://example.com/video.mp4",
+    "caption": "Watch this!"
+  }'</code></pre>
+      </div>
+    </div>
+
+    <!-- Send Document -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/document</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send a document file (PDF, DOC, etc.).</p>
+        
+        <h6>Request Body</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">deviceId</span> <span class="param-required">required</span></td>
+            <td>integer</td>
+            <td>Device ID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">recipient</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Phone number or JID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">documentUrl</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>Document URL</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">fileName</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Custom filename</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/document" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deviceId": 1,
+    "recipient": "6281234567890",
+    "documentUrl": "https://example.com/report.pdf",
+    "fileName": "Monthly Report.pdf"
+  }'</code></pre>
+      </div>
+    </div>
+
+    <!-- BULK SENDING -->
+    <h2 class="section-title" id="bulk-sending">Bulk Sending</h2>
+
+    <!-- Send Bulk -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/bulk</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send messages to multiple recipients in bulk.</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "deviceId": 1,
+  "messages": [
+    { "recipient": "6281234567890", "message": "Hello user 1!" },
+    { "recipient": "6289876543210", "message": "Hello user 2!" }
+  ]
+}</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "success": true,
+  "results": [
+    { "recipient": "6281234567890", "status": "sent", "messageId": "3EB0..." },
+    { "recipient": "6289876543210", "status": "sent", "messageId": "3EB1..." }
+  ],
+  "summary": { "total": 2, "sent": 2, "failed": 0 }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Send Mixed Media -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/mixed</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send mixed media (text + images + documents) in a single request.</p>
+      </div>
+    </div>
+
+    <!-- Send Batch -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/send/batch</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send batch files with delay between sends.</p>
+      </div>
+    </div>
+
+    <!-- MESSAGE LOGS -->
+    <h2 class="section-title" id="message-logs">Message Logs & History</h2>
+
+    <!-- Get Messages -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/messages/:remoteJid</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get message history with a specific contact.</p>
+        
+        <h6>Query Parameters</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">limit</span> <span class="param-optional">optional</span></td>
+            <td>integer</td>
+            <td>Number of messages (default: 50)</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/messages/6281234567890@s.whatsapp.net?limit=50" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "messages": [
+    {
+      "id": 1,
+      "messageId": "3EB0A1B2C3D4E5F6",
+      "type": "outgoing",
+      "content": { "text": "Hello!" },
+      "status": "delivered",
+      "timestamp": "2024-03-20T11:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "messageId": "3EB0A1B2C3D4E5F7",
+      "type": "incoming",
+      "content": { "text": "Hi there!" },
+      "status": "read",
+      "timestamp": "2024-03-20T11:01:00.000Z"
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get All Messages -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/messages</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all messages across all devices.</p>
+      </div>
+    </div>
+
+    <!-- Get User Messages -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/users/:userId/messages</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all messages for a specific user across all their devices.</p>
+      </div>
+    </div>
+
+    <!-- Get User Message Logs -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/users/:userId/message-logs</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get detailed message logs with delivery status.</p>
+      </div>
+    </div>
+
+    <!-- Get Message Status -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/messages/:messageId/status</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get delivery status of a specific message.</p>
+      </div>
+    </div>
+
+    <!-- Resend Message -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/messages/:messageId/resend</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Resend a failed message.</p>
+      </div>
+    </div>
+
+    <!-- CONTACTS -->
+    <h2 class="section-title" id="contacts">Contacts</h2>
+
+    <!-- Get Contacts -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/contacts</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all contacts for a device from database.</p>
+
+        <h6>Example Request</h6>
+        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/contacts" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "contacts": [
+    {
+      "jid": "6281234567890@s.whatsapp.net",
+      "phoneNumber": "+6281234567890",
+      "contactName": "John Doe",
+      "whatsappName": "John",
+      "source": "contact"
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get User Contacts -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/users/:userId/contacts</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all contacts across all devices for a user.</p>
+      </div>
+    </div>
+
+    <!-- Sync WhatsApp Data -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/sync</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Force sync contacts and chats from WhatsApp to database.</p>
+      </div>
+    </div>
+
+    <!-- CHATS -->
+    <h2 class="section-title" id="chats">Chats</h2>
+
+    <!-- Get Chats -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/chats</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all individual chats for a device.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "chats": [
+    {
+      "jid": "6281234567890@s.whatsapp.net",
+      "contactName": "John Doe",
+      "whatsappName": "John",
+      "type": false,
+      "lastMessage": "Hello!",
+      "lastMessageTime": "2024-03-20T11:00:00.000Z"
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <h2 class="section-title" id="groups">Groups</h2>
+
+    <!-- Get Groups -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/groups</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all groups for a device.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "groups": [
+    {
+      "jid": "123456789-1234567890@g.us",
+      "whatsappName": "Family Group",
+      "type": true,
+      "members": [
+        { "jid": "6281234567890@s.whatsapp.net", "name": "John" }
+      ]
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Group Members -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/groups/:groupId/members</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get members of a specific group.</p>
+      </div>
+    </div>
+
+    <!-- CHAT SETTINGS -->
+    <h2 class="section-title" id="chat-settings">Chat Settings</h2>
+
+    <!-- Get Chat Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/chat-settings</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all chats with their settings (AI enabled, notes, etc.).</p>
+      </div>
+    </div>
+
+    <!-- Get Specific Chat Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/chat-settings/:phoneNumber</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get settings for a specific chat.</p>
+      </div>
+    </div>
+
+    <!-- Update Chat Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-put">PUT</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/chat-settings/:phoneNumber</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Update settings for a specific chat (enable/disable AI, add notes).</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "aiEnabled": false,
+  "customerSegment": "vip",
+  "notes": "Premium customer - prioritize"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- AI SETTINGS -->
+    <h2 class="section-title" id="ai-settings">AI Settings</h2>
+
+    <!-- Get AI Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/settings/ai</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get AI settings for a device.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "aiEnabled": true,
+  "aiAutoReply": true,
+  "aiBotName": "Assistant",
+  "aiRules": ["Be helpful", "Be concise"],
+  "aiTriggers": ["@ai", "@bot"],
+  "aiMaxTokens": 500,
+  "aiTemperature": 0.7,
+  "aiConversationMemoryEnabled": true,
+  "aiMaxHistoryLength": 10,
+  "aiLanguage": "id",
+  "aiProvider": "openai",
+  "aiModel": "gpt-3.5-turbo",
+  "aiFallbackProvider": "deepseek",
+  "productKnowledge": "...",
+  "salesScripts": "..."
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Update AI Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-put">PUT</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/settings/ai</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Update AI settings for a device.</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "enabled": true,
+  "autoReply": true,
+  "botName": "SalesBot",
+  "rules": ["Be persuasive", "Focus on benefits"],
+  "triggers": ["@bot", "hey bot"],
+  "maxTokens": 1000,
+  "temperature": 0.8,
+  "conversationMemoryEnabled": true,
+  "maxHistoryLength": 20,
+  "language": "en",
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "productKnowledge": "Our products include...",
+  "salesScripts": "When customer asks about price..."
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Test AI -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/test-ai</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Test AI response with a sample message.</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "deviceId": 1,
+  "message": "Tell me about your products"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- AI PROVIDERS -->
+    <h2 class="section-title" id="ai-providers">AI Providers</h2>
+
+    <!-- Get AI Providers -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/ai/providers</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get list of available AI providers and their models.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "providers": [
+    {
+      "id": 1,
+      "providerId": "openai",
+      "name": "OpenAI",
+      "enabled": true,
+      "models": [
+        {
+          "modelId": "gpt-4o",
+          "name": "GPT-4o",
+          "inputPricing": 0.0025,
+          "outputPricing": 0.01,
+          "isDefault": false
+        },
+        {
+          "modelId": "gpt-3.5-turbo",
+          "name": "GPT-3.5 Turbo",
+          "inputPricing": 0.0005,
+          "outputPricing": 0.0015,
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "providerId": "deepseek",
+      "name": "DeepSeek",
+      "enabled": true,
+      "models": [
+        {
+          "modelId": "deepseek-chat",
+          "name": "DeepSeek Chat",
+          "inputPricing": 0.00014,
+          "outputPricing": 0.00028,
+          "isDefault": true
+        }
+      ]
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- WEBHOOK SETTINGS -->
+    <h2 class="section-title" id="webhook-settings">Webhook Settings</h2>
+
+    <!-- Get Webhook Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/settings/webhook</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get webhook settings for a device.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "webhookEnabled": true,
+  "webhookUrl": "https://your-server.com/webhook",
+  "webhookEvents": ["message", "connection", "qr"]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Update Webhook Settings -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-put">PUT</span>
+        <span class="endpoint-path">/api/whatsapp/devices/:deviceId/settings/webhook</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Update webhook settings for a device.</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "enabled": true,
+  "url": "https://your-server.com/webhook",
+  "events": ["message", "connection", "qr", "status"]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- FILES API -->
+    <h2 class="section-title" id="files">File Management</h2>
+
+    <!-- Upload File -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/files/upload</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Upload and store a file for reuse in messages.</p>
+        
+        <h6>Request (multipart/form-data)</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">file</span> <span class="param-required">required</span></td>
+            <td>file</td>
+            <td>File to upload</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">userId</span> <span class="param-required">required</span></td>
+            <td>string</td>
+            <td>User ID who owns this file</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">description</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>File description</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">tags</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Comma-separated tags</td>
+          </tr>
+        </table>
+
+        <h6 class="mt-4">Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "success": true,
+  "file": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "originalName": "product.jpg",
+    "storedName": "1703..._product.jpg",
+    "mimeType": "image/jpeg",
+    "fileType": "image",
+    "size": 102400,
+    "filePath": "uploads/users/user-123/images/...",
+    "isPublic": false,
+    "tags": ["product", "catalog"],
+    "usageCount": 0
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- List Files -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/files</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">List stored files with optional filtering.</p>
+        
+        <h6>Query Parameters</h6>
+        <table class="params-table">
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+          <tr>
+            <td><span class="param-name">userId</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Filter by user ID</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">fileType</span> <span class="param-optional">optional</span></td>
+            <td>string</td>
+            <td>Filter by type (image, video, document, audio)</td>
+          </tr>
+          <tr>
+            <td><span class="param-name">limit</span> <span class="param-optional">optional</span></td>
+            <td>integer</td>
+            <td>Number of files to return (default: 50)</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Get File -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/files/:fileId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get file details by ID.</p>
+      </div>
+    </div>
+
+    <!-- File Preview (Public) -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/files/:fileId/preview</span>
+        <span class="tag tag-public">Public</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get file preview (for use in img tags). No auth required.</p>
+      </div>
+    </div>
+
+    <!-- Delete File -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-delete">DELETE</span>
+        <span class="endpoint-path">/api/whatsapp/files/:fileId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Delete a stored file.</p>
+      </div>
+    </div>
+
+    <!-- BUSINESS TEMPLATES -->
+    <h2 class="section-title" id="business-templates">Business Templates</h2>
+
+    <!-- Get All Templates -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/business-templates</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all business templates.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "templates": [
+    {
+      "id": 1,
+      "businessType": "ecommerce",
+      "language": "id",
+      "botName": "ShopBot",
+      "prompt": "Kamu adalah asisten penjualan...",
+      "productKnowledge": "...",
+      "salesScripts": "...",
+      "isActive": true
+    }
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Business Types -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/business-templates/types</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get list of available business types.</p>
+
+        <h6>Response (200 OK)</h6>
+        <pre><code class="language-json">{
+  "types": [
+    "ecommerce",
+    "restaurant",
+    "healthcare",
+    "education",
+    "real-estate",
+    "automotive",
+    "beauty",
+    "finance",
+    "travel"
+  ]
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Template -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/business-templates/:businessType/:language?</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get a specific template by business type and language.</p>
+      </div>
+    </div>
+
+    <!-- WARMER SYSTEM -->
+    <h2 class="section-title" id="warmer">Warmer System</h2>
+
+    <!-- Create Campaign -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/warmer/campaigns</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Create a new warming campaign.</p>
+        
+        <h6>Request Body</h6>
+        <pre><code class="language-json">{
+  "userId": "user-123",
+  "name": "Business Network Growth",
+  "description": "Automated networking campaign",
+  "selectedDevices": [1, 2, 3],
+  "dailyMessageSettings": {
+    "day1_7": { "min": 3, "max": 5 },
+    "day8_14": { "min": 5, "max": 8 },
+    "day15_21": { "min": 8, "max": 12 },
+    "day22_plus": { "min": 10, "max": 15 }
+  },
+  "timingSettings": {
+    "workingHours": { "start": "09:00", "end": "17:00" },
+    "timezone": "Asia/Jakarta",
+    "intervalMinutes": { "min": 30, "max": 180 },
+    "pauseDays": [0, 6]
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- Get Campaigns -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/warmer/campaigns</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all campaigns.</p>
+      </div>
+    </div>
+
+    <!-- Get Campaign -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get campaign details.</p>
+      </div>
+    </div>
+
+    <!-- Campaign Control -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/pause</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Pause a campaign.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/resume</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Resume a paused campaign.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/stop</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Stop a campaign completely.</p>
+      </div>
+    </div>
+
+    <!-- Campaign Templates -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/templates</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Create a conversation template for a campaign.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/templates</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all templates for a campaign.</p>
+      </div>
+    </div>
+
+    <!-- Campaign Stats -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/warmer/campaigns/:campaignId/stats</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get campaign statistics.</p>
+      </div>
+    </div>
+
+    <!-- ADMIN API -->
+    <h2 class="section-title" id="admin">Admin API</h2>
+    <p class="text-muted">Admin routes require <code>ADMIN_TOKEN</code> authentication.</p>
+
+    <!-- Admin AI Providers -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/providers</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all AI providers with full details including API keys.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/providers</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Create a new AI provider.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-put">PUT</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/providers/:providerId</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Update an AI provider (including API key).</p>
+      </div>
+    </div>
+
+    <!-- Admin AI Models -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/models</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get all AI models.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/models</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Create a new AI model.</p>
+      </div>
+    </div>
+
+    <!-- Admin Usage Logs -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/usage-logs</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get AI usage logs and costs.</p>
+      </div>
+    </div>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/admin/ai/cost-alerts</span>
+        <span class="tag tag-admin">Admin Only</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get AI cost alerts.</p>
+      </div>
+    </div>
+
+    <!-- DEVICE API KEY -->
+    <h2 class="section-title" id="device-api-key">Device API Key Endpoint</h2>
+
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-post">POST</span>
+        <span class="endpoint-path">/api/whatsapp/device/send</span>
+        <span class="tag tag-public">Device API Key</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Send message using device API key instead of main API token. Useful for integrations.</p>
+        
+        <h6>Headers</h6>
+        <pre><code class="language-bash">X-API-Key: YOUR_DEVICE_API_KEY</code></pre>
+
+        <h6>Request Body (JSON or multipart/form-data)</h6>
+        <pre><code class="language-json">{
+  "recipient": "6281234567890",
+  "message": "Hello from device API!",
+  "imageUrl": "https://example.com/image.jpg"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- WEBSOCKET -->
+    <h2 class="section-title" id="websocket">WebSocket Events</h2>
+
+    <div class="endpoint-card">
+      <div class="endpoint-body">
+        <h6>Connection URL</h6>
+        <pre><code class="language-bash">ws://localhost:3001?token=YOUR_API_TOKEN</code></pre>
+
+        <h6 class="mt-4">Subscribe to Device Events</h6>
+        <pre><code class="language-json">{ "type": "subscribe", "deviceId": "1" }</code></pre>
+
+        <h6 class="mt-4">Event Types</h6>
+        <table class="params-table">
+          <tr><th>Event</th><th>Description</th></tr>
+          <tr><td><code>qr</code></td><td>New QR code available for scanning</td></tr>
+          <tr><td><code>connection</code></td><td>Device connection status changed</td></tr>
+          <tr><td><code>message</code></td><td>New message received</td></tr>
+          <tr><td><code>status</code></td><td>Message status update (sent, delivered, read)</td></tr>
+        </table>
+
+        <h6 class="mt-4">Example QR Event</h6>
+        <pre><code class="language-json">{
+  "type": "qr",
+  "deviceId": 1,
+  "qr": "data:image/png;base64,..."
+}</code></pre>
+
+        <h6 class="mt-4">Example Message Event</h6>
+        <pre><code class="language-json">{
+  "type": "message",
+  "deviceId": 1,
+  "message": {
+    "from": "6281234567890@s.whatsapp.net",
+    "content": "Hello!",
+    "timestamp": "2024-03-20T11:00:00.000Z"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- ERROR CODES -->
+    <h2 class="section-title" id="errors">Error Codes</h2>
+
+    <div class="endpoint-card">
+      <div class="endpoint-body">
+        <h6>HTTP Status Codes</h6>
+        <table class="params-table">
+          <tr><th>Code</th><th>Description</th></tr>
+          <tr><td>200</td><td>Success</td></tr>
+          <tr><td>400</td><td>Bad Request - Invalid input or parameters</td></tr>
+          <tr><td>401</td><td>Unauthorized - Invalid or missing API token</td></tr>
+          <tr><td>403</td><td>Forbidden - Access denied</td></tr>
+          <tr><td>404</td><td>Not Found - Resource doesn't exist</td></tr>
+          <tr><td>429</td><td>Too Many Requests - Rate limit exceeded</td></tr>
+          <tr><td>500</td><td>Internal Server Error</td></tr>
+        </table>
+
+        <h6 class="mt-4">Error Response Format</h6>
+        <pre><code class="language-json">{
+  "error": "Error message description",
+  "code": "ERROR_CODE"
+}</code></pre>
+
+        <h6 class="mt-4">Rate Limits</h6>
+        <ul>
+          <li>Default: 100 requests per minute per IP</li>
+          <li>File uploads: 10 requests per minute</li>
+          <li>Bulk operations: 5 requests per minute</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Server Stats -->
+    <div class="endpoint-card">
+      <div class="endpoint-header">
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/whatsapp/server/stats</span>
+        <span class="tag tag-auth">Auth Required</span>
+      </div>
+      <div class="endpoint-body">
+        <p class="endpoint-desc">Get server statistics and health status.</p>
+      </div>
+    </div>
+
+    <footer class="text-center text-muted py-5">
+      <p>WhatsApp REST API Documentation</p>
+      <p><small>Built with Baileys library &bull; Powered by Node.js</small></p>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+  <script>
+    // Smooth scroll for sidebar links
+    document.querySelectorAll('.sidebar a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').substring(1);
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Update active state
+          document.querySelectorAll('.sidebar a').forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Highlight active section on scroll
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('.section-title');
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (scrollY >= sectionTop - 100) {
+          current = section.getAttribute('id');
+        }
+      });
+      document.querySelectorAll('.sidebar a').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

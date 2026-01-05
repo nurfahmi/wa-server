@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulk & Batch Sending - WhatsApp API</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .header h1 {
+        color: #25d366;
+        margin-bottom: 10px;
+      }
+
+      .tabs {
+        display: flex;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+      }
+
+      .tab {
+        flex: 1;
+        padding: 15px 20px;
+        background: #f8f9fa;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background 0.3s;
+      }
+
+      .tab.active {
+        background: #25d366;
+        color: white;
+      }
+
+      .tab:hover:not(.active) {
+        background: #e9ecef;
+      }
+
+      .tab-content {
+        display: none;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-group textarea {
+        height: 100px;
+        resize: vertical;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 15px;
+      }
+
+      .form-row .form-group {
+        flex: 1;
+      }
+
+      .file-selection {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin: 15px 0;
+        background: #f8f9fa;
+      }
+
+      .file-selection.has-files {
+        border-color: #25d366;
+        background: #f0fff4;
+      }
+
+      .file-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .file-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        background: white;
+        position: relative;
+      }
+
+      .file-item.selected {
+        border-color: #25d366;
+        background: #f0fff4;
+      }
+
+      .file-item img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+
+      .file-item .file-info {
+        font-size: 12px;
+        color: #666;
+      }
+
+      .file-item .file-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 13px;
+      }
+
+      .file-item .checkbox {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+      }
+
+      .btn-primary {
+        background: #25d366;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #1da851;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .recipients-input {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+      }
+
+      .recipient-tag {
+        display: inline-block;
+        background: #25d366;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        margin: 2px;
+        font-size: 12px;
+      }
+
+      .recipient-tag .remove {
+        margin-left: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      .mixed-media-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        background: #f8f9fa;
+      }
+
+      .mixed-media-item .file-preview {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .mixed-media-item img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+      }
+
+      .progress {
+        background: #e9ecef;
+        border-radius: 4px;
+        height: 8px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        background: #25d366;
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .results {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-top: 20px;
+        display: none;
+      }
+
+      .results.show {
+        display: block;
+      }
+
+      .result-item {
+        padding: 10px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .result-item:last-child {
+        border-bottom: none;
+      }
+
+      .status-success {
+        color: #28a745;
+        font-weight: bold;
+      }
+
+      .status-failed {
+        color: #dc3545;
+        font-weight: bold;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+
+      .success {
+        background: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .stats {
+        display: flex;
+        gap: 20px;
+        margin: 15px 0;
+      }
+
+      .stat {
+        text-align: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        flex: 1;
+      }
+
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #25d366;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📤 Bulk & Batch Sending</h1>
+        <p>
+          Send multiple files, mixed media, or broadcast to multiple recipients
+        </p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('bulk')">
+          📚 Bulk Files
+        </button>
+        <button class="tab" onclick="switchTab('mixed')">🎭 Mixed Media</button>
+        <button class="tab" onclick="switchTab('batch')">
+          📡 Batch Broadcast
+        </button>
+      </div>
+
+      <!-- Bulk Files Tab -->
+      <div id="bulk" class="tab-content active">
+        <h3>Send Multiple Files of Same Type</h3>
+        <p>Send multiple images, videos, or documents to one recipient</p>
+
+        <form id="bulkForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bulkSessionId">Session ID:</label>
+              <input
+                type="text"
+                id="bulkSessionId"
+                placeholder="user_test-user-123_device_fahmi"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="bulkRecipient">Recipient:</label>
+              <input
+                type="text"
+                id="bulkRecipient"
+                placeholder="+1234567890"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bulkFileType">File Type:</label>
+              <select id="bulkFileType" onchange="loadFiles('bulk')" required>
+                <option value="">Select file type</option>
+                <option value="image">Images</option>
+                <option value="video">Videos</option>
+                <option value="document">Documents</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="bulkUserId">User ID:</label>
+              <input
+                type="text"
+                id="bulkUserId"
+                placeholder="test-user-123"
+                value="test-user-123"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bulkCaption">Caption (optional):</label>
+            <textarea
+              id="bulkCaption"
+              placeholder="Enter caption for all files..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="bulkDelay">Delay between messages (ms):</label>
+            <input
+              type="number"
+              id="bulkDelay"
+              value="1000"
+              min="100"
+              max="10000"
+            />
+          </div>
+
+          <div class="file-selection" id="bulkFileSelection">
+            <p>Select file type to load available files</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Send Bulk Files</button>
+        </form>
+      </div>
+
+      <!-- Mixed Media Tab -->
+      <div id="mixed" class="tab-content">
+        <h3>Send Mixed Media Types</h3>
+        <p>
+          Send combination of images, videos, and documents in specific order
+        </p>
+
+        <form id="mixedForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mixedSessionId">Session ID:</label>
+              <input
+                type="text"
+                id="mixedSessionId"
+                placeholder="user_test-user-123_device_fahmi"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="mixedRecipient">Recipient:</label>
+              <input
+                type="text"
+                id="mixedRecipient"
+                placeholder="+1234567890"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mixedUserId">User ID:</label>
+              <input
+                type="text"
+                id="mixedUserId"
+                placeholder="test-user-123"
+                value="test-user-123"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="mixedDelay">Delay between messages (ms):</label>
+              <input
+                type="number"
+                id="mixedDelay"
+                value="1000"
+                min="100"
+                max="10000"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mixedCaption">Default Caption (optional):</label>
+            <textarea
+              id="mixedCaption"
+              placeholder="Default caption for files without individual captions..."
+            ></textarea>
+          </div>
+
+          <div id="mixedMediaList">
+            <h4>Selected Files (drag to reorder):</h4>
+            <p id="mixedEmptyState">
+              No files selected. Use the buttons below to add files.
+            </p>
+          </div>
+
+          <div style="margin: 20px 0">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="addMixedMediaFile('image')"
+            >
+              + Add Image
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="addMixedMediaFile('video')"
+            >
+              + Add Video
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="addMixedMediaFile('document')"
+            >
+              + Add Document
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            Send Mixed Media
+          </button>
+        </form>
+      </div>
+
+      <!-- Batch Broadcast Tab -->
+      <div id="batch" class="tab-content">
+        <h3>Batch Broadcast</h3>
+        <p>Send same files to multiple recipients</p>
+
+        <form id="batchForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="batchSessionId">Session ID:</label>
+              <input
+                type="text"
+                id="batchSessionId"
+                placeholder="user_test-user-123_device_fahmi"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="batchUserId">User ID:</label>
+              <input
+                type="text"
+                id="batchUserId"
+                placeholder="test-user-123"
+                value="test-user-123"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="batchRecipients">Recipients (one per line):</label>
+            <textarea
+              id="batchRecipients"
+              placeholder="+1234567890&#10;+0987654321&#10;+1122334455"
+              rows="5"
+              required
+            ></textarea>
+            <div class="recipients-input" id="recipientTags"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="batchFileType">File Type:</label>
+              <select id="batchFileType" onchange="loadFiles('batch')" required>
+                <option value="">Select file type</option>
+                <option value="image">Images</option>
+                <option value="video">Videos</option>
+                <option value="document">Documents</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="batchDelay">Delay between recipients (ms):</label>
+              <input
+                type="number"
+                id="batchDelay"
+                value="2000"
+                min="500"
+                max="30000"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="batchCaption">Caption (optional):</label>
+            <textarea
+              id="batchCaption"
+              placeholder="Enter caption for all files..."
+            ></textarea>
+          </div>
+
+          <div class="file-selection" id="batchFileSelection">
+            <p>Select file type to load available files</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            Send Batch Broadcast
+          </button>
+        </form>
+      </div>
+
+      <!-- Progress & Results -->
+      <div id="progressSection" style="display: none">
+        <div class="progress">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p id="progressText">Preparing to send...</p>
+      </div>
+
+      <div id="results" class="results">
+        <h3>Sending Results</h3>
+        <div class="stats" id="resultStats"></div>
+        <div id="resultsList"></div>
+      </div>
+    </div>
+
+    <!-- File Selection Modal -->
+    <div
+      id="fileModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      "
+    >
+      <div
+        style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          max-width: 600px;
+          width: 90%;
+          max-height: 80%;
+          overflow-y: auto;
+        "
+      >
+        <h3 id="modalTitle">Select Files</h3>
+        <div id="modalFileGrid" class="file-grid"></div>
+        <div style="margin-top: 20px; text-align: right">
+          <button class="btn btn-secondary" onclick="closeFileModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="confirmFileSelection()">
+            Select Files
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/api/whatsapp";
+      let currentTab = "bulk";
+      let selectedFiles = {};
+      let mixedMediaFiles = [];
+      let currentModalType = "";
+      let availableFiles = {};
+
+      // Tab switching
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((t) => t.classList.remove("active"));
+
+        document
+          .querySelector(`[onclick="switchTab('${tab}')"]`)
+          .classList.add("active");
+        document.getElementById(tab).classList.add("active");
+
+        currentTab = tab;
+        selectedFiles[tab] = selectedFiles[tab] || [];
+      }
+
+      // Load files for selection
+      async function loadFiles(type) {
+        const userId = document.getElementById(`${type}UserId`).value;
+        const fileType = document.getElementById(`${type}FileType`).value;
+
+        if (!userId || !fileType) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/files/users/${userId}/${fileType}`
+          );
+          const data = await response.json();
+
+          if (data.success) {
+            availableFiles[type] = data.files;
+            displayFileSelection(type, data.files);
+          } else {
+            showError(data.error || "Failed to load files");
+          }
+        } catch (error) {
+          showError("Error loading files: " + error.message);
+        }
+      }
+
+      // Display file selection interface
+      function displayFileSelection(type, files) {
+        const container = document.getElementById(`${type}FileSelection`);
+
+        if (files.length === 0) {
+          container.innerHTML = "<p>No files found for selected type</p>";
+          return;
+        }
+
+        container.classList.add("has-files");
+        container.innerHTML = `
+                <p>Select files to send (${files.length} available):</p>
+                <div class="file-grid">
+                    ${files
+                      .map(
+                        (file) => `
+                        <div class="file-item" onclick="toggleFileSelection('${type}', ${
+                          file.id
+                        })">
+                            <input type="checkbox" class="checkbox" id="file_${type}_${
+                          file.id
+                        }">
+                            ${
+                              file.fileType === "image"
+                                ? `<img src="${API_BASE}/files/preview/${file.id}" alt="${file.originalName}" onerror="this.style.display='none'">`
+                                : `<div style="height: 120px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-bottom: 8px;">
+                                    <span style="font-size: 24px;">${
+                                      file.fileType === "video" ? "🎥" : "📄"
+                                    }</span>
+                                </div>`
+                            }
+                            <div class="file-name">${file.originalName}</div>
+                            <div class="file-info">
+                                ${formatFileSize(file.size)} • Used ${
+                          file.usageCount
+                        } times
+                            </div>
+                        </div>
+                    `
+                      )
+                      .join("")}
+                </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Selected: <span id="${type}SelectedCount">0</span> files
+                </p>
+            `;
+      }
+
+      // Toggle file selection
+      function toggleFileSelection(type, fileId) {
+        if (!selectedFiles[type]) selectedFiles[type] = [];
+
+        const index = selectedFiles[type].indexOf(fileId);
+        const checkbox = document.getElementById(`file_${type}_${fileId}`);
+        const fileItem = checkbox.closest(".file-item");
+
+        if (index > -1) {
+          selectedFiles[type].splice(index, 1);
+          checkbox.checked = false;
+          fileItem.classList.remove("selected");
+        } else {
+          selectedFiles[type].push(fileId);
+          checkbox.checked = true;
+          fileItem.classList.add("selected");
+        }
+
+        document.getElementById(`${type}SelectedCount`).textContent =
+          selectedFiles[type].length;
+      }
+
+      // Mixed media functions
+      function addMixedMediaFile(fileType) {
+        currentModalType = fileType;
+        openFileModal(fileType);
+      }
+
+      function openFileModal(fileType) {
+        const userId = document.getElementById("mixedUserId").value;
+        if (!userId) {
+          showError("Please enter User ID first");
+          return;
+        }
+
+        document.getElementById("modalTitle").textContent = `Select ${
+          fileType.charAt(0).toUpperCase() + fileType.slice(1)
+        } Files`;
+        document.getElementById("fileModal").style.display = "block";
+        loadModalFiles(userId, fileType);
+      }
+
+      async function loadModalFiles(userId, fileType) {
+        try {
+          const response = await fetch(
+            `${API_BASE}/files/users/${userId}/${fileType}`
+          );
+          const data = await response.json();
+
+          if (data.success) {
+            displayModalFiles(data.files, fileType);
+          } else {
+            showError(data.error || "Failed to load files");
+          }
+        } catch (error) {
+          showError("Error loading files: " + error.message);
+        }
+      }
+
+      function displayModalFiles(files, fileType) {
+        const container = document.getElementById("modalFileGrid");
+
+        if (files.length === 0) {
+          container.innerHTML = "<p>No files found</p>";
+          return;
+        }
+
+        container.innerHTML = files
+          .map(
+            (file) => `
+                <div class="file-item" onclick="toggleModalFileSelection(${
+                  file.id
+                })">
+                    <input type="checkbox" class="checkbox" id="modal_file_${
+                      file.id
+                    }">
+                    ${
+                      fileType === "image"
+                        ? `<img src="${API_BASE}/files/preview/${file.id}" alt="${file.originalName}" onerror="this.style.display='none'">`
+                        : `<div style="height: 120px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">${
+                              fileType === "video" ? "🎥" : "📄"
+                            }</span>
+                        </div>`
+                    }
+                    <div class="file-name">${file.originalName}</div>
+                    <div class="file-info">
+                        ${formatFileSize(file.size)} • Used ${
+              file.usageCount
+            } times
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function toggleModalFileSelection(fileId) {
+        const checkbox = document.getElementById(`modal_file_${fileId}`);
+        const fileItem = checkbox.closest(".file-item");
+
+        if (checkbox.checked) {
+          checkbox.checked = false;
+          fileItem.classList.remove("selected");
+        } else {
+          checkbox.checked = true;
+          fileItem.classList.add("selected");
+        }
+      }
+
+      function confirmFileSelection() {
+        const selectedCheckboxes = document.querySelectorAll(
+          "#modalFileGrid .checkbox:checked"
+        );
+        const modalFiles = Array.from(
+          document.querySelectorAll("#modalFileGrid .file-item")
+        );
+
+        selectedCheckboxes.forEach((checkbox) => {
+          const fileId = parseInt(checkbox.id.replace("modal_file_", ""));
+          const fileItem = modalFiles.find((item) =>
+            item.querySelector(`#modal_file_${fileId}`)
+          );
+          const fileName = fileItem.querySelector(".file-name").textContent;
+
+          mixedMediaFiles.push({
+            fileId: fileId,
+            fileType: currentModalType,
+            fileName: fileName,
+            caption: "",
+          });
+        });
+
+        updateMixedMediaDisplay();
+        closeFileModal();
+      }
+
+      function closeFileModal() {
+        document.getElementById("fileModal").style.display = "none";
+        currentModalType = "";
+      }
+
+      function updateMixedMediaDisplay() {
+        const container = document.getElementById("mixedMediaList");
+        const emptyState = document.getElementById("mixedEmptyState");
+
+        if (mixedMediaFiles.length === 0) {
+          emptyState.style.display = "block";
+          return;
+        }
+
+        emptyState.style.display = "none";
+        const listHtml = mixedMediaFiles
+          .map(
+            (file, index) => `
+                <div class="mixed-media-item">
+                    <div class="file-preview">
+                        ${
+                          file.fileType === "image"
+                            ? `<img src="${API_BASE}/files/preview/${file.fileId}" alt="${file.fileName}">`
+                            : `<div style="width: 60px; height: 60px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                                <span style="font-size: 20px;">${
+                                  file.fileType === "video" ? "🎥" : "📄"
+                                }</span>
+                            </div>`
+                        }
+                        <div>
+                            <div><strong>${file.fileName}</strong></div>
+                            <div style="color: #666; font-size: 12px;">${
+                              file.fileType
+                            }</div>
+                        </div>
+                        <button type="button" onclick="removeMixedMediaFile(${index})" style="margin-left: auto; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                    </div>
+                    <div>
+                        <label>Individual Caption (optional):</label>
+                        <input type="text" placeholder="Caption for this file..." onchange="updateMixedMediaCaption(${index}, this.value)" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+
+        container.innerHTML =
+          "<h4>Selected Files (drag to reorder):</h4>" + listHtml;
+      }
+
+      function removeMixedMediaFile(index) {
+        mixedMediaFiles.splice(index, 1);
+        updateMixedMediaDisplay();
+      }
+
+      function updateMixedMediaCaption(index, caption) {
+        mixedMediaFiles[index].caption = caption;
+      }
+
+      // Form submissions
+      document
+        .getElementById("bulkForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const sessionId = document.getElementById("bulkSessionId").value;
+          const recipient = document.getElementById("bulkRecipient").value;
+          const fileType = document.getElementById("bulkFileType").value;
+          const caption = document.getElementById("bulkCaption").value;
+          const delay = parseInt(document.getElementById("bulkDelay").value);
+
+          if (!selectedFiles.bulk || selectedFiles.bulk.length === 0) {
+            showError("Please select at least one file");
+            return;
+          }
+
+          await sendBulkFiles(
+            sessionId,
+            recipient,
+            selectedFiles.bulk,
+            fileType,
+            caption,
+            delay
+          );
+        });
+
+      document
+        .getElementById("mixedForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const sessionId = document.getElementById("mixedSessionId").value;
+          const recipient = document.getElementById("mixedRecipient").value;
+          const defaultCaption = document.getElementById("mixedCaption").value;
+          const delay = parseInt(document.getElementById("mixedDelay").value);
+
+          if (mixedMediaFiles.length === 0) {
+            showError("Please add at least one file");
+            return;
+          }
+
+          await sendMixedMedia(
+            sessionId,
+            recipient,
+            mixedMediaFiles,
+            defaultCaption,
+            delay
+          );
+        });
+
+      document
+        .getElementById("batchForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const sessionId = document.getElementById("batchSessionId").value;
+          const recipientsText =
+            document.getElementById("batchRecipients").value;
+          const recipients = recipientsText
+            .split("\n")
+            .map((r) => r.trim())
+            .filter((r) => r);
+          const fileType = document.getElementById("batchFileType").value;
+          const caption = document.getElementById("batchCaption").value;
+          const delay = parseInt(document.getElementById("batchDelay").value);
+
+          if (recipients.length === 0) {
+            showError("Please enter at least one recipient");
+            return;
+          }
+
+          if (!selectedFiles.batch || selectedFiles.batch.length === 0) {
+            showError("Please select at least one file");
+            return;
+          }
+
+          await sendBatchFiles(
+            sessionId,
+            recipients,
+            selectedFiles.batch,
+            fileType,
+            caption,
+            delay
+          );
+        });
+
+      // API calls
+      async function sendBulkFiles(
+        sessionId,
+        recipient,
+        fileIds,
+        fileType,
+        caption,
+        delay
+      ) {
+        showProgress("Sending bulk files...");
+
+        try {
+          const response = await fetch(`${API_BASE}/send/bulk`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              recipient,
+              fileIds,
+              fileType,
+              caption,
+              delay,
+            }),
+          });
+
+          const data = await response.json();
+          hideProgress();
+
+          if (data.success) {
+            showResults(data);
+            showSuccess(data.message);
+          } else {
+            showError(data.error || "Failed to send bulk files");
+          }
+        } catch (error) {
+          hideProgress();
+          showError("Error sending bulk files: " + error.message);
+        }
+      }
+
+      async function sendMixedMedia(
+        sessionId,
+        recipient,
+        files,
+        defaultCaption,
+        delay
+      ) {
+        showProgress("Sending mixed media...");
+
+        try {
+          const response = await fetch(`${API_BASE}/send/mixed`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              recipient,
+              files: files.map((f) => ({
+                fileId: f.fileId,
+                fileType: f.fileType,
+                caption: f.caption || defaultCaption,
+              })),
+              caption: defaultCaption,
+              delay,
+            }),
+          });
+
+          const data = await response.json();
+          hideProgress();
+
+          if (data.success) {
+            showResults(data);
+            showSuccess(data.message);
+          } else {
+            showError(data.error || "Failed to send mixed media");
+          }
+        } catch (error) {
+          hideProgress();
+          showError("Error sending mixed media: " + error.message);
+        }
+      }
+
+      async function sendBatchFiles(
+        sessionId,
+        recipients,
+        fileIds,
+        fileType,
+        caption,
+        delay
+      ) {
+        showProgress("Sending batch files...");
+
+        try {
+          const response = await fetch(`${API_BASE}/send/batch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              recipients,
+              fileIds,
+              fileType,
+              caption,
+              delay,
+            }),
+          });
+
+          const data = await response.json();
+          hideProgress();
+
+          if (data.success) {
+            showResults(data);
+            showSuccess(data.message);
+          } else {
+            showError(data.error || "Failed to send batch files");
+          }
+        } catch (error) {
+          hideProgress();
+          showError("Error sending batch files: " + error.message);
+        }
+      }
+
+      // UI helpers
+      function showProgress(message) {
+        document.getElementById("progressSection").style.display = "block";
+        document.getElementById("progressText").textContent = message;
+        document.getElementById("progressBar").style.width = "50%";
+      }
+
+      function hideProgress() {
+        document.getElementById("progressSection").style.display = "none";
+        document.getElementById("progressBar").style.width = "0%";
+      }
+
+      function showResults(data) {
+        const resultsDiv = document.getElementById("results");
+        const statsDiv = document.getElementById("resultStats");
+        const listDiv = document.getElementById("resultsList");
+
+        // Show stats
+        statsDiv.innerHTML = `
+                <div class="stat">
+                    <div class="stat-number">${
+                      data.totalFiles || data.totalMessages || 0
+                    }</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">${data.successCount}</div>
+                    <div class="stat-label">Success</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">${data.failureCount}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                ${
+                  data.totalRecipients
+                    ? `
+                <div class="stat">
+                    <div class="stat-number">${data.totalRecipients}</div>
+                    <div class="stat-label">Recipients</div>
+                </div>
+                `
+                    : ""
+                }
+            `;
+
+        // Show detailed results
+        if (data.results) {
+          if (
+            Array.isArray(data.results) &&
+            data.results[0] &&
+            data.results[0].recipient
+          ) {
+            // Batch results
+            listDiv.innerHTML = data.results
+              .map(
+                (recipientResult) => `
+                        <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; padding: 15px;">
+                            <h4>📱 ${recipientResult.recipient}</h4>
+                            <p>Success: ${
+                              recipientResult.successCount
+                            }, Failed: ${recipientResult.failureCount}</p>
+                            ${recipientResult.results
+                              .map(
+                                (result) => `
+                                <div class="result-item">
+                                    <span>${result.fileName}</span>
+                                    <span class="${
+                                      result.success
+                                        ? "status-success"
+                                        : "status-failed"
+                                    }">
+                                        ${
+                                          result.success
+                                            ? "✅ Sent"
+                                            : "❌ Failed"
+                                        }
+                                    </span>
+                                </div>
+                            `
+                              )
+                              .join("")}
+                        </div>
+                    `
+              )
+              .join("");
+          } else {
+            // Bulk or mixed results
+            listDiv.innerHTML = data.results
+              .map(
+                (result) => `
+                        <div class="result-item">
+                            <span>${result.fileName} ${
+                  result.fileType ? `(${result.fileType})` : ""
+                }</span>
+                            <span class="${
+                              result.success
+                                ? "status-success"
+                                : "status-failed"
+                            }">
+                                ${result.success ? "✅ Sent" : "❌ Failed"}
+                                ${result.error ? ` - ${result.error}` : ""}
+                            </span>
+                        </div>
+                    `
+              )
+              .join("");
+          }
+        }
+
+        resultsDiv.classList.add("show");
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+
+      function showError(message) {
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "error";
+        errorDiv.textContent = message;
+        document.body.insertBefore(errorDiv, document.body.firstChild);
+        setTimeout(() => errorDiv.remove(), 5000);
+      }
+
+      function showSuccess(message) {
+        const successDiv = document.createElement("div");
+        successDiv.className = "success";
+        successDiv.textContent = message;
+        document.body.insertBefore(successDiv, document.body.firstChild);
+        setTimeout(() => successDiv.remove(), 5000);
+      }
+
+      // Update recipient tags for batch sending
+      document
+        .getElementById("batchRecipients")
+        .addEventListener("input", function () {
+          const recipients = this.value
+            .split("\n")
+            .map((r) => r.trim())
+            .filter((r) => r);
+          const tagsContainer = document.getElementById("recipientTags");
+
+          tagsContainer.innerHTML = recipients
+            .map(
+              (recipient) => `
+                <span class="recipient-tag">
+                    ${recipient}
+                    <span class="remove" onclick="removeRecipient('${recipient}')">×</span>
+                </span>
+            `
+            )
+            .join("");
+        });
+
+      function removeRecipient(recipient) {
+        const textarea = document.getElementById("batchRecipients");
+        const recipients = textarea.value
+          .split("\n")
+          .map((r) => r.trim())
+          .filter((r) => r && r !== recipient);
+        textarea.value = recipients.join("\n");
+        textarea.dispatchEvent(new Event("input"));
+      }
+
+      // Initialize
+      selectedFiles.bulk = [];
+      selectedFiles.batch = [];
+    </script>
+  </body>
+</html>

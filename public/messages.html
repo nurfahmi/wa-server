@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp Messages</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f0f2f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #128c7e;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #f0f2f5;
+        border: none;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+      }
+      .tab.active {
+        background-color: #128c7e;
+        color: white;
+      }
+      .content {
+        display: none;
+      }
+      .content.active {
+        display: block;
+      }
+      .message-list {
+        margin-top: 20px;
+      }
+      .message {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        background-color: #f0f2f5;
+      }
+      .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        color: #128c7e;
+        font-weight: bold;
+      }
+      .search-box {
+        margin: 20px 0;
+      }
+      input[type="text"] {
+        padding: 8px;
+        width: 200px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 15px;
+        background-color: #128c7e;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #075e54;
+      }
+      .pagination {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      .table-container {
+        margin-top: 20px;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #128c7e;
+        color: white;
+      }
+      tr:nth-child(even) {
+        background-color: #f0f2f5;
+      }
+      tr:hover {
+        background-color: #e8e8e8;
+      }
+      .section-title {
+        margin-top: 30px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #128c7e;
+      }
+      .device-selector {
+        margin: 20px 0;
+      }
+      select {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        min-width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>WhatsApp Data</h1>
+
+      <!-- Device Selector -->
+      <div class="device-selector">
+        <label for="deviceSelect">Select Device:</label>
+        <select id="deviceSelect">
+          <option value="">Choose a device...</option>
+        </select>
+      </div>
+
+      <!-- Contacts Section -->
+      <h2 class="section-title">Contacts</h2>
+      <div class="table-container">
+        <table id="contactsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone Number</th>
+              <th>Type</th>
+              <th>Last Seen</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- Chats Section -->
+      <h2 class="section-title">Chats</h2>
+      <div class="table-container">
+        <table id="chatsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone/Group ID</th>
+              <th>Type</th>
+              <th>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- Messages Section -->
+      <h2 class="section-title">Messages</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="all">All Messages</button>
+        <button class="tab" data-tab="user">Messages by User</button>
+      </div>
+
+      <div id="all-messages" class="content active">
+        <div class="pagination">
+          <button class="prev-btn" data-type="all">Previous</button>
+          <span id="all-page">Page 1</span>
+          <button class="next-btn" data-type="all">Next</button>
+        </div>
+        <div id="all-messages-list" class="message-list"></div>
+      </div>
+
+      <div id="user-messages" class="content">
+        <div class="search-box">
+          <input type="text" id="userId" placeholder="Enter User ID" />
+          <button id="searchBtn">Search</button>
+        </div>
+        <div class="pagination">
+          <button class="prev-btn" data-type="user">Previous</button>
+          <span id="user-page">Page 1</span>
+          <button class="next-btn" data-type="user">Next</button>
+        </div>
+        <div id="user-messages-list" class="message-list"></div>
+      </div>
+    </div>
+
+    <script>
+      const API_TOKEN = "test123";
+      const API_BASE_URL = "http://localhost:3000/api/whatsapp";
+      let currentPage = { all: 1, user: 1 };
+      const PAGE_SIZE = 50;
+
+      // Event Listeners
+      document.addEventListener("DOMContentLoaded", function () {
+        // Tab switching
+        document.querySelectorAll(".tab").forEach((tab) => {
+          tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+        });
+
+        // Pagination
+        document.querySelectorAll(".prev-btn").forEach((btn) => {
+          btn.addEventListener("click", () => changePage(btn.dataset.type, -1));
+        });
+
+        document.querySelectorAll(".next-btn").forEach((btn) => {
+          btn.addEventListener("click", () => changePage(btn.dataset.type, 1));
+        });
+
+        // Search button
+        document
+          .getElementById("searchBtn")
+          .addEventListener("click", fetchUserMessages);
+
+        // Enter key in search box
+        document.getElementById("userId").addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            fetchUserMessages();
+          }
+        });
+
+        // Device selector
+        document
+          .getElementById("deviceSelect")
+          .addEventListener("change", function () {
+            const deviceId = this.value;
+            if (deviceId) {
+              fetchContacts(deviceId);
+              fetchChats(deviceId);
+            }
+          });
+
+        // Initial load
+        loadDevices();
+      });
+
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".content")
+          .forEach((c) => c.classList.remove("active"));
+
+        document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+        document.getElementById(`${tab}-messages`).classList.add("active");
+
+        if (tab === "all") {
+          fetchAllMessages();
+        }
+      }
+
+      function changePage(type, delta) {
+        currentPage[type] += delta;
+        if (currentPage[type] < 1) currentPage[type] = 1;
+
+        document.getElementById(
+          `${type}-page`
+        ).textContent = `Page ${currentPage[type]}`;
+
+        if (type === "all") {
+          fetchAllMessages();
+        } else {
+          fetchUserMessages();
+        }
+      }
+
+      async function fetchAllMessages() {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/messages?page=${currentPage.all}&limit=${PAGE_SIZE}`,
+            {
+              headers: {
+                "X-API-Token": API_TOKEN,
+                Accept: "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          displayMessages(data.messages, "all-messages-list");
+        } catch (error) {
+          console.error("Error fetching messages:", error);
+          alert("Error fetching messages");
+        }
+      }
+
+      async function fetchUserMessages() {
+        const userId = document.getElementById("userId").value;
+        if (!userId) {
+          alert("Please enter a User ID");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/users/${userId}/messages?page=${currentPage.user}&limit=${PAGE_SIZE}`,
+            {
+              headers: {
+                "X-API-Token": API_TOKEN,
+                Accept: "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          displayMessages(data.messages, "user-messages-list");
+        } catch (error) {
+          console.error("Error fetching user messages:", error);
+          alert("Error fetching user messages");
+        }
+      }
+
+      function displayMessages(messages, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        if (!messages || messages.length === 0) {
+          container.innerHTML = "<p>No messages found</p>";
+          return;
+        }
+
+        messages.forEach((message) => {
+          const messageDiv = document.createElement("div");
+          messageDiv.className = "message";
+
+          const content =
+            typeof message.content === "string"
+              ? message.content
+              : JSON.stringify(message.content);
+
+          messageDiv.innerHTML = `
+            <div class="message-header">
+              <span>Session: ${message.sessionId}</span>
+              <span>${new Date(message.createdAt).toLocaleString()}</span>
+            </div>
+            <div>
+              <strong>Type:</strong> ${message.messageType}<br>
+              <strong>To:</strong> ${message.phoneNumber}<br>
+              <strong>Content:</strong> ${content}
+            </div>
+          `;
+          container.appendChild(messageDiv);
+        });
+      }
+
+      // Load devices into selector
+      async function loadDevices() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/sessions`, {
+            headers: {
+              "X-API-Token": API_TOKEN,
+              Accept: "application/json",
+            },
+          });
+          const data = await response.json();
+
+          const deviceSelect = document.getElementById("deviceSelect");
+          deviceSelect.innerHTML =
+            '<option value="">Choose a device...</option>';
+
+          data.sessions.forEach((session) => {
+            const option = document.createElement("option");
+            option.value = session.id;
+            option.textContent = `${session.alias} (${session.userId})`;
+            deviceSelect.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Error loading devices:", error);
+          alert("Error loading devices");
+        }
+      }
+
+      // Fetch contacts for a device
+      async function fetchContacts(deviceId) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/contacts`,
+            {
+              headers: {
+                "X-API-Token": API_TOKEN,
+                Accept: "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          displayContacts(data.contacts);
+        } catch (error) {
+          console.error("Error fetching contacts:", error);
+          alert("Error fetching contacts");
+        }
+      }
+
+      // Fetch chats for a device
+      async function fetchChats(deviceId) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/devices/${deviceId}/chats`,
+            {
+              headers: {
+                "X-API-Token": API_TOKEN,
+                Accept: "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          displayChats(data.chats);
+        } catch (error) {
+          console.error("Error fetching chats:", error);
+          alert("Error fetching chats");
+        }
+      }
+
+      // Display contacts in table
+      function displayContacts(contacts) {
+        const tbody = document.querySelector("#contactsTable tbody");
+        tbody.innerHTML = "";
+
+        if (!contacts || contacts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">No contacts found</td></tr>';
+          return;
+        }
+
+        contacts.forEach((contact) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${contact.whatsappName || "N/A"}</td>
+            <td>${contact.phoneNumber || "N/A"}</td>
+            <td>${contact.type ? "Group" : "Individual"}</td>
+            <td>${new Date(contact.lastSeen).toLocaleString()}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // Display chats in table
+      function displayChats(chats) {
+        const tbody = document.querySelector("#chatsTable tbody");
+        tbody.innerHTML = "";
+
+        if (!chats || chats.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">No chats found</td></tr>';
+          return;
+        }
+
+        chats.forEach((chat) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${chat.whatsappName || "N/A"}</td>
+            <td>${chat.jid || "N/A"}</td>
+            <td>${chat.type ? "Group" : "Individual"}</td>
+            <td>${new Date(chat.lastSeen).toLocaleString()}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+    </script>
+  </body>
+</html>
