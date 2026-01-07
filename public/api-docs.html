@@ -244,13 +244,13 @@
     <h2 class="section-title" id="base-url">Base URLs</h2>
     
     <div class="base-url-box">
-      <strong>Main API:</strong> <code>http://localhost:3000/api/whatsapp</code>
+      <strong>Main API:</strong> <code>https://wa-server.indosofthouse.com//api/whatsapp</code>
     </div>
     <div class="base-url-box">
-      <strong>Business Templates:</strong> <code>http://localhost:3000/api/business-templates</code>
+      <strong>Business Templates:</strong> <code>https://wa-server.indosofthouse.com//api/business-templates</code>
     </div>
     <div class="base-url-box">
-      <strong>Warmer System:</strong> <code>http://localhost:3000/api/warmer</code>
+      <strong>Warmer System:</strong> <code>https://wa-server.indosofthouse.com//api/warmer</code>
     </div>
     <div class="base-url-box">
       <strong>WebSocket:</strong> <code>ws://localhost:3001</code>
@@ -295,7 +295,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X POST http://localhost:3000/api/whatsapp/devices \
+        <pre><code class="language-bash">curl -X POST https://wa-server.indosofthouse.com//api/whatsapp/devices \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -347,7 +347,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/users/user-123-uuid/devices" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/users/user-123-uuid/devices" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -394,7 +394,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/devices/1" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -457,7 +457,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X PUT "http://localhost:3000/api/whatsapp/devices/1" \
+        <pre><code class="language-bash">curl -X PUT "https://wa-server.indosofthouse.com//api/whatsapp/devices/1" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -488,7 +488,7 @@
         <p class="endpoint-desc">Delete a device and cleanup its WhatsApp session completely.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X DELETE "http://localhost:3000/api/whatsapp/devices/1" \
+        <pre><code class="language-bash">curl -X DELETE "https://wa-server.indosofthouse.com//api/whatsapp/devices/1" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -512,7 +512,7 @@
         <p class="endpoint-desc">Login or re-login a device. Generates a new QR code for WhatsApp pairing.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/devices/1/login" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/devices/1/login" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -538,7 +538,7 @@
         <p class="endpoint-desc">Logout device from WhatsApp. Clears session but keeps device record.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/devices/1/logout" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/devices/1/logout" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -563,7 +563,7 @@
         <p class="endpoint-desc">Get the current QR code for device pairing.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/qr" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/devices/1/qr" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -589,7 +589,7 @@
         <p class="endpoint-desc">Get all active sessions and their status.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/sessions" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/sessions" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -639,7 +639,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/send" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -704,7 +704,7 @@
         <small>* Either <code>image</code> file or <code>imageUrl</code> is required</small>
 
         <h6 class="mt-4">Example Request (URL)</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/image" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/send/image" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -715,7 +715,7 @@
   }'</code></pre>
 
         <h6 class="mt-4">Example Request (File Upload)</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/image" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/send/image" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -F "deviceId=1" \
   -F "recipient=6281234567890" \
@@ -768,7 +768,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/video" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/send/video" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -816,7 +816,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X POST "http://localhost:3000/api/whatsapp/send/document" \
+        <pre><code class="language-bash">curl -X POST "https://wa-server.indosofthouse.com//api/whatsapp/send/document" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -910,7 +910,7 @@
         </table>
 
         <h6 class="mt-4">Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/messages/6281234567890@s.whatsapp.net?limit=50" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/devices/1/messages/6281234567890@s.whatsapp.net?limit=50" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
@@ -1011,7 +1011,7 @@
         <p class="endpoint-desc">Get all contacts for a device from database.</p>
 
         <h6>Example Request</h6>
-        <pre><code class="language-bash">curl -X GET "http://localhost:3000/api/whatsapp/devices/1/contacts" \
+        <pre><code class="language-bash">curl -X GET "https://wa-server.indosofthouse.com//api/whatsapp/devices/1/contacts" \
   -H "Authorization: Bearer YOUR_API_TOKEN"</code></pre>
 
         <h6 class="mt-4">Response (200 OK)</h6>
