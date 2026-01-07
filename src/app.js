@@ -40,6 +40,11 @@ process.on("unhandledRejection", (reason, promise) => {
 // Create Express app
 const app = express();
 
+// Trust proxy - required when running behind reverse proxy (Nginx, Apache, etc.)
+// This allows express-rate-limit to correctly identify clients using X-Forwarded-For header
+// Set to 1 to trust the first proxy, or 'loopback' for localhost proxies
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(
   helmet({
