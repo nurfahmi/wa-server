@@ -1560,7 +1560,9 @@
                       aria-controls="${collapseId}">
                 <span class="collapse-icon">▶</span>
                 <span id="productThumbnail_${itemId}" class="me-2" style="display: none;">
-                  <img id="productThumbnailImg_${itemId}" src="" alt="" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px;">
+                  <img id="productThumbnailImg_${itemId}" src="" alt="" 
+                    style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px;"
+                    onerror="this.parentElement.style.display='none';">
                 </span>
                 <strong id="productHeader_${itemId}">${itemName}</strong>
                 <small class="text-muted ms-2" id="productSubheader_${itemId}"></small>
@@ -1621,7 +1623,9 @@
                     src="" 
                     alt="Product preview" 
                     class="img-thumbnail" 
-                    style="max-width: 200px; max-height: 200px; object-fit: cover;">
+                    style="max-width: 200px; max-height: 200px; object-fit: cover;"
+                    onerror="this.style.display='none'; this.parentElement.innerHTML += '<div class=\\'alert alert-warning small p-2\\'>⚠️ Image not found. Please re-upload.</div>';"
+                    onload="this.style.display='block';">
                 </div>
                 <input type="hidden" id="productImageUrl_${itemId}" value="">
                 <small class="text-muted">Upload a product image (JPEG, PNG, WebP, GIF)</small>
@@ -1745,14 +1749,33 @@
             let imageId = item.imageId;
             if (!imageId && item.imageUrl) {
               // Extract ID from URL format: /api/whatsapp/files/{id}/preview
-              const match = item.imageUrl.match(/\/files\/(\d+)\/preview/);
-              imageId = match ? match[1] : null;
+              // Support both UUID format and legacy numeric IDs
+              const uuidMatch = item.imageUrl.match(/\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:\/|$)/i);
+              const numericMatch = item.imageUrl.match(/\/files\/(\d+)\/preview/);
+              imageId = (uuidMatch && uuidMatch[1]) ? uuidMatch[1] : (numericMatch ? numericMatch[1] : null);
             }
             
             if (imageId) {
               imageUrlInput.value = imageId;
               // Construct preview URL from file ID
               const previewUrl = `/api/whatsapp/files/${imageId}/preview`;
+              console.log(`Loading product image preview: ${previewUrl}`);
+              
+              // Set up load handlers before setting src
+              imagePreviewImg.onload = function() {
+                console.log(`Product image loaded successfully: ${imageId}`);
+                imagePreview.style.display = "block";
+              };
+              imagePreviewImg.onerror = function() {
+                console.error(`Failed to load product image: ${imageId}, URL: ${previewUrl}`);
+                imagePreview.style.display = "block";
+                this.style.display = "none";
+                // Check if warning already exists
+                if (!this.parentElement.querySelector('.alert-warning')) {
+                  this.parentElement.innerHTML += '<div class="alert alert-warning small p-2 mt-1">⚠️ Image not found (ID: ' + imageId + '). Please re-upload.</div>';
+                }
+              };
+              
               imagePreviewImg.src = previewUrl;
               imagePreview.style.display = "block";
               removeImageBtn.style.display = "block";

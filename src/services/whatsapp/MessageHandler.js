@@ -228,21 +228,35 @@ class MessageHandler {
     // Extract imageId from response
     let imageIdToUse = aiResponse.imageId;
     if (!imageIdToUse && aiResponse.content) {
+      // Extended URL patterns to catch more formats
       const urlPatterns = [
+        // Standard UUID patterns
         /\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
         /\/api\/whatsapp\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
         /\/files\/([a-f0-9-]{36})\/preview/i,
         /\/api\/whatsapp\/files\/([a-f0-9-]{36})\/preview/i,
+        // UUID without /preview suffix
+        /\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:\/|$|\s|\))/i,
+        /\/api\/whatsapp\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(?:\/|$|\s|\))/i,
+        // Markdown image format: ![alt](url)
+        /!\[[^\]]*\]\s*\([^)]*\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[^)]*\)/i,
+        // Any UUID-like pattern mentioned after "image" or "gambar"
+        /(?:image|gambar|foto|photo)[:\s]+[^\s]*([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
       ];
       
       for (const pattern of urlPatterns) {
         const match = aiResponse.content.match(pattern);
         if (match && match[1]) {
           imageIdToUse = match[1];
-          console.log(`[AI-RESPONSE] Extracted imageId from URL: ${imageIdToUse}`);
+          console.log(`[AI-RESPONSE] Extracted imageId from content using pattern: ${imageIdToUse}`);
           break;
         }
       }
+    }
+    
+    // Log for debugging
+    if (!imageIdToUse) {
+      console.log(`[AI-RESPONSE] No imageId found. Content contains URL-like patterns: ${/\/files\/|\/api\/whatsapp\/files\//.test(aiResponse.content)}`);
     }
     
     // Send image if available
@@ -311,15 +325,27 @@ class MessageHandler {
             await this.sendNaturalReply(device.sessionId, sender, messageKey, remainingText);
           }
         } else {
-          console.warn(`Product image ${aiResponse.imageId} not found or expired, sending text only`);
-          await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content);
+          console.warn(`[AI-RESPONSE] Product image ${imageIdToUse} not found or expired. Stored file found: ${!!storedFile}, expired: ${storedFile?.isExpired?.()}`);
+          // Clean the caption before sending as text
+          const cleanedContent = this.cleanImageCaption(aiResponse.content);
+          await this.sendNaturalReply(device.sessionId, sender, messageKey, cleanedContent || aiResponse.content);
         }
       } catch (imageError) {
-        console.error("Error sending product image:", imageError);
-        await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content);
+        console.error("[AI-RESPONSE] Error sending product image:", imageError);
+        // Clean the caption before sending as text fallback
+        const cleanedContent = this.cleanImageCaption(aiResponse.content);
+        await this.sendNaturalReply(device.sessionId, sender, messageKey, cleanedContent || aiResponse.content);
       }
     } else {
-      await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content);
+      // No image to send, just send text (but clean any URL references that might be there)
+      const hasUrlPatterns = /\/files\/|\/api\/whatsapp\/files\//.test(aiResponse.content);
+      if (hasUrlPatterns) {
+        console.log(`[AI-RESPONSE] Cleaning URL patterns from text response`);
+        const cleanedContent = this.cleanImageCaption(aiResponse.content);
+        await this.sendNaturalReply(device.sessionId, sender, messageKey, cleanedContent || aiResponse.content);
+      } else {
+        await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content);
+      }
     }
 
     await chatSettings.update({
@@ -721,14 +747,14 @@ class MessageHandler {
 
     let cleaned = caption;
 
-    // Remove markdown image syntax
+    // Remove markdown image syntax: ![alt](url)
     cleaned = cleaned.replace(/!\[([^\]]*)\]\s*\([^)]+\)/g, "");
 
-    // Remove file preview URLs
-    cleaned = cleaned.replace(/\/api\/whatsapp\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/https?:\/\/[^\s]+\/api\/whatsapp\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/https?:\/\/[^\s]+\/files\/[^\s)]+\/preview/g, "");
+    // Remove file preview URLs (with and without /preview suffix)
+    cleaned = cleaned.replace(/\/api\/whatsapp\/files\/[a-f0-9-]+(?:\/preview)?/gi, "");
+    cleaned = cleaned.replace(/\/files\/[a-f0-9-]+(?:\/preview)?/gi, "");
+    cleaned = cleaned.replace(/https?:\/\/[^\s]+\/api\/whatsapp\/files\/[a-f0-9-]+(?:\/preview)?/gi, "");
+    cleaned = cleaned.replace(/https?:\/\/[^\s]+\/files\/[a-f0-9-]+(?:\/preview)?/gi, "");
 
     // Remove URLs in parentheses
     cleaned = cleaned.replace(/\(\s*\/api\/whatsapp\/files[^)]*\s*\)/g, "");
@@ -736,21 +762,32 @@ class MessageHandler {
     cleaned = cleaned.replace(/\(\s*https?:\/\/[^)]*\/api\/whatsapp\/files[^)]*\s*\)/g, "");
     cleaned = cleaned.replace(/\(\s*https?:\/\/[^)]*\/files\/[^)]*\s*\)/g, "");
 
-    // Remove URLs after colons
-    cleaned = cleaned.replace(/:\s*\/api\/whatsapp\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/:\s*\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/:\s*https?:\/\/[^\s]+\/api\/whatsapp\/files\/[^\s)]+\/preview/g, "");
-    cleaned = cleaned.replace(/:\s*https?:\/\/[^\s]+\/files\/[^\s)]+\/preview/g, "");
+    // Remove URLs after colons (with and without /preview)
+    cleaned = cleaned.replace(/:\s*\/api\/whatsapp\/files\/[^\s)]+/g, "");
+    cleaned = cleaned.replace(/:\s*\/files\/[^\s)]+/g, "");
+    cleaned = cleaned.replace(/:\s*https?:\/\/[^\s]+\/api\/whatsapp\/files\/[^\s)]+/g, "");
+    cleaned = cleaned.replace(/:\s*https?:\/\/[^\s]+\/files\/[^\s)]+/g, "");
 
-    // Remove "Image available" patterns
-    cleaned = cleaned.replace(/[Ii]mage\s+available\s*:?\s*\/?api\/whatsapp\/files\/[^\s)]+\/preview/gi, "");
-    cleaned = cleaned.replace(/[Ii]mage\s+available\s*:?\s*\/?files\/[^\s)]+\/preview/gi, "");
-    cleaned = cleaned.replace(/[Ii]mage\s+available\s*:?\s*https?:\/\/[^\s]+\/api\/whatsapp\/files\/[^\s)]+\/preview/gi, "");
-    cleaned = cleaned.replace(/[Ii]mage\s+available\s*:?\s*https?:\/\/[^\s]+\/files\/[^\s)]+\/preview/gi, "");
+    // Remove "Image available" patterns (English and Indonesian)
+    cleaned = cleaned.replace(/[Ii]mage\s+available\s*:?[^\n]*/gi, "");
+    cleaned = cleaned.replace(/[Gg]ambar\s+tersedia\s*:?[^\n]*/gi, "");
+    cleaned = cleaned.replace(/[Ff]oto\s+tersedia\s*:?[^\n]*/gi, "");
+    
+    // Remove standalone "Here's the image:" or similar phrases
+    cleaned = cleaned.replace(/[Hh]ere'?s?\s+(?:the\s+)?(?:image|photo|picture)\s*:?\s*/gi, "");
+    cleaned = cleaned.replace(/[Bb]erikut\s+(?:ini\s+)?(?:gambar|foto)(?:nya)?\s*:?\s*/gi, "");
 
-    // Clean up spaces
+    // Remove bare UUIDs that might be left over
+    cleaned = cleaned.replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, "");
+
+    // Clean up multiple newlines, spaces, and trailing punctuation
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
     cleaned = cleaned.replace(/\s+/g, " ").trim();
     cleaned = cleaned.replace(/^[,\s:]+|[,\s:]+$/g, "").trim();
+    
+    // Remove empty parentheses or brackets left behind
+    cleaned = cleaned.replace(/\(\s*\)/g, "");
+    cleaned = cleaned.replace(/\[\s*\]/g, "");
 
     return cleaned;
   }

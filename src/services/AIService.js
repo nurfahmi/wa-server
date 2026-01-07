@@ -163,18 +163,49 @@ class AIService {
         const messageTextLower = messageText.toLowerCase();
         const aiResponseLower = aiResponse.toLowerCase();
         
+        // Helper function to extract imageId from imageUrl
+        const extractImageIdFromUrl = (url) => {
+          if (!url) return null;
+          // Match UUID format in URL
+          const uuidPatterns = [
+            /\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
+            /\/api\/whatsapp\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
+            /\/files\/([a-f0-9-]{36})\/preview/i,
+            /\/api\/whatsapp\/files\/([a-f0-9-]{36})\/preview/i,
+          ];
+          for (const pattern of uuidPatterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) return match[1];
+          }
+          return null;
+        };
+        
         // Find products mentioned in the user's message or AI response
         // Check for exact matches first, then partial matches
         let bestMatch = null;
         let bestMatchScore = 0;
         
         for (const item of items) {
-          if (item.name && item.imageId) {
+          // Get imageId - either directly or extract from imageUrl
+          let itemImageId = item.imageId;
+          if (!itemImageId && item.imageUrl) {
+            itemImageId = extractImageIdFromUrl(item.imageUrl);
+          }
+          
+          // Only process items with name AND some form of image reference
+          if (item.name && (itemImageId || item.imageUrl)) {
             const productNameLower = item.name.toLowerCase();
             const productWords = productNameLower.split(/\s+/);
             
             // Calculate match score from user message
             let matchScore = 0;
+            
+            // Check for image-related keywords in user message (boost if asking for image)
+            const imageKeywords = ['gambar', 'foto', 'image', 'picture', 'photo', 'lihat', 'tampilkan', 'show', 'view'];
+            const hasImageRequest = imageKeywords.some(keyword => messageTextLower.includes(keyword));
+            if (hasImageRequest) {
+              matchScore += 25; // Boost score if user is asking for image
+            }
             
             // Exact match gets highest score
             if (messageTextLower.includes(productNameLower)) {
@@ -196,14 +227,14 @@ class AIService {
             // Prefer matches with images
             if (matchScore > bestMatchScore) {
               bestMatchScore = matchScore;
-              bestMatch = item;
+              bestMatch = { ...item, resolvedImageId: itemImageId };
             }
           }
         }
         
         // Use best match if score is above threshold
         if (bestMatch && bestMatchScore >= 10) {
-          productImageId = bestMatch.imageId;
+          productImageId = bestMatch.resolvedImageId || bestMatch.imageId;
           console.log(`[AI-SERVICE] Found matching product image for "${bestMatch.name}" (score: ${bestMatchScore}):`, {
             productName: bestMatch.name,
             imageId: productImageId,
@@ -219,6 +250,7 @@ class AIService {
               name: item.name,
               hasImageId: !!item.imageId,
               imageId: item.imageId,
+              hasImageUrl: !!item.imageUrl,
             })));
           }
         }
