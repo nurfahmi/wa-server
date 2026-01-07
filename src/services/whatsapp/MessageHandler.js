@@ -11,6 +11,24 @@ import { Device, ChatSettings, StoredFile, WarmerCampaign } from "../../models/i
 import { Op } from "sequelize";
 import { getMimeType } from "../../utils/mimeHelper.js";
 
+// Helper to detect if file is an image based on extension
+const isImageByExtension = (filename) => {
+  if (!filename) return false;
+  const ext = path.extname(filename).toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].includes(ext);
+};
+
+// Helper to get correct mime type from extension
+const getMimeTypeFromExtension = (filename) => {
+  if (!filename) return 'application/octet-stream';
+  const ext = path.extname(filename).toLowerCase();
+  const mimeTypes = {
+    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+    '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp', '.svg': 'image/svg+xml',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+};
+
 class MessageHandler {
   constructor(whatsAppService) {
     this.service = whatsAppService;
@@ -270,6 +288,7 @@ class MessageHandler {
         
         console.log(`[AI-RESPONSE] Looking up file with ID: ${fileId}, device userId: ${device.userId}`);
         
+        // First try to find by fileType: "image"
         let storedFile = await StoredFile.findOne({
           where: {
             id: fileId,
@@ -288,6 +307,21 @@ class MessageHandler {
             },
             logging: false,
           });
+        }
+        
+        // Fallback: check if file exists with any fileType but is an image by extension
+        // This handles files that were incorrectly stored as "document" due to mime detection issues
+        if (!storedFile) {
+          console.log(`[AI-RESPONSE] Image not found by fileType, checking by extension`);
+          const anyFile = await StoredFile.findOne({
+            where: { id: fileId },
+            logging: false,
+          });
+          
+          if (anyFile && isImageByExtension(anyFile.originalName)) {
+            console.log(`[AI-RESPONSE] Found file with image extension: ${anyFile.originalName} (stored as ${anyFile.fileType})`);
+            storedFile = anyFile;
+          }
         }
 
         if (storedFile && !storedFile.isExpired()) {
@@ -308,12 +342,19 @@ class MessageHandler {
           const rawCaption = aiResponse.content.substring(0, 1024);
           const caption = this.cleanImageCaption(rawCaption);
           
+          // Use correct mime type - if stored mime is wrong (text/plain, octet-stream), get from extension
+          let mimeType = storedFile.mimeType;
+          if (!mimeType || mimeType === 'text/plain' || mimeType === 'application/octet-stream') {
+            mimeType = getMimeTypeFromExtension(storedFile.originalName);
+            console.log(`[AI-RESPONSE] Corrected mime type from ${storedFile.mimeType} to ${mimeType}`);
+          }
+          
           await this.sendImage(
             device.sessionId,
             sender,
             imageBuffer,
             caption,
-            storedFile.mimeType
+            mimeType
           );
           
           await storedFile.incrementUsage();

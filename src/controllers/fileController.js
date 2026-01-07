@@ -75,6 +75,64 @@ const getFileTypeFromMime = (mimeType) => {
   return "document";
 };
 
+// Helper function to get file type from extension (fallback when mime is wrong)
+const getFileTypeFromExtension = (filename) => {
+  if (!filename) return "document";
+  const ext = path.extname(filename).toLowerCase();
+  
+  const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+  const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.3gp'];
+  const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
+  
+  if (imageExts.includes(ext)) return "image";
+  if (videoExts.includes(ext)) return "video";
+  if (audioExts.includes(ext)) return "audio";
+  return "document";
+};
+
+// Helper function to get correct mime type from extension
+const getCorrectMimeType = (filename, detectedMime) => {
+  // If detected mime is specific enough, use it
+  if (detectedMime && 
+      detectedMime !== 'text/plain' && 
+      detectedMime !== 'application/octet-stream') {
+    return detectedMime;
+  }
+  
+  // Otherwise, derive from extension
+  if (!filename) return detectedMime || 'application/octet-stream';
+  const ext = path.extname(filename).toLowerCase();
+  
+  const mimeMap = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.webm': 'video/webm',
+    '.3gp': 'video/3gpp',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.txt': 'text/plain',
+  };
+  
+  return mimeMap[ext] || detectedMime || 'application/octet-stream';
+};
+
 // Upload and store file
 export const uploadFile = async (req, res) => {
   upload(req, res, async (err) => {
@@ -123,8 +181,23 @@ export const uploadFile = async (req, res) => {
       const newFilePath = path.join(userDir, req.file.filename);
       await fs.rename(req.file.path, newFilePath);
 
-      // Get file metadata
-      const fileType = getFileTypeFromMime(req.file.mimetype);
+      // Get file metadata - use extension-based detection as fallback for incorrect mime types
+      let fileType = getFileTypeFromMime(req.file.mimetype);
+      let mimeType = req.file.mimetype;
+      
+      // If mime detection failed (text/plain or octet-stream for media files), use extension
+      if (mimeType === 'text/plain' || mimeType === 'application/octet-stream') {
+        const extFileType = getFileTypeFromExtension(req.file.originalname);
+        const extMimeType = getCorrectMimeType(req.file.originalname, mimeType);
+        
+        // Only override if extension indicates media file
+        if (extFileType !== 'document') {
+          fileType = extFileType;
+          mimeType = extMimeType;
+          console.log(`[FileUpload] Corrected mime type from ${req.file.mimetype} to ${mimeType} based on extension`);
+        }
+      }
+      
       const filePath = path.relative(process.cwd(), newFilePath);
 
       // Create database record
@@ -133,7 +206,7 @@ export const uploadFile = async (req, res) => {
         deviceId: null, // No device association needed
         originalName: req.file.originalname,
         storedName: req.file.filename,
-        mimeType: req.file.mimetype,
+        mimeType: mimeType,
         fileType,
         size: req.file.size,
         filePath,
@@ -653,6 +726,32 @@ export const getFilesByUserAndType = async (req, res) => {
   }
 };
 
+// Helper to detect if file is an image based on extension
+const isImageByExtension = (filename) => {
+  if (!filename) return false;
+  const ext = path.extname(filename).toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].includes(ext);
+};
+
+// Helper to get correct mime type from extension
+const getMimeTypeFromExtension = (filename) => {
+  if (!filename) return 'application/octet-stream';
+  const ext = path.extname(filename).toLowerCase();
+  const mimeTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+    '.mp4': 'video/mp4',
+    '.mp3': 'audio/mpeg',
+    '.pdf': 'application/pdf',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+};
+
 // Get file preview/thumbnail URL
 export const getFilePreview = async (req, res) => {
   try {
@@ -678,19 +777,28 @@ export const getFilePreview = async (req, res) => {
       });
     }
 
+    // Check if file is an image - by fileType OR by file extension (fallback for incorrectly stored files)
+    const isImage = file.fileType === "image" || isImageByExtension(file.originalName);
+    
     // For images, return the actual file
-    if (file.fileType === "image") {
+    if (isImage) {
       const filePath = path.join(process.cwd(), file.filePath);
 
       // Check if file exists
       try {
         await fs.access(filePath);
         
+        // Determine correct mime type - use stored if valid, otherwise derive from extension
+        let contentType = file.mimeType;
+        if (!contentType || contentType === 'text/plain' || contentType === 'application/octet-stream') {
+          contentType = getMimeTypeFromExtension(file.originalName);
+        }
+        
         // Set CORS headers to allow cross-origin requests
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
         res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        res.setHeader("Content-Type", file.mimeType);
+        res.setHeader("Content-Type", contentType);
         res.setHeader("Cache-Control", "public, max-age=86400"); // 24 hours cache
         
         res.sendFile(filePath);
