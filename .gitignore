@@ -52,6 +52,7 @@ typings/
 
 # dotenv environment variables file
 .env
+client/.env
 .env.test
 .env.local
 .env.production

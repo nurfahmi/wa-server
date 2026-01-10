@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -11,6 +13,7 @@ import AISettings from "./pages/AISettings";
 import Agents from "./pages/Agents";
 import Gallery from "./pages/Gallery";
 import MobileMenu from "./pages/MobileMenu";
+import { ModalProvider } from "./context/ModalContext";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -36,62 +39,68 @@ const DashboardRedirect = () => {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          
-          {/* Full Screen Pages (No Dashboard Layout) */}
-          <Route path="/devices/:deviceId/chats" element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } />
+    <ThemeProvider>
+      <LanguageProvider>
+        <ModalProvider>
+          <Router>
+            <AuthProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                {/* ... routes ... */}
+                {/* Full Screen Pages (No Dashboard Layout) */}
+                <Route path="/devices/:deviceId/chats" element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                } />
 
-          {/* Dashboard Pages */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<DashboardRedirect />} />
-            <Route path="menu" element={<MobileMenu />} />
-            <Route path="dashboard" element={
-              <ProtectedRoute allowedRoles={['user', 'superadmin']}>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="cs-dashboard" element={<CSDashboard />} />
-            <Route path="devices" element={
-              <ProtectedRoute allowedRoles={['user', 'superadmin']}>
-                <Devices />
-              </ProtectedRoute>
-            } />
-            <Route path="devices/:deviceId/ai-settings" element={
-              <ProtectedRoute allowedRoles={['user', 'superadmin']}>
-                <AISettings />
-              </ProtectedRoute>
-            } />
-            <Route path="agents" element={
-              <ProtectedRoute allowedRoles={['user', 'superadmin']}>
-                <Agents />
-              </ProtectedRoute>
-            } />
-             <Route path="chats" element={
-               <ProtectedRoute>
-                 <Chat />
-               </ProtectedRoute>
-             } />
-            <Route path="gallery" element={
-              <ProtectedRoute allowedRoles={['user', 'superadmin']}>
-                <Gallery />
-              </ProtectedRoute>
-            } />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </Router>
+                {/* Dashboard Pages */}
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<DashboardRedirect />} />
+                  <Route path="menu" element={<MobileMenu />} />
+                  <Route path="dashboard" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="cs-dashboard" element={<CSDashboard />} />
+                  <Route path="devices" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <Devices />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="devices/:deviceId/ai-settings" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <AISettings />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="agents" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <Agents />
+                    </ProtectedRoute>
+                  } />
+                   <Route path="chats" element={
+                     <ProtectedRoute>
+                       <Chat />
+                     </ProtectedRoute>
+                   } />
+                  <Route path="gallery" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <Gallery />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+              </Routes>
+            </AuthProvider>
+          </Router>
+        </ModalProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 

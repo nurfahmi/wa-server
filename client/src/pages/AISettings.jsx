@@ -40,10 +40,12 @@ import {
   Package
 } from "lucide-react";
 import clsx from "clsx";
+import { useModal } from "../context/ModalContext";
 
 export default function AISettings() {
   const { deviceId } = useParams();
   const navigate = useNavigate();
+  const { showAlert } = useModal();
   const [device, setDevice] = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -159,13 +161,13 @@ export default function AISettings() {
       });
       
       if (!updatedSettings) {
-        alert("AI Business Settings updated successfully");
+        await showAlert({ title: "Success", message: "AI Business Settings updated successfully", type: "success" });
       }
       
       await fetchSettings(); // Refresh to update everything from source of truth
     } catch (error) {
       console.error("Failed to save AI settings:", error);
-      alert("Failed to save AI settings: " + (error.response?.data?.error || error.message));
+      await showAlert({ title: "Error", message: "Failed to save AI settings: " + (error.response?.data?.error || error.message), type: "danger" });
     } finally {
       setSaving(false);
     }
@@ -251,7 +253,7 @@ export default function AISettings() {
       console.log('Product image bulk upload success, URLs:', urls);
     } catch (error) {
       console.error("Image upload failed:", error);
-      alert("Failed to upload image: " + (error.response?.data?.error || error.message));
+      await showAlert({ title: "Error", message: "Failed to upload image: " + (error.response?.data?.error || error.message), type: "danger" });
     } finally {
       setUploadingImage(false);
     }
@@ -292,7 +294,7 @@ export default function AISettings() {
       console.log('Business logo upload success, URL:', res.data.url);
     } catch (error) {
       console.error("Logo upload failed:", error);
-      alert("Failed to upload logo: " + (error.response?.data?.error || error.message));
+      await showAlert({ title: "Error", message: "Failed to upload logo: " + (error.response?.data?.error || error.message), type: "danger" });
     } finally {
       setUploadingLogo(false);
     }

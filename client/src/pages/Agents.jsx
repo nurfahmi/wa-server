@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   UserPlus, 
   Users, 
@@ -19,6 +20,7 @@ import {
 import clsx from "clsx";
 
 export default function Agents() {
+  const { t } = useLanguage();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -85,27 +87,27 @@ export default function Agents() {
         <div>
           <div className="flex items-center gap-2 mb-1">
              <Shield className="w-5 h-5 text-primary" />
-             <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Team Management</span>
+             <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{t('agents.teamManagement')}</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight">Customer Service Agents</h1>
-          <p className="text-muted-foreground text-lg">Manage your team's access and monitor their productivity.</p>
+          <h1 className="text-4xl font-extrabold tracking-tight">{t('agents.csAgents')}</h1>
+          <p className="text-muted-foreground text-lg">{t('agents.subtitle')}</p>
         </div>
         <button 
            onClick={() => setShowAddModal(true)}
            className="px-8 py-4 bg-primary text-primary-foreground rounded-[2rem] font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95"
         >
            <UserPlus className="w-5 h-5" />
-           Add New Agent
+           {t('agents.addAgent')}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { label: "Total Agents", value: agents.length, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-           { label: "Active Now", value: agents.filter(a => a.lastLogin && new Date(a.lastLogin) > new Date(Date.now() - 3600000)).length, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-           { label: "Total Handled", value: agents.reduce((acc, a) => acc + (a.totalChatsCount || 0), 0), icon: MessageSquare, color: "text-purple-500", bg: "bg-purple-500/10" },
-           { label: "In Progress", value: agents.reduce((acc, a) => acc + (a.activeChatsCount || 0), 0), icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" }
+           { label: t('agents.totalAgents'), value: agents.length, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+           { label: t('agents.activeNow'), value: agents.filter(a => a.lastLogin && new Date(a.lastLogin) > new Date(Date.now() - 3600000)).length, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+           { label: t('agents.totalHandled'), value: agents.reduce((acc, a) => acc + (a.totalChatsCount || 0), 0), icon: MessageSquare, color: "text-purple-500", bg: "bg-purple-500/10" },
+           { label: t('agents.inProgress'), value: agents.reduce((acc, a) => acc + (a.activeChatsCount || 0), 0), icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" }
          ].map((stat, i) => (
            <div key={i} className="bg-card border border-border p-6 rounded-[2.5rem] shadow-sm flex items-center gap-4 group hover:shadow-lg transition-all">
               <div className={clsx("w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform", stat.bg)}>
@@ -122,13 +124,13 @@ export default function Agents() {
       {/* Agents Table/Grid */}
       <div className="bg-card border border-border rounded-[3rem] overflow-hidden shadow-sm">
          <div className="p-8 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/10">
-            <h3 className="text-xl font-bold">Manage Agents</h3>
+            <h3 className="text-xl font-bold">{t('agents.manageAgents')}</h3>
             <div className="flex items-center gap-3">
                <div className="relative flex-1 sm:min-w-[300px]">
                   <Search className="absolute left-4 top-3 w-4 h-4 text-muted-foreground" />
                   <input 
                     type="text" 
-                    placeholder="Search by name or email..." 
+                    placeholder={t('agents.searchPlaceholder')} 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-11 pr-4 py-2.5 bg-background border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary outline-none"
@@ -144,10 +146,10 @@ export default function Agents() {
             <table className="w-full">
                <thead>
                   <tr className="text-left border-b border-border bg-muted/5">
-                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">Agent Details</th>
-                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">Workload</th>
-                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">Last Activity</th>
-                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">{t('agents.agentDetails')}</th>
+                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">{t('agents.workload')}</th>
+                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest">{t('agents.lastActivity')}</th>
+                     <th className="px-8 py-4 text-xs font-black text-muted-foreground uppercase tracking-widest text-right">{t('agents.actions')}</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-border">
@@ -162,8 +164,8 @@ export default function Agents() {
                        <td colSpan="4" className="px-8 py-20 text-center">
                           <div className="flex flex-col items-center opacity-40">
                              <Users className="w-16 h-16 mb-4" />
-                             <p className="text-lg font-bold">{searchTerm ? "No matches found" : "No agents found"}</p>
-                             <p className="text-sm">{searchTerm ? "Try a different search term." : "Start by adding your first Customer Service agent."}</p>
+                             <p className="text-lg font-bold">{searchTerm ? t('agents.noMatches') : t('agents.noAgents')}</p>
+                             <p className="text-sm">{searchTerm ? t('agents.tryDifferentSearch') : t('agents.startByAdding')}</p>
                           </div>
                        </td>
                     </tr>
@@ -189,7 +191,7 @@ export default function Agents() {
                         <td className="px-8 py-5">
                            <div className="flex flex-col gap-1">
                               <div className="flex justify-between items-center w-32">
-                                 <span className="text-[10px] font-black text-muted-foreground uppercase">Active Chats</span>
+                                 <span className="text-[10px] font-black text-muted-foreground uppercase">{t('agents.activeChats')}</span>
                                  <span className="text-xs font-black text-primary">{agent.activeChatsCount || 0}</span>
                               </div>
                               <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden border border-border">
@@ -198,7 +200,7 @@ export default function Agents() {
                                     style={{ width: `${Math.min(100, (agent.activeChatsCount / 10) * 100)}%` }}
                                  />
                               </div>
-                              <p className="text-[10px] text-muted-foreground font-medium">{agent.totalChatsCount || 0} total handled</p>
+                              <p className="text-[10px] text-muted-foreground font-medium">{agent.totalChatsCount || 0} {t('agents.totalHandledCount')}</p>
                            </div>
                         </td>
                         <td className="px-8 py-5">
@@ -232,10 +234,10 @@ export default function Agents() {
          </div>
          
          <div className="p-6 border-t border-border bg-muted/5 flex justify-between items-center text-sm text-muted-foreground">
-            <p>Showing <b>{filteredAgents.length}</b> agents</p>
+            <p>{t('agents.showing')} <b>{filteredAgents.length}</b> {t('agents.agentsCount')}</p>
             <div className="flex items-center gap-2">
-               <button className="px-4 py-2 bg-background border border-border rounded-xl hover:bg-muted disabled:opacity-50" disabled>Previous</button>
-               <button className="px-4 py-2 bg-background border border-border rounded-xl hover:bg-muted disabled:opacity-50" disabled>Next</button>
+               <button className="px-4 py-2 bg-background border border-border rounded-xl hover:bg-muted disabled:opacity-50" disabled>{t('agents.previous')}</button>
+               <button className="px-4 py-2 bg-background border border-border rounded-xl hover:bg-muted disabled:opacity-50" disabled>{t('agents.next')}</button>
             </div>
          </div>
       </div>
@@ -247,9 +249,9 @@ export default function Agents() {
               <div className="px-10 py-8 border-b border-border flex justify-between items-center bg-muted/10">
                  <div>
                     <h3 className="text-2xl font-black flex items-center gap-3 text-primary">
-                       <UserPlus className="w-8 h-8" /> Add CS Agent
+                       <UserPlus className="w-8 h-8" /> {t('agents.addCSAgent')}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1">They will have access to the Chat Dashboard only.</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t('agents.accessInfo')}</p>
                  </div>
                  <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
                     <X className="w-6 h-6 text-muted-foreground" />
@@ -259,7 +261,7 @@ export default function Agents() {
               <form onSubmit={handleCreate} className="p-10 space-y-6">
                  <div className="space-y-2">
                     <label className="text-sm font-bold flex items-center gap-2 px-1">
-                       <User className="w-4 h-4 text-primary" /> Full Name
+                       <User className="w-4 h-4 text-primary" /> {t('agents.fullName')}
                     </label>
                     <input 
                        required
@@ -273,7 +275,7 @@ export default function Agents() {
 
                  <div className="space-y-2">
                     <label className="text-sm font-bold flex items-center gap-2 px-1">
-                       <Mail className="w-4 h-4 text-primary" /> Email Address
+                       <Mail className="w-4 h-4 text-primary" /> {t('agents.emailAddress')}
                     </label>
                     <input 
                        required
@@ -287,7 +289,7 @@ export default function Agents() {
 
                  <div className="space-y-2">
                     <label className="text-sm font-bold flex items-center gap-2 px-1">
-                       <Shield className="w-4 h-4 text-primary" /> Temporary Password
+                       <Shield className="w-4 h-4 text-primary" /> {t('agents.temporaryPassword')}
                     </label>
                     <input 
                        required
@@ -305,7 +307,7 @@ export default function Agents() {
                        onClick={() => setShowAddModal(false)}
                        className="flex-1 py-4 bg-muted hover:bg-muted/80 rounded-2xl font-bold transition-all text-foreground"
                     >
-                       Cancel
+                       {t('agents.cancel')}
                     </button>
                     <button 
                        type="submit"
@@ -313,7 +315,7 @@ export default function Agents() {
                        className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                        {saving ? <RefreshCw className="w-5 h-5 animate-spin"/> : <CheckCircle2 className="w-5 h-5"/>}
-                       Create Account
+                       {t('agents.createAccount')}
                     </button>
                  </div>
               </form>

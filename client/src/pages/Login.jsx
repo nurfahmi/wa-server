@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   MessageSquare, 
   ShieldCheck, 
@@ -20,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 export default function Login() {
+  const { t } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("owner"); // "owner" or "agent"
@@ -65,10 +67,10 @@ export default function Login() {
 
            <div className="space-y-6">
               <h1 className="text-6xl font-black leading-tight tracking-tight">
-                Scale Your <span className="text-primary">Business</span> Messaging.
+                {t('auth.scaleYour')} <span className="text-primary">{t('auth.business')}</span> {t('auth.messaging')}
               </h1>
               <p className="text-xl text-gray-400 leading-relaxed max-w-lg">
-                The ultimate WhatsApp management platform for modern businesses. Empower your CS team and automate engagement with AI.
+                {t('auth.platformDescription')}
               </p>
            </div>
 
@@ -101,7 +103,7 @@ export default function Login() {
                      activeTab === "owner" ? "bg-white text-black shadow-lg" : "text-gray-400 hover:text-white"
                    )}
                  >
-                    <ShieldCheck className="w-4 h-4" /> Business Owner
+                    <ShieldCheck className="w-4 h-4" /> {t('auth.businessOwner')}
                  </button>
                  <button 
                    onClick={() => setActiveTab("agent")}
@@ -110,7 +112,7 @@ export default function Login() {
                      activeTab === "agent" ? "bg-white text-black shadow-lg" : "text-gray-400 hover:text-white"
                    )}
                  >
-                    <Users className="w-4 h-4" /> CS Team Member
+                    <Users className="w-4 h-4" /> {t('auth.csTeamMember')}
                  </button>
               </div>
 
@@ -134,7 +136,7 @@ export default function Login() {
                    </div>
 
                    <p className="text-xs text-center text-gray-500 max-w-xs mx-auto leading-relaxed">
-                      By signing in, you agree to our Terms of Service and Privacy Policy. Your data is protected with 256-bit encryption.
+                      {t('auth.termsPrivacy')}
                    </p>
                 </div>
               ) : (
@@ -153,7 +155,7 @@ export default function Login() {
 
                    <div className="space-y-4">
                       <div className="space-y-2">
-                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Email Address</label>
+                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">{t('auth.emailAddress')}</label>
                          <div className="relative">
                             <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
                             <input 
@@ -168,7 +170,7 @@ export default function Login() {
                       </div>
 
                       <div className="space-y-2">
-                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Security Password</label>
+                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">{t('auth.securityPassword')}</label>
                          <div className="relative">
                             <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
                             <input 
@@ -196,7 +198,7 @@ export default function Login() {
                      className="w-full py-5 bg-white text-black hover:bg-gray-200 rounded-[2rem] font-black text-lg shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                    >
                       {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <MessageSquare className="w-6 h-6" />}
-                      {loading ? "Verifying..." : "Login to Chat"}
+                      {loading ? t('auth.verifying') : t('auth.loginToChat')}
                    </button>
                 </form>
               )}

@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { useModal } from "../context/ModalContext";
 import { useSearchParams, useParams, useNavigate, Link } from "react-router-dom";
 import { 
   Send, Search, Loader2, MoreVertical, Phone, 
   Info, X, Bot, User, UserPlus, CheckCheck, Plus, Sun, Moon,
   Smartphone, AlertCircle, ChevronLeft, Brain, RefreshCw, Paperclip, Trash2, ShoppingBag,
-  Package, ChevronDown, ArrowRight, ShieldCheck
+  Package, ChevronDown, ArrowRight, ShieldCheck, Globe, Languages
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -27,16 +29,17 @@ const formatJid = (jid) => {
 
 // --- Sub-Components ---
 
-const ChatList = ({ chats, selectedChatId, onSelect, onDelete, loading, filter, currentUserId, searchQuery }) => {
+const ChatList = ({ chats, selectedChatId, onSelect, onDelete, loading, filter, currentUserId, searchQuery, t }) => {
   if (loading) return (
     <div className="flex items-center justify-center p-8 text-muted-foreground">
-      <Loader2 className="animate-spin w-6 h-6 mr-2"/> Loading...
+      <Loader2 className="animate-spin w-6 h-6 mr-2"/> {t('loading')}
     </div>
   );
 
   const filteredChats = chats.filter(chat => {
     // Search query filter
     const searchMatch = !searchQuery || 
+      (chat.contactName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (chat.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (chat.phoneNumber?.includes(searchQuery)) ||
       (chat.chatId?.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -52,7 +55,7 @@ const ChatList = ({ chats, selectedChatId, onSelect, onDelete, loading, filter, 
 
   if (!filteredChats.length) return (
     <div className="p-8 text-center text-muted-foreground text-sm">
-      No {filter} chats found
+      {t('chats.noChatsFound')} {filter !== 'all' && `(${filter})`}
     </div>
   );
 
@@ -125,13 +128,25 @@ const ChatList = ({ chats, selectedChatId, onSelect, onDelete, loading, filter, 
                     </p>
 
                     <div className="flex flex-wrap gap-1 items-center">
-                        <span className="text-[10px]" title={chat.status}>{statusIcons[chat.status] || '🟢'}</span>
-                        {chat.unreadCount > 0 && <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-blue-500/20">New</span>}
-                        {chat.priority === 'urgent' && <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-red-500/20">Urgent</span>}
-                        {chat.priority === 'high' && <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[9px] rounded font-black uppercase tracking-tighter">High</span>}
+                        {chat.unreadCount > 0 && <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-blue-500/20">{t('chats.new')}</span>}
+                        {chat.priority === 'urgent' && <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-red-500/20">{t('chats.urgent')}</span>}
+                        {chat.priority === 'high' && <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[9px] rounded font-black uppercase tracking-tighter">{t('chats.high')}</span>}
+                        {/* AI / Agent Status Indicator */}
+                        {chat.humanTakeover ? (
+                          <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] rounded font-bold border border-purple-500/20 flex items-center gap-1 uppercase tracking-wider">
+                            <User className="w-2.5 h-2.5" />
+                            {t('chats.human')}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[9px] rounded font-bold border border-teal-500/20 flex items-center gap-1 uppercase tracking-wider">
+                            <Bot className="w-2.5 h-2.5" />
+                            {t('chats.ai')}
+                          </span>
+                        )}
+
                         {chat.assignedAgentName && (
                           <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] rounded font-bold border border-blue-500/20 max-w-[80px] truncate">
-                            👤 {String(chat.assignedAgentId) === String(currentUserId) ? 'Me' : chat.assignedAgentName}
+                            👤 {String(chat.assignedAgentId) === String(currentUserId) ? t('chats.me') : chat.assignedAgentName}
                           </span>
                         )}
                         {parseLabels(chat.labels).map((l, i) => (
@@ -251,7 +266,9 @@ const ImageModal = ({ src, onClose }) => {
 
 // --- Main Component ---
 export default function Chats() {
+  const { t, language, changeLanguage } = useLanguage();
   const { user } = useAuth();
+  const { showAlert, showConfirm } = useModal();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -276,6 +293,8 @@ export default function Chats() {
   const [previewFile, setPreviewFile] = useState(null);
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
   // Product Selection State
   const [showProductModal, setShowProductModal] = useState(false);
   const [products, setProducts] = useState([]);
@@ -362,7 +381,7 @@ export default function Chats() {
       
     } catch (err) {
        console.error(err);
-       alert("Failed to send image");
+       await showAlert({ title: t('modal.error'), message: "Failed to send image", type: 'danger' });
     } finally {
        setUploading(false);
     }
@@ -431,7 +450,7 @@ export default function Chats() {
       scrollToBottom();
     } catch (err) {
       console.error(err);
-      alert("Failed to send product");
+      await showAlert({ title: t('modal.error'), message: "Failed to send product", type: 'danger' });
     } finally {
       setUploading(false);
     }
@@ -455,12 +474,12 @@ export default function Chats() {
   const scrollRef = useRef(null);
 
   const TABS = [
-    { id: 'all', label: 'All' },
-    { id: 'unassigned', label: 'Queued' },
-    { id: 'open', label: 'Active' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'urgent', label: 'Urgent' },
-    { id: 'human', label: 'Mine' }
+    { id: 'all', label: t('chats.all') },
+    { id: 'unassigned', label: t('chats.queued') },
+    { id: 'open', label: t('chats.active') },
+    { id: 'pending', label: t('chats.pending') },
+    { id: 'urgent', label: t('chats.urgent') },
+    { id: 'human', label: t('chats.mine') }
   ];
 
   const scrollToBottom = useCallback(() => {
@@ -656,6 +675,9 @@ export default function Chats() {
           handleUpdateSettings({ profilePictureUrl: newUrl });
        }
     }).catch(() => {}); // Ignore errors for PPs
+    // Reset message search when chat changes
+    setShowMessageSearch(false);
+    setMessageSearchQuery("");
   }, [selectedChat?.chatId, deviceId]);
 
   const handleSendMessage = async (e) => {
@@ -683,8 +705,9 @@ export default function Chats() {
          agentName: user.name
       }]);
       scrollToBottom();
+      scrollToBottom();
     } catch {
-      alert("Failed to send");
+      await showAlert({ title: t('modal.error'), message: "Failed to send", type: 'danger' });
     }
   };
 
@@ -731,7 +754,7 @@ export default function Chats() {
         const updated = { ...selectedChat, ...res.data.chatSettings };
         setSelectedChat(updated);
         setChats(prev => prev.map(c => c.id === updated.id ? { ...c, ...res.data.chatSettings } : c));
-    } catch (err) { alert("Action failed"); }
+    } catch (err) { await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); }
   };
 
   const handleHandover = async () => {
@@ -766,10 +789,10 @@ export default function Chats() {
       setShowHandoverModal(false);
       setSelectedAgentId("");
       setHandoverNotes("");
-      alert(`Chat handed over to ${selectedAgent.name}`);
+      await showAlert({ title: t('modal.success'), message: `${t('chats.handoverSuccess')} ${selectedAgent.name}`, type: 'success' });
     } catch (err) {
       console.error(err);
-      alert("Failed to handover chat");
+      await showAlert({ title: t('modal.error'), message: t('chats.handoverFailed'), type: 'danger' });
     }
   };
 
@@ -782,19 +805,29 @@ export default function Chats() {
         const updated = { ...selectedChat, ...res.data.chatSettings };
         setSelectedChat(updated);
         setChats(prev => prev.map(c => c.id === updated.id ? { ...c, ...res.data.chatSettings } : c));
-    } catch (err) { alert("Action failed"); }
+    } catch (err) { await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); }
   };
 
   const handleClearMemory = async () => {
-    if (!selectedChat || !window.confirm("Are you sure you want the AI to forget the current conversation context? This won't delete your chat history, but the AI will start fresh.")) return;
+    if (!selectedChat) return;
+    
+    const confirmed = await showConfirm({
+      title: t('chats.clearMemory'),
+      message: t('chats.clearMemoryConfirm'),
+      type: 'warning',
+      confirmText: t('modal.confirm'),
+      cancelText: t('modal.cancel')
+    });
+
+    if (!confirmed) return;
     
     try {
       await axios.delete(`/api/whatsapp/${deviceId}/${selectedChat.chatId}/memory`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-      alert("AI memory cleared successfully!");
+      await showAlert({ title: t('modal.success'), message: t('chats.clearMemorySuccess'), type: 'success' });
     } catch (err) {
-      alert("Failed to clear memory: " + (err.response?.data?.error || err.message));
+      await showAlert({ title: t('modal.error'), message: "Failed to clear memory: " + (err.response?.data?.error || err.message), type: 'danger' });
     }
   };
 
@@ -802,9 +835,15 @@ export default function Chats() {
     const chat = chatToDelete || selectedChat;
     if (!chat) return;
     
-    const confirmMessage = `Are you sure you want to delete this chat with ${chat.name || chat.contactName || chat.phoneNumber}?\n\nThis will permanently delete:\n- All message history\n- Chat settings\n- Conversation context\n\nThis action cannot be undone.`;
+    const confirmed = await showConfirm({
+        title: t('chats.deleteChat'),
+        message: t('chats.deleteChatConfirm'),
+        type: 'danger',
+        confirmText: t('modal.delete'),
+        cancelText: t('modal.cancel')
+    });
     
-    if (!window.confirm(confirmMessage)) return;
+    if (!confirmed) return;
     
     try {
       await axios.delete(
@@ -821,9 +860,9 @@ export default function Chats() {
         setMessages([]);
       }
       
-      alert("Chat deleted successfully!");
+      await showAlert({ title: t('modal.success'), message: t('chats.deleteChatSuccess'), type: 'success' });
     } catch (err) {
-      alert("Failed to delete chat: " + (err.response?.data?.error || err.message));
+      await showAlert({ title: t('modal.error'), message: "Failed to delete chat: " + (err.response?.data?.error || err.message), type: 'danger' });
     }
   };
 
@@ -960,7 +999,7 @@ export default function Chats() {
                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                               <Plus className="w-4 h-4" />
                            </div>
-                           <p className="font-black text-[10px] uppercase tracking-widest">Connect New Device</p>
+                           <p className="font-black text-[10px] uppercase tracking-widest">{t('devices.connectNew')}</p>
                         </Link>
                      </div>
                   </div>
@@ -969,6 +1008,14 @@ export default function Chats() {
            </div>
            
            <div className="flex gap-1 shrink-0">
+              <button 
+                onClick={() => changeLanguage(language === 'en' ? 'id' : 'en')}
+                className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors flex items-center gap-1.5"
+                title={language === 'en' ? 'Switch to Bahasa Indonesia' : 'Switch to English'}
+              >
+                <Globe className="w-5 h-5"/>
+                <span className="text-xs font-bold uppercase hidden sm:inline">{language}</span>
+              </button>
               <button onClick={toggleTheme} className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors">
                  {isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
               </button>
@@ -1021,6 +1068,7 @@ export default function Chats() {
           filter={filter}
           searchQuery={searchQuery}
           currentUserId={user?.id}
+          t={t}
         />
       </div>
 
@@ -1063,7 +1111,7 @@ export default function Chats() {
                     {/* AI/Human Toggle */}
                     <div className="hidden sm:flex items-center gap-1 bg-muted/50 rounded-xl p-1 border border-border">
                        <button 
-                          onClick={() => handleUpdateSettings({ humanTakeover: false })}
+                          onClick={handleRelease}
                           className={clsx(
                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[10px] font-black uppercase tracking-wider",
                              !selectedChat.humanTakeover 
@@ -1072,32 +1120,41 @@ export default function Chats() {
                           )}
                        >
                           <Bot className="w-3.5 h-3.5" />
-                          <span className="hidden lg:inline">AI</span>
-                       </button>
-                       <button 
-                          onClick={handleTakeover}
-                          className={clsx(
-                             "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[10px] font-black uppercase tracking-wider",
-                             selectedChat.humanTakeover 
-                                ? "bg-primary text-primary-foreground shadow-sm" 
-                                : "text-muted-foreground hover:text-foreground"
-                          )}
-                       >
-                          <User className="w-3.5 h-3.5" />
-                          <span className="hidden lg:inline">Human</span>
-                       </button>
+                           <span className="hidden lg:inline">{t('chats.ai')}</span>
+                        </button>
+                        <button 
+                           onClick={handleTakeover}
+                           className={clsx(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[10px] font-black uppercase tracking-wider",
+                              selectedChat.humanTakeover 
+                                 ? "bg-primary text-primary-foreground shadow-sm" 
+                                 : "text-muted-foreground hover:text-foreground"
+                           )}
+                        >
+                           <User className="w-3.5 h-3.5" />
+                           <span className="hidden lg:inline">{t('chats.human')}</span>
+                        </button>
                     </div>
 
                     {/* Delete Chat Button */}
                     <button 
                       onClick={handleDeleteChat}
                       className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
-                      title="Delete chat"
+                      title={t('chats.deleteChat')}
                     >
                       <Trash2 className="w-5 h-5"/>
                     </button>
 
-                    <button className="hidden sm:block p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all"><Search className="w-5 h-5"/></button>
+                    <button 
+                      onClick={() => setShowMessageSearch(!showMessageSearch)}
+                      className={clsx(
+                        "hidden sm:block p-2.5 rounded-xl transition-all",
+                        showMessageSearch ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                      title={t('chats.searchInConversation')}
+                    >
+                      <Search className="w-5 h-5"/>
+                    </button>
                     <button 
                       onClick={() => setShowInfoPanel(!showInfoPanel)}
                       className={clsx(
@@ -1106,19 +1163,73 @@ export default function Chats() {
                       )}
                     >
                       <Info className="w-5 h-5"/>
-                      <span className="hidden sm:inline">Details</span>
+                      <span className="hidden sm:inline">{t('chats.details')}</span>
                     </button>
                  </div>
-             </div>
-             
-             {/* Messages Area */}
-             <div className="flex-1 overflow-y-auto p-4 md:p-6 z-0 custom-scrollbar flex flex-col">
-                <div className="flex-1" /> {/* Push messages to bottom */}
-                {messages.map((msg, i) => (
-                   <MessageBubble key={msg.key?.id || msg.id || i} msg={msg} isMe={msg.key?.fromMe ?? msg.fromMe} onViewImage={setViewImage} />
-                 ))}
-                <div ref={scrollRef} className="h-2" />
-             </div>
+              </div>
+
+              {/* Message Search Bar */}
+              {showMessageSearch && (
+                <div className="px-4 py-2 border-b border-border bg-muted/20 animate-in slide-in-from-top duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder={t('chats.searchMessages') || "Search messages..."}
+                      className="w-full pl-10 pr-10 py-2 bg-card border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                      value={messageSearchQuery}
+                      onChange={(e) => setMessageSearchQuery(e.target.value)}
+                    />
+                    {messageSearchQuery && (
+                      <button
+                        onClick={() => setMessageSearchQuery("")}
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 z-0 custom-scrollbar flex flex-col">
+                 <div className="flex-1" /> {/* Push messages to bottom */}
+                 {messages.filter(msg => {
+                   if (!messageSearchQuery) return true;
+                   const content = msg.content || 
+                                 msg.message?.conversation || 
+                                 msg.message?.extendedTextMessage?.text || 
+                                 msg.message?.imageMessage?.caption || 
+                                 "";
+                   return content.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                 }).length === 0 && messageSearchQuery ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground animate-in fade-in duration-500">
+                       <Search className="w-12 h-12 mb-4 opacity-10" />
+                       <p className="text-sm font-medium">{t('chats.noMessagesMatch') || 'No messages match your search'}</p>
+                       <button 
+                         onClick={() => setMessageSearchQuery("")}
+                         className="mt-2 text-xs text-primary hover:underline font-bold"
+                       >
+                         {t('chats.clearSearch') || 'Clear search'}
+                       </button>
+                    </div>
+                 ) : (
+                   messages.filter(msg => {
+                     if (!messageSearchQuery) return true;
+                     const content = msg.content || 
+                                   msg.message?.conversation || 
+                                   msg.message?.extendedTextMessage?.text || 
+                                   msg.message?.imageMessage?.caption || 
+                                   "";
+                     return content.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                   }).map((msg, i) => (
+                      <MessageBubble key={msg.key?.id || msg.id || i} msg={msg} isMe={msg.key?.fromMe ?? msg.fromMe} onViewImage={setViewImage} />
+                    ))
+                 )}
+                 <div ref={scrollRef} className="h-2" />
+              </div>
 
              {/* Input Area */}
              <div className="p-3 md:p-4 bg-card/80 backdrop-blur-md border-t border-border z-10">
@@ -1134,7 +1245,7 @@ export default function Chats() {
                      onClick={() => fileInputRef.current?.click()}
                      disabled={uploading}
                      className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all flex-shrink-0"
-                     title="Send image"
+                     title={t('chats.sendImage')}
                    >
                       {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Paperclip className="w-6 h-6" />}
                    </button>
@@ -1144,7 +1255,7 @@ export default function Chats() {
                      <button
                        onClick={() => setShowProductModal(true)}
                        className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all flex-shrink-0"
-                       title="Send product"
+                       title={t('chats.sendProduct')}
                      >
                        <ShoppingBag className="w-6 h-6" />
                      </button>
@@ -1153,7 +1264,7 @@ export default function Chats() {
                    <div className="flex-1 bg-muted/30 rounded-2xl flex items-center min-h-[48px] md:min-h-[52px] border border-border focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 transition-all px-4 group shadow-sm">
                       <input 
                          className="w-full bg-transparent py-3 text-[14px] md:text-[15px] text-foreground placeholder:text-muted-foreground outline-none"
-                         placeholder="Message..."
+                         placeholder={t('chats.typeMessage')}
                          value={messageText}
                          onChange={e => setMessageText(e.target.value)}
                          autoFocus
@@ -1163,9 +1274,19 @@ export default function Chats() {
                    <button 
                      disabled={!messageText.trim()}
                      onClick={handleSendMessage}
-                     className="w-12 h-12 md:w-14 md:h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-lg shadow-primary/25 disabled:opacity-50 disabled:grayscale"
+                     className={clsx(
+                       "w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-all active:scale-95 shadow-lg relative group overflow-hidden",
+                       messageText.trim() 
+                         ? "bg-primary text-primary-foreground shadow-primary/30 hover:shadow-primary/40 -rotate-12 hover:rotate-0" 
+                         : "bg-muted text-muted-foreground cursor-not-allowed opacity-50 shadow-none"
+                     )}
+                     title={t('chats.sendMessage')}
                    >
-                     <Send className="w-5 h-5 md:w-6 md:h-6" />
+                     <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                     <Send className={clsx(
+                       "w-5 h-5 md:w-6 h-6 transition-all duration-300",
+                       messageText.trim() ? "translate-x-0.5 -translate-y-0.5 group-hover:translate-x-1 group-hover:-translate-y-1" : ""
+                     )} />
                    </button>
                 </div>
              </div>
@@ -1176,9 +1297,9 @@ export default function Chats() {
                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-indigo-600/10 opacity-50 group-hover:opacity-100 transition-opacity" />
                  <Bot className="w-40 h-40 text-primary opacity-20 group-hover:scale-110 transition-transform duration-700" />
               </div>
-              <h2 className="text-4xl font-black text-foreground mb-4 tracking-tight">Select a Chat to Start</h2>
+              <h2 className="text-4xl font-black text-foreground mb-4 tracking-tight">{t('chats.selectChat')}</h2>
               <p className="text-muted-foreground max-w-sm text-lg leading-relaxed font-medium">
-                Switch between unassigned queues and your own active chats to provide excellent customer service.
+                {t('chats.selectChatSubtitle')}
               </p>
            </div>
          )}
@@ -1198,7 +1319,7 @@ export default function Chats() {
                     <ChevronLeft className="w-6 h-6 text-foreground" />
                  </button>
                  <h3 className="font-bold text-foreground flex items-center gap-2 text-lg md:text-base">
-                    <User className="w-4.5 h-4.5 text-primary" /> Contact info
+                    <User className="w-4.5 h-4.5 text-primary" /> {t('chats.contactInfo') || 'Contact info'}
                  </h3>
               </div>
               <button onClick={() => setShowInfoPanel(false)} className="hidden md:block p-2 hover:bg-muted rounded-xl transition-colors">
@@ -1276,18 +1397,23 @@ export default function Chats() {
                              className="flex flex-col items-center justify-center gap-1.5 p-2 bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-primary/10"
                              title="Edit Name"
                            >
-                              <User className="w-4 h-4" /> <span>Name</span>
+                              <User className="w-4 h-4" /> <span>{t('chats.name') || 'Name'}</span>
                            </button>
                            <button 
-                             onClick={() => {
-                                if (window.confirm(`Are you sure you want to block ${selectedChat.phoneNumber || formatJid(selectedChat.chatId)}?`)) {
-                                    alert("Contact blocked successfully.");
+                             onClick={async () => {
+                                if (await showConfirm({
+                                    title: t('chats.block'),
+                                    message: t('chats.blockConfirm'),
+                                    type: 'danger',
+                                    confirmText: t('chats.block')
+                                })) {
+                                    await showAlert({ title: t('modal.success'), message: t('chats.blockSuccess'), type: 'success' });
                                 }
                              }}
                              className="flex flex-col items-center justify-center gap-1.5 p-2 bg-red-500/5 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-red-500/10"
                              title="Block Contact"
                            >
-                              <ShieldCheck className="w-4 h-4" /> <span>Block</span>
+                              <ShieldCheck className="w-4 h-4" /> <span>{t('chats.block') || 'Block'}</span>
                            </button>
                            <button 
                              onClick={() => {
@@ -1303,7 +1429,7 @@ export default function Chats() {
                              className="flex flex-col items-center justify-center gap-1.5 p-2 bg-blue-500/5 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-blue-500/10"
                              title="Export History"
                            >
-                              <RefreshCw className="w-4 h-4" /> <span>Export</span>
+                              <RefreshCw className="w-4 h-4" /> <span>{t('chats.export') || 'Export'}</span>
                            </button>
                         </div>
                     )}
@@ -1315,12 +1441,12 @@ export default function Chats() {
                     onClick={() => setShowHandoverModal(true)}
                     className="w-full py-3 bg-primary/5 hover:bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/10 flex items-center justify-center gap-2 group"
                   >
-                    <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" /> Handover
+                    <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" /> {t('chats.handover') || 'Handover'}
                   </button>
                   
                   <div className="grid grid-cols-1 gap-4">
                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Control</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chats.control') || 'Control'}</label>
                         <div className="p-1 rounded-xl bg-muted/30 border border-border flex items-center">
                            <button 
                               onClick={handleRelease}
@@ -1329,7 +1455,7 @@ export default function Chats() {
                                  !selectedChat.humanTakeover ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
                               )}
                            >
-                              <Bot className="w-3.5 h-3.5" /> AI
+                              <Bot className="w-3.5 h-3.5" /> {t('chats.ai')}
                            </button>
                            <button 
                               onClick={handleTakeover}
@@ -1338,21 +1464,21 @@ export default function Chats() {
                                  selectedChat.humanTakeover ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
                               )}
                            >
-                              <User className="w-3.5 h-3.5" /> Human
+                              <User className="w-3.5 h-3.5" /> {t('chats.human')}
                            </button>
                         </div>
                      </div>
 
                      <div className="space-y-2">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Status</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chats.status')}</label>
                         {String(selectedChat.assignedAgentId) === String(user.id) ? (
                            <div className="flex items-center justify-between p-2.5 bg-green-500/5 border border-green-500/10 rounded-xl">
-                              <span className="text-[10px] font-bold text-green-600">Assigned to me</span>
-                              <button onClick={handleRelease} className="text-[9px] font-black uppercase text-red-500 hover:underline">Release</button>
+                              <span className="text-[10px] font-bold text-green-600">{t('chats.assignedToMe') || 'Assigned to me'}</span>
+                              <button onClick={handleRelease} className="text-[9px] font-black uppercase text-red-500 hover:underline">{t('chats.release') || 'Release'}</button>
                            </div>
                         ) : (
                            <button onClick={handleTakeover} className="w-full py-2.5 bg-primary text-primary-foreground text-[10px] font-black rounded-xl shadow-lg shadow-primary/10 hover:opacity-90 uppercase tracking-widest">
-                              Take Control
+                              {t('chats.takeControl') || 'Take Control'}
                            </button>
                         )}
                      </div>
@@ -1363,7 +1489,7 @@ export default function Chats() {
                <div className="px-4 py-4 space-y-4 border-t border-border">
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">Status</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">{t('chats.status')}</label>
                         <select 
                            value={selectedChat.status || 'open'}
                            onChange={(e) => handleUpdateSettings({ status: e.target.value })}
@@ -1377,7 +1503,7 @@ export default function Chats() {
                      </div>
 
                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">Priority</label>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">{t('chats.priority')}</label>
                         <div className="flex gap-1">
                            {['low', 'normal', 'high', 'urgent'].map(p => (
                               <button
@@ -1402,7 +1528,7 @@ export default function Chats() {
                {/* AI Controls & Labels */}
                <div className="px-4 py-4 border-t border-border grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">AI Controls</label>
+                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chats.aiControls') || 'AI Controls'}</label>
                      <div className="flex flex-col gap-1.5">
                         <Link to={`/devices/${deviceId}/ai-settings`} className="flex items-center gap-2 py-1.5 px-3 bg-muted rounded-lg text-[9px] font-black uppercase border border-border hover:bg-accent transition-all">
                            <Brain className="w-3 h-3 text-primary" /> Settings
@@ -1414,7 +1540,7 @@ export default function Chats() {
                   </div>
 
                   <div className="space-y-2">
-                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Labels</label>
+                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chats.labels')}</label>
                      <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                         {parseLabels(selectedChat.labels).map((label, i) => (
                            <span key={i} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase rounded-md border border-indigo-100 flex items-center gap-1">
@@ -1436,7 +1562,7 @@ export default function Chats() {
 
                {/* Notes */}
                <div className="px-4 py-4 border-t border-border bg-muted/10">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-2 block">Internal Notes</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-2 block">{t('chats.notes') || 'Internal Notes'}</label>
                   <textarea 
                     className="w-full h-20 p-3 rounded-lg bg-card border border-border text-[11px] font-medium focus:ring-1 focus:ring-primary/20 resize-none transition-all"
                     placeholder="Add context..."
@@ -1463,7 +1589,7 @@ export default function Chats() {
               </button>
               
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                 <Paperclip className="w-5 h-5 text-primary" /> Send Image
+                 <Paperclip className="w-5 h-5 text-primary" /> {t('chats.sendImage')}
               </h3>
               
               <div className="bg-muted/30 rounded-2xl p-4 mb-4 flex items-center justify-center border border-dashed border-border">
@@ -1487,7 +1613,7 @@ export default function Chats() {
                       onClick={closePreview}
                       className="px-4 py-2.5 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all"
                     >
-                      Cancel
+                      {t('common.cancel') || 'Cancel'}
                     </button>
                     <button 
                       onClick={handleSendImage}
@@ -1495,7 +1621,7 @@ export default function Chats() {
                       className="px-6 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
                       {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      Send
+                      {t('chats.send') || 'Send'}
                     </button>
                  </div>
               </div>
@@ -1509,7 +1635,7 @@ export default function Chats() {
            <div className="bg-card rounded-[2.5rem] shadow-2xl max-w-lg w-full p-8 border border-border animate-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-black flex items-center gap-2">
-                   <ShoppingBag className="w-5 h-5 text-primary" /> Product Preview
+                   <ShoppingBag className="w-5 h-5 text-primary" /> {t('chats.productPreview') || 'Product Preview'}
                 </h3>
                 <button onClick={() => setProductPreview(null)} className="p-2 hover:bg-muted rounded-full transition-all">
                   <X className="w-5 h-5 text-muted-foreground" />
@@ -1542,7 +1668,7 @@ export default function Chats() {
                    onClick={() => setProductPreview(null)}
                    className="flex-1 py-4 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-2xl transition-all border border-border"
                  >
-                   Cancel
+                   {t('common.cancel') || 'Cancel'}
                  </button>
                  <button 
                    onClick={handleSendProduct}
@@ -1550,7 +1676,7 @@ export default function Chats() {
                    className="flex-[2] py-4 bg-primary text-primary-foreground text-sm font-bold rounded-2xl hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2"
                  >
                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                   Send to Customer
+                   {t('chats.sendToCustomer') || 'Send to Customer'}
                  </button>
               </div>
            </div>
@@ -1564,7 +1690,7 @@ export default function Chats() {
             <div className="p-6 border-b border-border flex items-center justify-between">
               <h3 className="text-xl font-black flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-primary" />
-                Select Product to Send
+                {t('chats.selectProductToSend') || 'Select Product to Send'}
               </h3>
               <button onClick={() => setShowProductModal(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
                 <X className="w-5 h-5" />
@@ -1575,8 +1701,8 @@ export default function Chats() {
               {products.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ShoppingBag className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                  <p className="font-medium">No products available</p>
-                  <p className="text-sm mt-2">Add products in AI Settings to send them to customers</p>
+                  <p className="font-medium">{t('chats.noProductsAvailable') || 'No products available'}</p>
+                  <p className="text-sm mt-2">{t('chats.addProductsHint') || 'Add products in AI Settings to send them to customers'}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

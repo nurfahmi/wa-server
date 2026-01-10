@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   Users, 
   MessageSquare, 
@@ -38,6 +39,7 @@ const StatCard = ({ title, value, change, icon: Icon, color, trend }) => (
 );
 
 export default function Dashboard() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState({
     devices: 0,
     messages: 0,
@@ -90,10 +92,10 @@ export default function Dashboard() {
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
     
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1) return t('dashboard.justNow');
+    if (diffInMinutes < 60) return `${diffInMinutes}${t('dashboard.minutesAgo')}`;
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 24) return `${diffInHours}${t('dashboard.hoursAgo')}`;
     return date.toLocaleDateString();
   };
 
@@ -102,19 +104,19 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Dashboard</h1>
-           <p className="text-muted-foreground mt-2 text-lg">Real-time overview of your WhatsApp infrastructure.</p>
+           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{t('dashboard.title')}</h1>
+           <p className="text-muted-foreground mt-2 text-lg">{t('dashboard.subtitle')}</p>
         </div>
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-border text-xs font-medium text-muted-foreground">
            <Activity className="w-3.5 h-3.5 text-green-500 animate-pulse" />
-           Live Updates Active
+           {t('dashboard.liveUpdatesActive')}
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Active Devices" 
+          title={t('dashboard.activeDevices')} 
           value={stats.devices} 
           icon={Smartphone} 
           color="bg-indigo-500"
@@ -123,19 +125,19 @@ export default function Dashboard() {
           trend="up"
         />
         <StatCard 
-          title="Daily Messages" 
+          title={t('dashboard.dailyMessages')} 
           value={stats.messages.toLocaleString()} 
           icon={MessageSquare} 
           color="bg-emerald-500"
         />
         <StatCard 
-          title="Active Chats" 
+          title={t('dashboard.activeChats')} 
           value={stats.chats} 
           icon={Activity} 
           color="bg-violet-500"
         />
         <StatCard 
-          title="AI Cost Today" 
+          title={t('dashboard.aiCostToday')} 
           value={`$${stats.cost?.toFixed(2)}`} 
           icon={Zap} 
           color="bg-amber-500"
@@ -148,17 +150,17 @@ export default function Dashboard() {
            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col h-[400px]">
               <div className="flex items-center justify-between mb-8">
                  <div>
-                    <h3 className="text-xl font-bold">Traffic Analysis</h3>
-                    <p className="text-sm text-muted-foreground">Messages volume by hour (Incoming vs Outgoing)</p>
+                    <h3 className="text-xl font-bold">{t('dashboard.trafficAnalysis')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.trafficSubtitle')}</p>
                  </div>
                  <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-primary"></div>
-                        <span className="text-xs font-medium">Outgoing</span>
+                        <span className="text-xs font-medium">{t('dashboard.outgoing')}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-primary/30"></div>
-                        <span className="text-xs font-medium">Incoming</span>
+                        <span className="text-xs font-medium">{t('dashboard.incoming')}</span>
                     </div>
                  </div>
               </div>
@@ -182,7 +184,7 @@ export default function Dashboard() {
                     );
                  }) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                        No activity in the last 24 hours
+                        {t('dashboard.noActivity24h')}
                     </div>
                  )}
               </div>
@@ -201,8 +203,8 @@ export default function Dashboard() {
            {/* Activity Feed */}
            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm overflow-hidden min-h-[400px]">
               <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-lg font-bold">Recent Activity</h3>
-                 <button className="text-primary text-xs font-bold hover:underline">View All</button>
+                 <h3 className="text-lg font-bold">{t('dashboard.recentActivity')}</h3>
+                 <button className="text-primary text-xs font-bold hover:underline">{t('dashboard.viewAll')}</button>
               </div>
               <div className="space-y-5">
                  {stats.activity.length > 0 ? stats.activity.map(act => {
@@ -229,7 +231,7 @@ export default function Dashboard() {
                  }) : (
                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm pt-10">
                         <RefreshCw className="w-8 h-8 mb-2 opacity-20 animate-spin" />
-                        Waiting for activity...
+                        {t('dashboard.waitingForActivity')}
                     </div>
                  )}
               </div>
@@ -237,13 +239,13 @@ export default function Dashboard() {
 
            {/* Health Status */}
            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold mb-6">Service Health</h3>
+              <h3 className="text-lg font-bold mb-6">{t('dashboard.serviceHealth')}</h3>
               <div className="space-y-4">
                  {[
-                    { name: 'Core Engine', status: 'Operational', color: 'bg-green-500' },
-                    { name: 'Database', status: 'Operational', color: 'bg-green-500' },
-                    { name: 'Baileys Clusters', status: 'Healthy', color: 'bg-green-500' },
-                    { name: 'AI Service', status: 'Active', color: 'bg-green-500' }
+                    { name: t('dashboard.coreEngine'), status: t('dashboard.operational'), color: 'bg-green-500' },
+                    { name: t('dashboard.database'), status: t('dashboard.operational'), color: 'bg-green-500' },
+                    { name: t('dashboard.baileyClusters'), status: t('dashboard.healthy'), color: 'bg-green-500' },
+                    { name: t('dashboard.aiService'), status: t('dashboard.active'), color: 'bg-green-500' }
                  ].map(svc => (
                     <div key={svc.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
                        <span className="text-sm font-medium">{svc.name}</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   Smartphone, 
   Plus, 
@@ -24,6 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import clsx from "clsx";
 
 export default function Devices() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function Devices() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "Never";
+    if (!dateString) return t('messages.noData');
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
         day: '2-digit',
@@ -157,14 +159,14 @@ export default function Devices() {
       {/* Header & Limit Info */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">WA Devices</h1>
-          <p className="text-muted-foreground text-lg">Connect and control your WhatsApp business accounts.</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">{t('devices.title')}</h1>
+          <p className="text-muted-foreground text-lg">{t('devices.subtitle')}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm min-w-[320px]">
            <div className="flex-1 space-y-2">
               <div className="flex justify-between items-center text-sm font-bold">
-                 <span className="flex items-center gap-1.5"><Smartphone className="w-4 h-4 text-primary" /> Usage</span>
+                 <span className="flex items-center gap-1.5"><Smartphone className="w-4 h-4 text-primary" /> {t('devices.usage') || 'Usage'}</span>
                  <span className="text-primary">{deviceCount} / {deviceLimit}</span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -183,10 +185,10 @@ export default function Devices() {
                   disabled={deviceCount >= deviceLimit}
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all font-bold text-sm disabled:opacity-50 shadow-lg shadow-primary/20"
                >
-                  <Plus className="w-4 h-4" /> Add More
+                  <Plus className="w-4 h-4" /> {t('devices.addDevice')}
                </button>
                <button className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground border border-border rounded-xl hover:bg-accent transition-all font-bold text-sm">
-                  <Crown className="w-4 h-4 text-amber-500" /> Get More
+                  <Crown className="w-4 h-4 text-amber-500" /> {t('devices.getMore') || 'Get More'}
                </button>
            </div>
         </div>
@@ -204,13 +206,13 @@ export default function Devices() {
             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6 text-primary animate-bounce">
                <Smartphone className="w-12 h-12" />
             </div>
-            <h2 className="text-2xl font-bold">No Active Devices</h2>
-            <p className="text-muted-foreground mt-2 max-w-sm">Connect your first WhatsApp device to start using AI auto-replies and CS management tools.</p>
+            <h2 className="text-2xl font-bold">{t('devices.noDevices')}</h2>
+            <p className="text-muted-foreground mt-2 max-w-sm">{t('devices.getStarted')}</p>
             <button 
                 onClick={() => setShowAddModal(true)}
                 className="mt-8 px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-bold hover:scale-105 transition-transform"
             >
-                Connect New Device
+                {t('devices.connectNew') || 'Connect New Device'}
             </button>
         </div>
       ) : (
@@ -249,7 +251,7 @@ export default function Devices() {
                            <h3 className="font-bold text-xl truncate tracking-tight">{(device.alias || device.sessionId || "").split("@")[0]}</h3>
                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                               <Phone className="w-3.5 h-3.5" />
-                              <span className="truncate">{(device.phoneNumber || "").split("@")[0] || "No phone linked"}</span>
+                              <span className="truncate">{(device.phoneNumber || "").split("@")[0] || t('devices.noPhone') || "No phone linked"}</span>
                            </div>
                         </div>
                      </div>
@@ -265,7 +267,7 @@ export default function Devices() {
                   {/* API Key Section */}
                   <div className="space-y-2">
                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Device API Key
+                        <ShieldCheck className="w-3.5 h-3.5" /> {t('devices.apiKey') || 'Device API Key'}
                      </label>
                      <div className="flex items-center gap-2 p-2.5 bg-muted/50 rounded-xl border border-border group/key transition-colors">
                         <code className="text-[11px] font-mono text-foreground/80 flex-1 truncate">{device.apiKey}</code>
@@ -281,14 +283,14 @@ export default function Devices() {
                   {/* Meta Info */}
                   <div className="grid grid-cols-2 gap-4 py-2">
                      <div className="space-y-1">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Created On</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{t('devices.createdOn') || 'Created On'}</span>
                         <div className="flex items-center gap-1.5 text-[11px] font-medium">
                            <Calendar className="w-3 h-3 opacity-50" />
                            {formatDate(device.createdAt)}
                         </div>
                      </div>
                      <div className="space-y-1">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Ownership</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{t('devices.ownership') || 'Ownership'}</span>
                         <div className="flex items-center gap-1.5 text-[11px] font-medium truncate">
                            <User className="w-3 h-3 opacity-50" />
                            {user?.name}
@@ -302,13 +304,13 @@ export default function Devices() {
                         to={`/devices/${device.id}/ai-settings`}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground rounded-2xl transition-all font-bold text-sm"
                      >
-                        <Brain className="w-4 h-4" /> AI Settings
+                        <Brain className="w-4 h-4" /> {t('devices.aiSettings')}
                      </Link>
                      <Link 
                         to={`/devices/${device.id}/chats`}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
                      >
-                        <MessageSquare className="w-4 h-4" /> Chats
+                        <MessageSquare className="w-4 h-4" /> {t('devices.chats')}
                      </Link>
                   </div>
 
@@ -318,13 +320,13 @@ export default function Devices() {
                         onClick={() => handleReconnect(device.id)}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
                      >
-                        <Zap className="w-4 h-4" /> Reconnect
+                        <Zap className="w-4 h-4" /> {t('devices.reconnect')}
                      </button>
                      <button 
                         onClick={() => handleLogout(device.id)}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
                      >
-                        <LogOut className="w-4 h-4" /> Logout
+                        <LogOut className="w-4 h-4" /> {t('nav.logout')}
                      </button>
                   </div>
 
@@ -333,7 +335,7 @@ export default function Devices() {
                      onClick={() => handleDelete(device.id)}
                      className="w-full flex items-center justify-center gap-2 py-2 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl transition-all font-bold text-xs"
                   >
-                     <Trash2 className="w-3.5 h-3.5" /> Delete Device
+                     <Trash2 className="w-3.5 h-3.5" /> {t('devices.deleteDevice') || 'Delete Device'}
                   </button>
                </div>
             </div>
@@ -347,8 +349,8 @@ export default function Devices() {
           <div className="bg-card text-card-foreground rounded-[2rem] shadow-2xl border border-border w-full max-w-md overflow-hidden zoom-in-95 duration-200 animate-in">
             <div className="px-8 py-6 border-b border-border flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold">New Connection</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Authorize a new phone session</p>
+                <h3 className="text-xl font-bold">{t('devices.newConnection') || 'New Connection'}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('devices.authorizePhone') || 'Authorize a new phone session'}</p>
               </div>
               <button 
                 onClick={() => {
@@ -366,7 +368,7 @@ export default function Devices() {
                {!qrCode ? (
                   <div className="space-y-6">
                      <div className="space-y-2">
-                        <label className="text-sm font-bold text-foreground">Device Alias</label>
+                        <label className="text-sm font-bold text-foreground">{t('devices.deviceAlias') || 'Device Alias'}</label>
                         <div className="relative">
                             <Smartphone className="absolute left-4 top-3.5 w-5 h-5 text-muted-foreground" />
                             <input 
@@ -384,7 +386,7 @@ export default function Devices() {
                         className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center justify-center shadow-lg shadow-primary/30"
                      >
                         {connectionStatus === 'connecting' ? <RefreshCw className="w-5 h-5 animate-spin mr-2"/> : <Zap className="w-5 h-5 mr-2" />}
-                        Generate Connection QR
+                        {t('devices.generateQR') || 'Generate Connection QR'}
                      </button>
                   </div>
                ) : (
@@ -394,8 +396,8 @@ export default function Devices() {
                         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" />
                      </div>
                      <div className="text-center space-y-2 mb-8">
-                        <p className="font-bold text-lg">Scan with WhatsApp</p>
-                        <p className="text-sm text-muted-foreground max-w-[240px]">Go to Linked Devices on your phone and scan this code.</p>
+                        <p className="font-bold text-lg">{t('devices.scanWithPhone')}</p>
+                        <p className="text-sm text-muted-foreground max-w-[240px]">{t('devices.scanInstructions')}</p>
                      </div>
                      <button 
                         onClick={() => {
@@ -405,7 +407,7 @@ export default function Devices() {
                         }}
                         className="w-full py-4 bg-muted hover:bg-muted/80 text-foreground rounded-2xl font-bold transition-all"
                      >
-                        Close & Refresh List
+                        {t('devices.closeRefresh') || 'Close & Refresh List'}
                      </button>
                   </div>
                )}

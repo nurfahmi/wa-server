@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useLanguage } from "../context/LanguageContext";
 import { 
   MessageCircle, 
   Clock, 
@@ -38,6 +39,7 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function CSDashboard() {
+  const { t } = useLanguage();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -74,8 +76,8 @@ export default function CSDashboard() {
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">CS Management</h1>
-            <p className="text-muted-foreground mt-1 font-medium">Real-time oversight of customer interactions and agent efficiency.</p>
+            <h1 className="text-4xl font-black tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">{t('csDashboard.title')}</h1>
+            <p className="text-muted-foreground mt-1 font-medium">{t('csDashboard.subtitle')}</p>
           </div>
           <div className="flex gap-3">
             <button onClick={fetchData} className="p-2.5 bg-card border border-border text-muted-foreground rounded-xl hover:text-foreground transition-all">
@@ -83,10 +85,10 @@ export default function CSDashboard() {
             </button>
             <Link to="/agents" className="flex items-center gap-2 px-6 py-3 bg-card border border-border text-foreground rounded-xl hover:bg-muted transition-all font-bold shadow-sm">
                <Users className="w-4 h-4 text-primary" />
-               Team
+               {t('csDashboard.team')}
             </Link>
             <Link to="/chats" className="group flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 font-black uppercase tracking-wider text-xs">
-               Live Inbox
+               {t('csDashboard.liveInbox')}
                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
@@ -95,10 +97,10 @@ export default function CSDashboard() {
        {/* Queue Stats Cards */}
        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: "Agents Online", value: `${onlineAgents.length} / ${agents.length}`, sub: "Active now", icon: User, color: "text-orange-500 bg-orange-500/10 border-orange-500/20" },
-            { label: "Pending Response", value: stats.counts.pending, sub: "Needs attention", icon: Clock, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-            { label: "Urgent Queue", value: stats.counts.urgent, sub: "High priority", icon: AlertCircle, color: "text-red-500 bg-red-500/10 border-red-500/20" },
-            { label: "AI Efficiency", value: `${Math.round(stats.aiStats.ratio)}%`, sub: "Auto-handled", icon: Bot, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" }
+            { label: t('csDashboard.agentsOnline'), value: `${onlineAgents.length} / ${agents.length}`, sub: t('csDashboard.activeNow'), icon: User, color: "text-orange-500 bg-orange-500/10 border-orange-500/20" },
+            { label: t('csDashboard.pendingResponse'), value: stats.counts.pending, sub: t('csDashboard.needsAttention'), icon: Clock, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
+            { label: t('csDashboard.urgentQueue'), value: stats.counts.urgent, sub: t('csDashboard.highPriority'), icon: AlertCircle, color: "text-red-500 bg-red-500/10 border-red-500/20" },
+            { label: t('csDashboard.aiEfficiency'), value: `${Math.round(stats.aiStats.ratio)}%`, sub: t('csDashboard.autoHandled'), icon: Bot, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" }
           ].map((stat, i) => (
             <div key={i} className="bg-card text-card-foreground p-6 rounded-[2rem] border border-border shadow-sm flex items-center justify-between hover:shadow-xl hover:border-primary/20 transition-all group overflow-hidden relative">
                <div className="relative z-10">
@@ -124,18 +126,18 @@ export default function CSDashboard() {
                     <div className="p-2.5 bg-primary/10 rounded-2xl">
                        <Monitor className="w-5 h-5 text-primary" />
                     </div>
-                    <h3 className="font-black text-xl tracking-tight">Priority Queue</h3>
+                    <h3 className="font-black text-xl tracking-tight">{t('csDashboard.priorityQueue')}</h3>
                  </div>
                  <Link to="/chats" className="text-[10px] font-black text-primary hover:bg-primary/5 px-4 py-2 rounded-xl transition-all uppercase tracking-widest border border-primary/20">
-                    Live View
+                    {t('csDashboard.liveView')}
                  </Link>
               </div>
               <div className="divide-y divide-border">
                  {!stats.priorityQueue || stats.priorityQueue.length === 0 ? (
                     <div className="p-20 text-center text-muted-foreground">
                        <CheckCircle2 className="w-16 h-16 mx-auto mb-4 opacity-10" />
-                       <p className="font-bold">Queue is clear!</p>
-                       <p className="text-xs mt-1">No urgent conversations waiting.</p>
+                       <p className="font-bold">{t('csDashboard.queueClear')}</p>
+                       <p className="text-xs mt-1">{t('csDashboard.noUrgentConversations')}</p>
                     </div>
                  ) : stats.priorityQueue.map(chat => (
                     <Link 
@@ -154,18 +156,18 @@ export default function CSDashboard() {
                              </span>
                           </div>
                           <p className="text-sm text-muted-foreground truncate leading-relaxed font-medium mb-3">
-                            {chat.lastMessageContent || "No messages yet"}
+                            {chat.lastMessageContent || t('chats.noChats')}
                           </p>
                           <div className="flex items-center gap-4">
                              <StatusBadge status={chat.status || 'open'} />
                              {chat.priority === 'urgent' && (
                                 <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
-                                   Urgent
+                                   {t('status.urgent')}
                                 </span>
                              )}
                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-black uppercase tracking-widest ml-auto opacity-70">
                                 <User className="w-3.5 h-3.5"/>
-                                {chat.assignedAgentName || "Unassigned"}
+                                {chat.assignedAgentName || t('chats.unassigned')}
                              </div>
                           </div>
                        </div>
@@ -178,19 +180,19 @@ export default function CSDashboard() {
            <div className="space-y-6">
               <div className="bg-card rounded-[2.5rem] shadow-sm border border-border overflow-hidden">
                  <div className="px-8 py-6 border-b border-border bg-muted/20 flex justify-between items-center">
-                    <h3 className="font-black text-xl tracking-tight">Agent Activity</h3>
+                    <h3 className="font-black text-xl tracking-tight">{t('csDashboard.agentActivity')}</h3>
                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-green-500 animate-pulse">Live</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-green-500 animate-pulse">{t('csDashboard.live')}</span>
                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
                     </div>
                  </div>
                  <div className="p-6 space-y-4">
                     {loading ? (
-                       <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">Loading agents...</div>
+                       <div className="py-10 text-center text-muted-foreground text-sm font-bold animate-pulse">{t('csDashboard.loadingAgents')}</div>
                     ) : agents.length === 0 ? (
                        <div className="py-10 text-center">
                           <Users className="w-12 h-12 mx-auto mb-3 opacity-10" />
-                          <p className="text-sm text-muted-foreground font-bold">No agents found.</p>
+                          <p className="text-sm text-muted-foreground font-bold">{t('csDashboard.noAgents')}</p>
                        </div>
                     ) : agents.map((agent, i) => (
                        <div key={i} className="flex items-center justify-between p-4 rounded-[1.5rem] hover:bg-muted/50 transition-all border border-transparent hover:border-border group">
@@ -207,7 +209,7 @@ export default function CSDashboard() {
                              <div className="min-w-0">
                                 <p className="text-[13px] font-black truncate group-hover:text-primary transition-colors tracking-tight">{agent.name}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">
-                                   {(agent.lastLogin && new Date(agent.lastLogin) > new Date(Date.now() - 3600000)) ? "online" : "offline"}
+                                   {(agent.lastLogin && new Date(agent.lastLogin) > new Date(Date.now() - 3600000)) ? t('csDashboard.online') : t('csDashboard.offline')}
                                 </p>
                              </div>
                           </div>
@@ -221,7 +223,7 @@ export default function CSDashboard() {
                  </div>
                  <div className="p-6 bg-muted/10 border-t border-border mt-2">
                     <Link to="/agents" className="w-full flex justify-center py-4 text-[10px] font-black text-muted-foreground hover:text-foreground hover:bg-muted rounded-2xl transition-all border border-dashed border-border/50 uppercase tracking-widest">
-                       Team Settings
+                       {t('csDashboard.teamSettings')}
                     </Link>
                  </div>
               </div>
@@ -230,8 +232,8 @@ export default function CSDashboard() {
               <div className="bg-card rounded-[2.5rem] border border-border p-8 shadow-sm relative overflow-hidden group">
                  <div className="flex justify-between items-start mb-6">
                     <div>
-                       <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">Automation Impact</h4>
-                       <p className="text-2xl font-black tracking-tight">Handling Ratio</p>
+                       <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">{t('csDashboard.automationImpact')}</h4>
+                       <p className="text-2xl font-black tracking-tight">{t('csDashboard.handlingRatio')}</p>
                     </div>
                     <div className="p-3 bg-purple-500/10 rounded-2xl">
                        <Activity className="w-5 h-5 text-purple-500" />
@@ -241,7 +243,7 @@ export default function CSDashboard() {
                  <div className="space-y-6 relative z-10">
                     <div className="space-y-3">
                        <div className="flex justify-between text-[11px] font-black uppercase tracking-widest">
-                          <span className="text-purple-500">AI Managed</span>
+                          <span className="text-purple-500">{t('csDashboard.aiManaged')}</span>
                           <span>{Math.round(stats.aiStats.ratio)}%</span>
                        </div>
                        <div className="h-3 bg-muted rounded-full overflow-hidden border border-border shadow-inner">
@@ -254,11 +256,11 @@ export default function CSDashboard() {
                     
                     <div className="grid grid-cols-2 gap-4">
                        <div className="p-4 bg-muted/30 rounded-2xl border border-border group-hover:bg-card transition-colors">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">AI Handled</p>
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">{t('csDashboard.aiHandled')}</p>
                           <p className="text-2xl font-black mt-1 text-purple-500">{stats.aiStats.aiCount}</p>
                        </div>
                        <div className="p-4 bg-muted/30 rounded-2xl border border-border group-hover:bg-card transition-colors">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Agents</p>
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">{t('csDashboard.agents')}</p>
                           <p className="text-2xl font-black mt-1">{stats.aiStats.humanCount}</p>
                        </div>
                     </div>

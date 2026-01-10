@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import clsx from 'clsx';
+import { useLanguage } from '../context/LanguageContext';
+import { useModal } from '../context/ModalContext';
 import { Image as ImageIcon, Video, FileText, Trash2, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 
 export default function Gallery() {
+  const { t } = useLanguage();
+  const { showAlert, showConfirm } = useModal();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('image'); // image, video, document, all
@@ -29,33 +33,34 @@ export default function Gallery() {
   };
 
   const handleDelete = async (fileId) => {
-    if (!window.confirm("Are you sure you want to delete this file?")) return;
+    if (!await showConfirm({ title: t('modal.warning'), message: "Are you sure you want to delete this file?", type: 'danger' })) return;
     setDeleting(fileId);
     try {
       await axios.delete(`/api/whatsapp/files/${fileId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setFiles(prev => prev.filter(f => f.id !== fileId));
+      await showAlert({ title: t('modal.success'), message: t('messages.deleteSuccess'), type: 'success' });
     } catch (err) {
-      alert("Failed to delete file");
+      await showAlert({ title: t('modal.error'), message: "Failed to delete file", type: 'danger' });
     } finally {
       setDeleting(null);
     }
   };
 
   const TABS = [
-    { id: 'image', label: 'Images', icon: ImageIcon },
-    { id: 'video', label: 'Videos', icon: Video },
-    { id: 'document', label: 'Docs', icon: FileText },
-    { id: 'all', label: 'All Files', icon: RefreshCw },
+    { id: 'image', label: t('gallery.images') || 'Images', icon: ImageIcon },
+    { id: 'video', label: t('gallery.videos') || 'Videos', icon: Video },
+    { id: 'document', label: t('gallery.documents') || 'Docs', icon: FileText },
+    { id: 'all', label: t('gallery.allFiles') || 'All Files', icon: RefreshCw },
   ];
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 fade-in">
         <div>
-           <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-2">Media Gallery</h1>
-           <p className="text-muted-foreground text-lg">Manage your uploaded and received media assets.</p>
+           <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-2">{t('gallery.title')}</h1>
+           <p className="text-muted-foreground text-lg">{t('gallery.subtitle') || 'Manage your uploaded and received media assets.'}</p>
         </div>
         <div className="flex bg-muted/50 p-1.5 rounded-2xl self-start">
            {TABS.map(tab => (
@@ -85,7 +90,7 @@ export default function Gallery() {
            <div className="p-4 bg-muted rounded-full mb-4">
                {filter === 'image' ? <ImageIcon className="w-8 h-8 text-muted-foreground/50"/> : <FileText className="w-8 h-8 text-muted-foreground/50"/>}
            </div>
-           <p className="text-muted-foreground font-medium">No files found.</p>
+           <p className="text-muted-foreground font-medium">{t('gallery.noImages')}</p>
          </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

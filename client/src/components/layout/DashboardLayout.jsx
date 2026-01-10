@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -13,18 +15,25 @@ import {
   MessagesSquare,
   Image,
   ChevronLeft,
-  MoreHorizontal
+  MoreHorizontal,
+  Sun,
+  Moon,
+  Globe
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
+import { availableLanguages } from "../../locales";
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
+  const { language, changeLanguage, t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = (e) => {
@@ -44,19 +53,19 @@ export default function DashboardLayout() {
   }, []);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
-    { name: 'Devices', href: '/devices', icon: Smartphone, roles: ['user', 'superadmin'] },
-    { name: 'Agents', href: '/agents', icon: User, roles: ['user', 'superadmin'] },
-    { name: 'Chats', href: '/chats', icon: MessagesSquare, roles: ['user', 'superadmin', 'agent'] },
-    { name: 'CS Management', href: '/cs-dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
-    { name: 'Gallery', href: '/gallery', icon: Image, roles: ['user', 'superadmin'] },
+    { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
+    { name: t('nav.devices'), href: '/devices', icon: Smartphone, roles: ['user', 'superadmin'] },
+    { name: t('nav.agents'), href: '/agents', icon: User, roles: ['user', 'superadmin'] },
+    { name: t('nav.chats'), href: '/chats', icon: MessagesSquare, roles: ['user', 'superadmin', 'agent'] },
+    { name: t('nav.csManagement'), href: '/cs-dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
+    { name: t('nav.gallery'), href: '/gallery', icon: Image, roles: ['user', 'superadmin'] },
   ].filter(item => item.roles.includes(user?.role));
 
   const mobileNavItems = [
-    { name: 'Menu', href: '/menu', icon: Menu },
-    { name: 'Chats', href: '/chats', icon: MessagesSquare },
-    { name: 'Devices', href: '/devices', icon: Smartphone },
-    { name: 'Stats', href: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.menu'), href: '/menu', icon: Menu },
+    { name: t('nav.chats'), href: '/chats', icon: MessagesSquare },
+    { name: t('nav.devices'), href: '/devices', icon: Smartphone },
+    { name: t('nav.stats'), href: '/dashboard', icon: LayoutDashboard },
   ];
 
   // Helper to check if we are on a nested route or specific page beyond the hub
@@ -117,37 +126,116 @@ export default function DashboardLayout() {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-border space-y-4 bg-muted/30">
-          <div className="flex items-center px-4 py-4 rounded-[2rem] bg-card border border-border shadow-sm">
-            <div className="flex-shrink-0">
-              <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold shadow-md border-2 border-white/10">
-                {user?.name?.[0] || 'U'}
-              </div>
-            </div>
-            <div className="ml-3 min-w-0">
-              <p className="text-sm font-bold truncate leading-none mb-1">{user?.name}</p>
-              <p className="text-[10px] text-muted-foreground truncate uppercase font-black tracking-widest">{user?.role}</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-              <button className="flex items-center justify-center py-3 text-muted-foreground hover:text-foreground hover:bg-card rounded-2xl transition-all border border-transparent hover:border-border">
-                <Settings className="w-5 h-5" />
-              </button>
-              <button
-                onClick={logout}
-                className="flex items-center justify-center py-3 text-destructive hover:bg-destructive/10 rounded-2xl transition-all border border-transparent hover:border-destructive/20"
-                title="Sign Out"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Desktop Header/Topbar */}
+        <header className="hidden lg:flex items-center justify-between h-20 px-8 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-50 transition-all duration-300">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-black tracking-tight bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">
+              {location.pathname === '/dashboard' ? t('nav.dashboard') :
+               location.pathname === '/devices' ? t('nav.devices') :
+               location.pathname === '/agents' ? t('nav.agents') :
+               location.pathname === '/chats' ? t('nav.chats') :
+               location.pathname === '/cs-dashboard' ? t('nav.csManagement') :
+               location.pathname === '/gallery' ? t('nav.gallery') :
+               location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').toUpperCase()}
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-all border border-transparent hover:border-border"
+              title={isDark ? 'Light Mode' : 'Dark Mode'}
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            
+            {/* Language Switcher */}
+            <div className="relative">
+              <button 
+                onClick={() => setLanguageOpen(!languageOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-all border border-transparent hover:border-border"
+              >
+                <Globe className="w-5 h-5" />
+                <span className="text-sm font-bold uppercase">{language}</span>
+              </button>
+              
+              {languageOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setLanguageOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                    {availableLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          changeLanguage(lang.code);
+                          setLanguageOpen(false);
+                        }}
+                        className={clsx(
+                          "w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors",
+                          language === lang.code 
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-muted text-foreground"
+                        )}
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="h-8 w-px bg-border"></div>
+
+            {/* User Profile Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-3 px-4 py-2.5 bg-muted/50 hover:bg-muted rounded-xl transition-all border border-transparent hover:border-border"
+              >
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white/10">
+                  {user?.name?.[0] || 'U'}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold leading-none">{user?.name}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-0.5">{user?.role}</p>
+                </div>
+              </button>
+
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-2">
+                      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl hover:bg-muted transition-colors text-foreground">
+                        <Settings className="w-4.5 h-4.5 text-muted-foreground" />
+                        {t('nav.settings')}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setProfileOpen(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl hover:bg-destructive/10 transition-colors text-destructive"
+                      >
+                        <LogOut className="w-4.5 h-4.5" />
+                        {t('nav.logout')}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
+
         {/* Mobile Header */}
         <header className={clsx(
             "lg:hidden flex items-center justify-between h-16 px-6 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-50 transition-all duration-300",
@@ -190,9 +278,36 @@ export default function DashboardLayout() {
                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-0.5">{user?.role}</p>
                   </div>
                   <div className="p-2">
+                    {/* Theme Toggle */}
+                    <button 
+                      onClick={toggleTheme}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl hover:bg-muted transition-colors text-foreground"
+                    >
+                      {isDark ? <Sun className="w-4.5 h-4.5 text-muted-foreground" /> : <Moon className="w-4.5 h-4.5 text-muted-foreground" />}
+                      {isDark ? 'Light Mode' : 'Dark Mode'}
+                    </button>
+                    
+                    {/* Language Switcher */}
+                    {availableLanguages.map((lang) => (
+                      <button 
+                        key={lang.code}
+                        onClick={() => {
+                          changeLanguage(lang.code);
+                          setProfileOpen(false);
+                        }}
+                        className={clsx(
+                          "w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl transition-colors",
+                          language === lang.code ? "bg-primary/10 text-primary" : "hover:bg-muted text-foreground"
+                        )}
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        {lang.name}
+                      </button>
+                    ))}
+                    
                     <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl hover:bg-muted transition-colors text-foreground">
                       <Settings className="w-4.5 h-4.5 text-muted-foreground" />
-                      Settings
+                      {t('nav.settings')}
                     </button>
                     <button 
                       onClick={() => {
@@ -202,7 +317,7 @@ export default function DashboardLayout() {
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl hover:bg-destructive/10 transition-colors text-destructive"
                     >
                       <LogOut className="w-4.5 h-4.5" />
-                      Sign Out
+                      {t('nav.logout')}
                     </button>
                   </div>
                 </div>
