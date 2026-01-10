@@ -249,7 +249,15 @@ export const en = {
     sendToCustomer: "Send to Customer",
     selectProductToSend: "Select Product to Send",
     noProductsAvailable: "No products available",
-    addProductsHint: "Add products in AI Settings to send them to customers"
+    addProductsHint: "Add products in AI Settings to send them to customers",
+    handoverTitle: "Handover Chat",
+    handoverSubtitle: "Transfer to another agent",
+    handoverSelectAgent: "Select Target Agent",
+    handoverChooseAgent: "Choose an agent...",
+    handoverNoAgents: "No other agents available for handover.",
+    handoverNotesLabel: "Handover Notes (Optional)",
+    handoverNotesPlaceholder: "Explain why you're transferring this chat...",
+    handoverConfirm: "Confirm Handover"
   },
   
   // Agents

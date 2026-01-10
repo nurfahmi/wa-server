@@ -246,7 +246,15 @@ export const id = {
     sendToCustomer: "Kirim ke Pelanggan",
     selectProductToSend: "Pilih Produk untuk Dikirim",
     noProductsAvailable: "Tidak ada produk tersedia",
-    addProductsHint: "Tambahkan produk di Pengaturan AI untuk mengirimnya ke pelanggan"
+    addProductsHint: "Tambahkan produk di Pengaturan AI untuk mengirimnya ke pelanggan",
+    handoverTitle: "Serahkan Chat",
+    handoverSubtitle: "Transfer ke agen lain",
+    handoverSelectAgent: "Pilih Agen Tujuan",
+    handoverChooseAgent: "Pilih agen...",
+    handoverNoAgents: "Tidak ada agen lain yang tersedia untuk serah terima.",
+    handoverNotesLabel: "Catatan Serah Terima (Opsional)",
+    handoverNotesPlaceholder: "Jelaskan mengapa Anda mentransfer chat ini...",
+    handoverConfirm: "Konfirmasi Serah Terima"
   },
   
   // Agents

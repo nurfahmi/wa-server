@@ -1756,8 +1756,8 @@ export default function Chats() {
            <div className="bg-card w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden animate-in zoom-in-95 duration-300">
               <div className="p-8 border-b border-border bg-muted/30 flex items-center justify-between">
                  <div>
-                    <h3 className="text-xl font-black text-foreground mb-1">Handover Chat</h3>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Transfer to another agent</p>
+                    <h3 className="text-xl font-black text-foreground mb-1">{t('chats.handoverTitle')}</h3>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{t('chats.handoverSubtitle')}</p>
                  </div>
                  <button onClick={() => setShowHandoverModal(false)} className="p-3 hover:bg-muted rounded-2xl transition-all">
                     <X className="w-6 h-6 text-muted-foreground" />
@@ -1766,7 +1766,7 @@ export default function Chats() {
 
               <div className="p-8 space-y-6">
                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">Select Target Agent</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">{t('chats.handoverSelectAgent')}</label>
                     <div className="relative">
                        <UserPlus className="absolute left-4 top-4 w-5 h-5 text-primary" />
                        <select 
@@ -1774,7 +1774,7 @@ export default function Chats() {
                           onChange={(e) => setSelectedAgentId(e.target.value)}
                           className="w-full pl-12 pr-4 py-4 bg-muted/50 border border-border rounded-2xl text-foreground font-bold text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
                        >
-                          <option value="">Choose an agent...</option>
+                          <option value="">{t('chats.handoverChooseAgent')}</option>
                           {agents.map(agent => (
                              <option key={agent.id} value={agent.id}>{agent.name} ({agent.email})</option>
                           ))}
@@ -1782,14 +1782,14 @@ export default function Chats() {
                        {loadingAgents && <Loader2 className="absolute right-4 top-4 w-5 h-5 animate-spin text-muted-foreground" />}
                     </div>
                     {agents.length === 0 && !loadingAgents && (
-                      <p className="text-[10px] text-amber-500 font-bold px-1">No other agents available for handover.</p>
+                      <p className="text-[10px] text-amber-500 font-bold px-1">{t('chats.handoverNoAgents')}</p>
                     )}
                  </div>
 
                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">Handover Notes (Optional)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 px-1">{t('chats.handoverNotesLabel')}</label>
                     <textarea 
-                       placeholder="Explain why you're transferring this chat..."
+                       placeholder={t('chats.handoverNotesPlaceholder')}
                        value={handoverNotes}
                        onChange={(e) => setHandoverNotes(e.target.value)}
                        className="w-full p-4 bg-muted/50 border border-border rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-primary/10 transition-all min-h-[120px] resize-none"
@@ -1802,7 +1802,7 @@ export default function Chats() {
                     onClick={() => setShowHandoverModal(false)}
                     className="flex-1 py-4 text-sm font-black text-muted-foreground hover:bg-muted rounded-2xl transition-all uppercase tracking-widest"
                  >
-                    Cancel
+                    {t('modal.cancel')}
                  </button>
                  <button 
                     onClick={handleHandover}
@@ -1810,7 +1810,7 @@ export default function Chats() {
                     className="flex-[2] py-4 bg-primary text-primary-foreground text-sm font-black rounded-2xl hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
                  >
                     {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    Confirm Handover
+                    {t('chats.handoverConfirm')}
                  </button>
               </div>
            </div>
