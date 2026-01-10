@@ -142,4 +142,13 @@ export default {
     enabled: process.env.WARMER_ENABLED !== "false", // Enabled by default
     autoStartCampaigns: process.env.WARMER_AUTO_START_CAMPAIGNS !== "false", // Auto-start enabled by default
   },
+
+  // Bunny.net Storage Configuration
+  bunny: {
+    apiKey: process.env.BUNNY_STORAGE_API_KEY,
+    storageZoneName: process.env.BUNNY_STORAGE_ZONE_NAME,
+    storageRegion: process.env.BUNNY_STORAGE_REGION || "ny", // ny, la, sg, syd, uk, de, etc.
+    pullZoneUrl: process.env.BUNNY_PULL_ZONE_URL || "", // base URL for public access
+    folder: process.env.BUNNY_FOLDER || "whatsapp-media",
+  },
 };

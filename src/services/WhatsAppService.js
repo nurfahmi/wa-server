@@ -40,6 +40,7 @@ class WhatsAppService {
     this.intentionalDisconnects = new Map();
     this.qrAttempts = new Map();
     this.qrTimeouts = new Map();
+    this.messageMetadata = new Map();
     
     // External services
     this.io = null;
@@ -53,9 +54,6 @@ class WhatsAppService {
     this.chatHandler = new ChatHandler(this);
     this.groupHandler = new GroupHandler(this);
     this.storeManager = new StoreManager(this);
-
-    // Start periodic memory cleanup
-    this.startMemoryCleanup();
   }
 
   /**
@@ -290,24 +288,24 @@ class WhatsAppService {
     return this.messageHandler.handleIncomingMessage(sessionId, message);
   }
 
-  async sendNaturalReply(sessionId, recipient, messageKey, replyContent) {
-    return this.messageHandler.sendNaturalReply(sessionId, recipient, messageKey, replyContent);
+  async sendNaturalReply(sessionId, recipient, messageKey, replyContent, options = {}) {
+    return this.messageHandler.sendNaturalReply(sessionId, recipient, messageKey, replyContent, options);
   }
 
-  async sendMessage(sessionId, recipient, message) {
-    return this.messageHandler.sendMessage(sessionId, recipient, message);
+  async sendMessage(sessionId, recipient, message, agentId = null, agentName = null, options = {}) {
+    return this.messageHandler.sendMessage(sessionId, recipient, message, agentId, agentName, options);
   }
 
-  async sendImage(sessionId, recipient, imageBuffer, caption = "", mimetype = "image/jpeg") {
-    return this.messageHandler.sendImage(sessionId, recipient, imageBuffer, caption, mimetype);
+  async sendImage(sessionId, recipient, imageBuffer, caption = "", mimetype = "image/jpeg", viewOnce = false, options = {}) {
+    return this.messageHandler.sendImage(sessionId, recipient, imageBuffer, caption, mimetype, viewOnce, options);
   }
 
-  async sendVideo(sessionId, recipient, buffer, caption = "") {
-    return this.messageHandler.sendVideo(sessionId, recipient, buffer, caption);
+  async sendVideo(sessionId, recipient, buffer, caption = "", agentId = null, agentName = null, options = {}) {
+    return this.messageHandler.sendVideo(sessionId, recipient, buffer, caption, agentId, agentName, options);
   }
 
-  async sendDocument(sessionId, recipient, buffer, fileName) {
-    return this.messageHandler.sendDocument(sessionId, recipient, buffer, fileName);
+  async sendDocument(sessionId, recipient, buffer, fileName, agentId = null, agentName = null, options = {}) {
+    return this.messageHandler.sendDocument(sessionId, recipient, buffer, fileName, agentId, agentName, options);
   }
 
   shouldUseAI(chatSettings, device) {
@@ -479,26 +477,6 @@ class WhatsAppService {
 
   async fetchAndSaveContacts(deviceId, saveToDb = false) {
     return this.storeManager.fetchAndSaveContacts(deviceId, saveToDb);
-  }
-
-  // ==================== MEMORY CLEANUP ====================
-
-  /**
-   * Start periodic memory cleanup to remove expired conversation memories
-   */
-  startMemoryCleanup() {
-    const cleanupInterval = config.ai.memoryCleanupInterval * 1000;
-
-    setInterval(async () => {
-      try {
-        await this.aiService.cleanupExpiredMemories();
-        console.log("✅ Conversation memory cleanup completed");
-      } catch (error) {
-        console.error("❌ Error during memory cleanup:", error);
-      }
-    }, cleanupInterval);
-
-    console.log(`🧹 Memory cleanup scheduled every ${config.ai.memoryCleanupInterval} seconds`);
   }
 }
 

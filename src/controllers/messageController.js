@@ -5,10 +5,12 @@ import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
 import config from "../config/config.js";
+import BunnyStorageService from "../services/storage/BunnyStorageService.js";
 
 // Configure multer for file uploads
-const upload = multer({
+export const uploadMiddleware = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB limit for videos and documents
@@ -65,12 +67,12 @@ const upload = multer({
 
 export const sendMessage = async (req, res) => {
   try {
-    const { sessionId, recipient, message } = req.body;
+    const { sessionId, recipient, message, agentId, agentName, imageUrl } = req.body;
 
-    if (!sessionId || !recipient || !message) {
+    if (!sessionId || !recipient || (!message && !imageUrl)) {
       return res
         .status(400)
-        .json({ error: "SessionId, recipient and message are required" });
+        .json({ error: "SessionId, recipient and either message or imageUrl are required" });
     }
 
     // Get device by sessionId
@@ -87,6 +89,7 @@ export const sendMessage = async (req, res) => {
     }
 
     let savedMessage = null;
+    let result = null;
 
     // Save message to database (only if SAVE_MESSAGES=true)
     if (config.database.saveMessages) {
@@ -95,8 +98,8 @@ export const sendMessage = async (req, res) => {
         deviceId: device.id,
         sessionId: sessionId,
         phoneNumber: recipient,
-        messageType: "text",
-        content: { text: message },
+        messageType: imageUrl ? "image" : "text",
+        content: imageUrl ? { text: message, imageUrl } : { text: message },
         type: "outgoing",
         timestamp: new Date(),
         status: "pending",
@@ -104,29 +107,51 @@ export const sendMessage = async (req, res) => {
     }
 
     try {
-      // Send message using device's session
-      const result = await WhatsAppService.sendMessage(
-        sessionId,
-        recipient,
-        message
-      );
+      if (imageUrl) {
+        // Fetch image from URL
+        console.log(`[SEND-MESSAGE] Fetching image from URL: ${imageUrl}`);
+        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(response.data, 'binary');
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        
+        // Send image message with caption
+        result = await WhatsAppService.sendImage(
+          sessionId,
+          recipient,
+          buffer,
+          message || "", // caption
+          contentType,
+          false, // viewOnce
+          { agentId, agentName }
+        );
+      } else {
+        // Send regular text message
+        result = await WhatsAppService.sendMessage(
+          sessionId,
+          recipient,
+          message,
+          agentId, 
+          agentName
+        );
+      }
 
       // Update message status to sent if saved
       if (savedMessage && result) {
         await savedMessage.update({
           status: "sent",
           sentAt: new Date(),
-          whatsappMessageId: result.messageId || null,
+          whatsappMessageId: result.messageId || result.key?.id || null,
         });
       }
 
       res.json({
         success: true,
-        message: "Message sent successfully",
+        message: imageUrl ? "Image sent successfully" : "Message sent successfully",
         messageId: savedMessage?.id,
-        whatsappMessageId: result?.messageId,
+        whatsappMessageId: result?.messageId || result?.key?.id,
       });
     } catch (sendError) {
+      console.error("[SEND-MESSAGE] Error:", sendError);
       // Update message status to failed if saved
       if (savedMessage) {
         await savedMessage.update({
@@ -141,15 +166,16 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// Send image message (only stored files)
+// Send image message (direct upload)
 export const sendImage = async (req, res) => {
   try {
-    const { sessionId, recipient, fileId, caption = "" } = req.body;
+    const { sessionId, recipient, caption = "", agentId, agentName } = req.body;
+    const file = req.file;
 
-    if (!sessionId || !recipient || !fileId) {
+    if (!sessionId || !recipient || !file) {
       return res.status(400).json({
         success: false,
-        error: "SessionId, recipient, and fileId are required",
+        error: "SessionId, recipient, and image file are required",
       });
     }
 
@@ -170,99 +196,46 @@ export const sendImage = async (req, res) => {
       });
     }
 
-    // Get stored file
-    const storedFile = await StoredFile.findOne({
-      where: {
-        id: fileId,
-        userId: device.userId,
-        fileType: "image",
-      },
-    });
+    // 1. Upload to Bunny.net
+    const filename = `img-sent-${device.sessionId}-${Date.now()}-${uuidv4().substring(0,8)}.jpg`;
+    const storagePath = `${device.userId}/${device.sessionId}/images`;
+    const mediaUrl = await BunnyStorageService.uploadFile(file.buffer, filename, storagePath);
 
-    if (!storedFile) {
-      return res.status(404).json({
-        success: false,
-        error: "Image file not found or access denied",
-      });
-    }
-
-    if (storedFile.isExpired()) {
-      return res.status(410).json({
-        success: false,
-        error: "File has expired",
-      });
-    }
-
-    // Read file from storage
-    const fileBuffer = await fs.readFile(
-      path.join(process.cwd(), storedFile.filePath)
-    );
-
-    let savedMessage = null;
-
-    // Save message to database
-    if (config.database.saveMessages) {
-      savedMessage = await Message.create({
+    // 2. Create StoredFile record
+    const storedFile = await StoredFile.create({
         userId: device.userId,
         deviceId: device.id,
-        sessionId: sessionId,
-        phoneNumber: recipient,
-        messageType: "image",
-        content: {
-          caption: caption,
-          mimeType: storedFile.mimeType,
-          size: storedFile.size,
-          storedFileId: fileId,
-        },
-        type: "outgoing",
-        timestamp: new Date(),
-        status: "pending",
-      });
-    }
+        originalName: file.originalname || "outgoing-image.jpg",
+        storedName: filename,
+        mimeType: file.mimetype,
+        fileType: "image",
+        size: file.size,
+        filePath: mediaUrl,
+        isPublic: true,
+        tags: ["whatsapp", "outgoing", device.sessionId]
+    });
 
-    try {
-      // Send image using device's session
-      const result = await WhatsAppService.sendImage(
+    // 3. Send via WhatsApp Service
+    // Pass mediaUrl in options/extra so MessageHandler can skip re-upload logic if needed, 
+    // or simply just send the buffer.
+    const result = await WhatsAppService.sendImage(
         sessionId,
         recipient,
-        fileBuffer,
+        file.buffer,
         caption,
-        storedFile.mimeType
-      );
+        file.mimetype,
+        false, // viewOnce
+        { agentId, agentName, mediaUrl } // Pass metadata
+    );
 
-      // Update message status to sent if saved
-      if (savedMessage && result) {
-        await savedMessage.update({
-          status: "sent",
-          sentAt: new Date(),
-          whatsappMessageId: result.messageId || null,
-        });
-      }
+    res.json({
+      success: true,
+      message: "Image sent successfully",
+      messageId: result?.messageId,
+      mediaUrl: mediaUrl,
+      fileId: storedFile.id
+    });
 
-      // Update file usage stats
-      await storedFile.incrementUsage();
-
-      res.json({
-        success: true,
-        message: "Image sent successfully",
-        messageId: savedMessage?.id,
-        whatsappMessageId: result?.messageId,
-        file: {
-          id: storedFile.id,
-          originalName: storedFile.originalName,
-          usageCount: storedFile.usageCount + 1,
-        },
-      });
-    } catch (sendError) {
-      // Update message status to failed if saved
-      if (savedMessage) {
-        await savedMessage.update({
-          status: "failed",
-          errorMessage: sendError.message,
-        });
-      }
-      throw sendError;
-    }
   } catch (error) {
     console.error("Error sending image:", error);
     res.status(500).json({

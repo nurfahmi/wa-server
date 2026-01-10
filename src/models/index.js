@@ -27,6 +27,8 @@ import AIProviderModel from "./AIProvider.js";
 import AIModelModel from "./AIModel.js";
 import StoredFileModel from "./StoredFile.js";
 import AuthDataModel from "./AuthData.js";
+import ChatHistoryModel from "./ChatHistory.js";
+import UserModel from "./User.js";
 
 // Warmer models
 import WarmerCampaignModel from "./WarmerCampaign.js";
@@ -48,6 +50,8 @@ const AIProvider = AIProviderModel(sequelize);
 const AIModel = AIModelModel(sequelize);
 const StoredFile = StoredFileModel(sequelize);
 const AuthData = AuthDataModel(sequelize);
+const ChatHistory = ChatHistoryModel(sequelize);
+const User = UserModel(sequelize);
 
 // Warmer models
 const WarmerCampaign = WarmerCampaignModel(sequelize);
@@ -57,6 +61,10 @@ const WarmerConversationLog = WarmerConversationLogModel(sequelize);
 // Define associations
 Device.hasMany(Message, { foreignKey: "sessionId", sourceKey: "sessionId" });
 Message.belongsTo(Device, { foreignKey: "sessionId", targetKey: "sessionId" });
+
+// User associations
+User.hasMany(Device, { foreignKey: "userId", sourceKey: "id" });
+Device.belongsTo(User, { foreignKey: "userId", targetKey: "id" });
 
 Device.hasMany(ChatSettings, { foreignKey: "deviceId", onDelete: "CASCADE" });
 ChatSettings.belongsTo(Device, { foreignKey: "deviceId" });
@@ -76,6 +84,10 @@ AIModel.belongsTo(AIProvider, { foreignKey: "providerId", as: "provider" });
 // StoredFile associations
 Device.hasMany(StoredFile, { foreignKey: "deviceId", as: "storedFiles" });
 StoredFile.belongsTo(Device, { foreignKey: "deviceId", as: "device" });
+
+// ChatHistory associations
+Device.hasMany(ChatHistory, { foreignKey: "deviceId", as: "chatHistory", onDelete: "CASCADE" });
+ChatHistory.belongsTo(Device, { foreignKey: "deviceId" });
 
 // Call associate methods for warmer models
 if (WarmerCampaign.associate) {
@@ -116,4 +128,6 @@ export {
   WarmerConversationLog,
   StoredFile,
   AuthData,
+  ChatHistory,
+  User,
 };

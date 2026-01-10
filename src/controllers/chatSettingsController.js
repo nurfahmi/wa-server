@@ -1,4 +1,4 @@
-import { ChatSettings, Device, AIConversationMemory, Message } from "../models/index.js";
+import { ChatSettings, Device, ChatHistory, Message } from "../models/index.js";
 import { Op } from "sequelize";
 
 // Get all chats for a device with their settings and latest messages
@@ -282,20 +282,29 @@ export const clearMemory = async (req, res) => {
       });
     }
 
-    // Clear all conversation memory for this chat
-    const deletedCount = await AIConversationMemory.destroy({
-      where: {
-        sessionId: device.sessionId,
-        remoteJid: chatId,
-      },
+    // Clear memory by updating aiMemoryClearedAt timestamp
+    // This tells the AI to ignore any messages before this time when fetching context
+    const chatSettings = await ChatSettings.findOne({
+      where: { deviceId, chatId },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({
+        success: false,
+        message: "Chat settings not found",
+      });
+    }
+
+    await chatSettings.update({
+      aiMemoryClearedAt: new Date(),
     });
 
     res.json({
       success: true,
-      message: `Cleared ${deletedCount} conversation memory entries`,
+      message: "AI conversation memory cleared (soft-clear)",
       data: {
         chatId,
-        deletedEntries: deletedCount,
+        clearedAt: chatSettings.aiMemoryClearedAt,
       },
     });
   } catch (error) {
@@ -325,12 +334,12 @@ export const getChatConversation = async (req, res) => {
 
     let conversationHistory = [];
 
-    // 1. Try to get from AIConversationMemory (most recent AI conversations)
+    // 1. Try to get from ChatHistory (unified source)
     try {
-      const aiHistory = await AIConversationMemory.findAll({
+      const history = await ChatHistory.findAll({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
+          deviceId: device.id,
+          chatId: chatId,
           ...(before && { timestamp: { [Op.lt]: new Date(before) } }),
         },
         order: [["timestamp", "DESC"]],
@@ -338,17 +347,20 @@ export const getChatConversation = async (req, res) => {
         offset: parseInt(offset),
       });
 
-      conversationHistory = aiHistory.map((msg) => ({
+      conversationHistory = history.map((msg) => ({
         id: msg.id,
         content: msg.content,
-        role: msg.role, // 'user' or 'assistant'
+        messageType: msg.messageType,
         timestamp: msg.timestamp,
-        source: "ai_memory",
-        direction: msg.role === "user" ? "incoming" : "outgoing",
+        source: "chat_history",
+        direction: msg.direction,
+        role: msg.direction === "incoming" ? "user" : "assistant",
+        isAiGenerated: msg.isAiGenerated,
+        agentName: msg.agentName,
       }));
     } catch (error) {
       console.log(
-        "AIConversationMemory not available or empty:",
+        "ChatHistory not available or empty:",
         error.message
       );
     }
@@ -439,55 +451,63 @@ export const getChatStats = async (req, res) => {
       averageResponseTime: null,
     };
 
-    // Count from AIConversationMemory
+    // Count from ChatHistory
     try {
-      const aiCount = await AIConversationMemory.count({
+      const totalCount = await ChatHistory.count({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
+          deviceId: device.id,
+          chatId: chatId,
         },
       });
 
-      const aiUserCount = await AIConversationMemory.count({
+      const incomingCount = await ChatHistory.count({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
-          role: "user",
+          deviceId: device.id,
+          chatId: chatId,
+          direction: "incoming",
         },
       });
 
-      const aiAssistantCount = await AIConversationMemory.count({
+      const outgoingCount = await ChatHistory.count({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
-          role: "assistant",
+          deviceId: device.id,
+          chatId: chatId,
+          direction: "outgoing",
+        },
+      });
+
+      const aiCount = await ChatHistory.count({
+        where: {
+          deviceId: device.id,
+          chatId: chatId,
+          isAiGenerated: true,
         },
       });
 
       // Get first and last message dates
-      const firstMessage = await AIConversationMemory.findOne({
+      const firstMessage = await ChatHistory.findOne({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
+          deviceId: device.id,
+          chatId: chatId,
         },
         order: [["timestamp", "ASC"]],
       });
 
-      const lastMessage = await AIConversationMemory.findOne({
+      const lastMessage = await ChatHistory.findOne({
         where: {
-          sessionId: device.sessionId,
-          remoteJid: chatId,
+          deviceId: device.id,
+          chatId: chatId,
         },
         order: [["timestamp", "DESC"]],
       });
 
-      stats.totalMessages = aiCount;
-      stats.userMessages = aiUserCount;
-      stats.aiMessages = aiAssistantCount;
+      stats.totalMessages = totalCount;
+      stats.userMessages = incomingCount;
+      stats.aiMessages = aiCount;
       stats.firstMessageDate = firstMessage?.timestamp;
       stats.lastMessageDate = lastMessage?.timestamp;
     } catch (error) {
-      console.log("Error getting AI stats:", error.message);
+      console.log("Error getting ChatHistory stats:", error.message);
     }
 
     // Get chat settings
@@ -512,6 +532,57 @@ export const getChatStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching chat stats:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Delete a chat and all its history
+ */
+export const deleteChat = async (req, res) => {
+  try {
+    const { deviceId, phoneNumber } = req.params;
+
+    // Verify device exists
+    const device = await Device.findByPk(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: "Device not found" });
+    }
+
+    const chatId = `${phoneNumber}@s.whatsapp.net`;
+
+    // Find the chat settings
+    const chatSettings = await ChatSettings.findOne({
+      where: {
+        deviceId,
+        chatId,
+      },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    // Delete all chat history
+    const deletedHistoryCount = await ChatHistory.destroy({
+      where: {
+        deviceId,
+        chatId,
+      },
+    });
+
+    // Delete chat settings
+    await chatSettings.destroy();
+
+    console.log(`[DELETE-CHAT] Deleted chat ${phoneNumber} for device ${deviceId}. Removed ${deletedHistoryCount} messages.`);
+
+    res.json({
+      success: true,
+      message: "Chat and history deleted successfully",
+      deletedMessages: deletedHistoryCount,
+    });
+  } catch (error) {
+    console.error("Error deleting chat:", error);
     res.status(500).json({ error: error.message });
   }
 };

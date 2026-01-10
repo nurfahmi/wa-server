@@ -10,9 +10,9 @@ export default (sequelize) => {
         autoIncrement: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
-        comment: "User ID (UUID format) who owns this contact",
+        comment: "User ID who owns this contact",
         validate: {
           notEmpty: true,
         },

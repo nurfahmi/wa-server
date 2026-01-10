@@ -46,6 +46,7 @@ router.use("/files", fileRoutes);
 router.use(apiAuth);
 
 // Device Management Routes
+router.get("/devices", deviceController.getSessions); // Alias for getSessions to list all devices
 router.post("/devices", deviceController.createDevice); // Create new device and start session
 router.get("/users/:userId/devices", deviceController.getUserDevices); // List user's devices
 router.get("/devices/:deviceId", deviceController.getDevice); // Get device details with status
@@ -58,10 +59,13 @@ router.post("/devices/:deviceId/login", deviceController.loginDevice); // Login/
 router.get("/devices/:deviceId/qr", deviceController.getDeviceQR); // Get QR code for pairing
 
 // Message Routes
+// Import middleware
+import { uploadMiddleware } from "../controllers/messageController.js";
+
 router.post("/send", messageController.sendMessage);
-router.post("/send/image", messageController.sendImage);
-router.post("/send/video", messageController.sendVideo);
-router.post("/send/document", messageController.sendDocument);
+router.post("/send/image", uploadMiddleware, messageController.sendImage);
+router.post("/send/video", uploadMiddleware, messageController.sendVideo);
+router.post("/send/document", uploadMiddleware, messageController.sendDocument);
 router.get("/messages", messageController.getAllMessages);
 router.get(
   "/devices/:deviceId/messages/:remoteJid",
@@ -87,7 +91,13 @@ router.post("/messages/:messageId/resend", messageController.resendMessage);
 router.get("/devices/:deviceId/contacts", contactController.getContacts);
 router.get("/devices/:deviceId/chats", contactController.getChats);
 router.get("/devices/:deviceId/groups", contactController.getGroups);
+router.get("/devices/:deviceId/chats/:chatId/history", contactController.getChatHistory);
+router.put("/devices/:deviceId/chats/:chatId/settings", contactController.updateChatSettings);
+router.post("/devices/:deviceId/chats/:chatId/takeover", contactController.takeoverChat);
+router.post("/devices/:deviceId/chats/:chatId/release", contactController.releaseChat);
+router.post("/devices/:deviceId/chats/:chatId/handover", contactController.handoverChat);
 router.get("/users/:userId/contacts", contactController.getUserContacts);
+router.get("/cs/dashboard-stats", contactController.getCSDashboardStats);
 
 // WhatsApp Data Sync & Fetch Routes
 router.post("/devices/:deviceId/sync", contactController.syncWhatsAppData);
@@ -98,6 +108,10 @@ router.get(
 router.get(
   "/devices/:deviceId/chats/baileys-store",
   contactController.fetchChatsFromBaileysStore
+);
+router.get(
+  "/devices/:deviceId/messages/baileys-store",
+  contactController.fetchMessagesFromBaileysStore
 );
 
 // Group Management
@@ -147,6 +161,18 @@ router.use("/", chatSettingsRoutes);
 
 // Admin Routes (AI Provider/Model/Cost Management)
 router.use("/admin", adminRoutes);
+
+import * as dashboardController from "../controllers/dashboardController.js";
+
+// Dashboard Routes
+router.get("/dashboard/stats", dashboardController.getDashboardStats);
+
+import * as userController from "../controllers/userController.js";
+
+// Agent Management Routes (Manager only)
+router.get("/agents", userController.getAgents);
+router.post("/agents", userController.createAgent);
+router.delete("/agents/:id", userController.deleteAgent);
 
 // Server Monitoring
 router.get("/server/stats", serverController.getServerStats);

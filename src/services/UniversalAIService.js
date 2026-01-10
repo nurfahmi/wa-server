@@ -69,6 +69,7 @@ class UniversalAIService {
           case "claude":
             envApiKey = config.aiProviders.claude?.apiKey;
             break;
+          case "google":
           case "gemini":
             envApiKey = config.aiProviders.gemini?.apiKey;
             break;
@@ -132,13 +133,7 @@ class UniversalAIService {
       // Parse response based on provider format
       const parsedResponse = this.parseResponse(response.data, modelConfig);
 
-      // Update statistics
-      this.updateStats(
-        provider,
-        selectedModel.modelId,
-        parsedResponse,
-        modelConfig.pricing
-      );
+      // Statistics tracking removed as requested
 
       return parsedResponse;
     } catch (error) {
@@ -315,32 +310,7 @@ class UniversalAIService {
    * @param {Object} pricing - Pricing information
    */
   updateStats(provider, model, response, pricing = {}) {
-    const { usage } = response;
-
-    // Calculate cost using database pricing
-    const inputTokens = usage.prompt_tokens || 0;
-    const outputTokens = usage.completion_tokens || 0;
-
-    const inputCost = (inputTokens / 1000) * (pricing.input || 0);
-    const outputCost = (outputTokens / 1000) * (pricing.output || 0);
-    const totalCost = inputCost + outputCost;
-
-    // Update stats
-    this.stats.requests++;
-    this.stats.tokens.input += inputTokens;
-    this.stats.tokens.output += outputTokens;
-    this.stats.costs.total += totalCost;
-
-    if (!this.stats.costs.byProvider[provider]) {
-      this.stats.costs.byProvider[provider] = 0;
-    }
-    this.stats.costs.byProvider[provider] += totalCost;
-
-    console.log(
-      `[AI-STATS] ${provider}/${model} - Tokens: ${inputTokens}→${outputTokens}, Cost: $${totalCost.toFixed(
-        6
-      )}`
-    );
+    // Statistics tracking removed
   }
 
   /**

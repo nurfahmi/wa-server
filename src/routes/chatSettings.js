@@ -23,6 +23,13 @@ router.put(
   chatSettingsController.updateChatSettings
 );
 
+// Delete specific chat and its history
+router.delete(
+  "/devices/:deviceId/chat-settings/:phoneNumber",
+  chatSettingsController.deleteChat
+);
+
+
 // Bulk update multiple chats
 router.post(
   "/devices/:deviceId/chat-settings/bulk-update",

@@ -10,7 +10,7 @@ export default (sequelize) => {
         autoIncrement: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         comment: "User ID who owns this chat",
       },

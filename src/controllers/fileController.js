@@ -4,6 +4,8 @@ import path from "path";
 import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import { Op, fn, col } from "sequelize";
+import bunnyStorageService from "../services/storage/BunnyStorageService.js";
+import config from "../config/config.js";
 
 // Configure multer for file storage
 const storage = multer.diskStorage({
@@ -173,6 +175,9 @@ export const uploadFile = async (req, res) => {
         expiresAt.setHours(expiresAt.getHours() + parseInt(expiresIn));
       }
 
+      // Generate solid ID early
+      const storedFileId = uuidv4();
+
       // Create user-specific directory and move file
       const userDir = path.join(process.cwd(), "uploads", "users", userId);
       await fs.mkdir(userDir, { recursive: true });
@@ -198,12 +203,39 @@ export const uploadFile = async (req, res) => {
         }
       }
       
-      const filePath = path.relative(process.cwd(), newFilePath);
+      let filePath = path.relative(process.cwd(), newFilePath);
+      let publicUrl = `/api/whatsapp/files/${storedFileId}/preview`;
+      let isStorageExternal = false;
+
+      // Use Bunny.net if configured
+      if (config.bunny.apiKey && config.bunny.storageZoneName) {
+        try {
+          const fileBuffer = await fs.readFile(newFilePath);
+          const subfolder = fileType === "image" ? "images" : fileType === "video" ? "videos" : "documents";
+          const bunnyUrl = await bunnyStorageService.uploadFile(fileBuffer, req.file.filename, subfolder);
+          
+          if (bunnyUrl) {
+            filePath = bunnyUrl;
+            publicUrl = bunnyUrl;
+            isStorageExternal = true;
+            
+            // Clean up local file after successful Bunny upload
+            try {
+              await fs.unlink(newFilePath);
+            } catch (unlinkErr) {
+              console.warn("[FileUpload] Failed to delete local file after Bunny upload:", unlinkErr);
+            }
+          }
+        } catch (bunnyErr) {
+          console.error("[FileUpload] Bunny upload failed, falling back to local storage:", bunnyErr);
+        }
+      }
 
       // Create database record
       const storedFile = await StoredFile.create({
+        id: storedFileId,
         userId,
-        deviceId: null, // No device association needed
+        deviceId: null, 
         originalName: req.file.originalname,
         storedName: req.file.filename,
         mimeType: mimeType,
@@ -211,18 +243,20 @@ export const uploadFile = async (req, res) => {
         size: req.file.size,
         filePath,
         isPublic: isPublic === "true" || isPublic === true,
-        tags: [], // Keep empty array for database compatibility
+        tags: [], 
         description,
         expiresAt,
         metadata: {
           uploadedAt: new Date(),
           clientIP: req.ip,
+          isExternal: isStorageExternal
         },
       });
 
       res.json({
         success: true,
         message: "File uploaded successfully",
+        url: publicUrl,
         file: {
           id: storedFile.id,
           originalName: storedFile.originalName,
@@ -232,6 +266,7 @@ export const uploadFile = async (req, res) => {
           description: storedFile.description,
           createdAt: storedFile.createdAt,
           expiresAt: storedFile.expiresAt,
+          url: publicUrl
         },
       });
     } catch (error) {
@@ -289,7 +324,9 @@ export const listFiles = async (req, res) => {
     // Build where clause
     const where = {};
 
-    if (userId) where.userId = userId;
+    // Use current user's ID if not specified and not system access
+    const effectiveUserId = userId || (req.user ? req.user.id : null);
+    if (effectiveUserId && !req.isSystem) where.userId = effectiveUserId;
     if (fileType) where.fileType = fileType;
 
     // Exclude expired files
@@ -309,6 +346,7 @@ export const listFiles = async (req, res) => {
         "fileType",
         "size",
         "mimeType",
+        "filePath",
         "description",
         "usageCount",
         "lastUsed",
@@ -782,6 +820,11 @@ export const getFilePreview = async (req, res) => {
     
     // For images, return the actual file
     if (isImage) {
+      // If the file is stored externally (e.g. BunnyCDN), redirect to it
+      if (file.filePath.startsWith("http")) {
+        return res.redirect(file.filePath);
+      }
+
       const filePath = path.join(process.cwd(), file.filePath);
 
       // Check if file exists

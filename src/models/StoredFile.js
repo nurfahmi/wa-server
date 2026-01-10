@@ -10,7 +10,7 @@ export default (sequelize) => {
         primaryKey: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         comment: "User ID who owns this file",
       },

@@ -10,7 +10,7 @@ export default (sequelize) => {
         autoIncrement: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         comment: "User ID who owns this chat",
       },
@@ -38,6 +38,11 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         comment: "Contact display name",
+      },
+      profilePictureUrl: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "URL of the contact's profile picture",
       },
       // AI Settings - Core functionality
       aiEnabled: {
@@ -71,6 +76,61 @@ export default (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: "Internal notes about this chat/customer",
+      },
+      // CS Agent Assignment
+      assignedAgentId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Assigned CS agent/user ID",
+      },
+      assignedAgentName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Assigned agent display name",
+      },
+      assignedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "When the chat was assigned to agent",
+      },
+      // Labels for categorization
+      labels: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "Array of labels: ['hot-lead', 'follow-up', 'purchased']",
+      },
+      // Human Takeover (AI Override)
+      humanTakeover: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: "True when human agent takes over from AI",
+      },
+      humanTakeoverAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "When human took over",
+      },
+      humanTakeoverBy: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Agent ID who took over",
+      },
+      // Chat Status & Priority
+      status: {
+        type: DataTypes.ENUM("open", "pending", "resolved", "closed"),
+        defaultValue: "open",
+        comment: "Chat status for CS workflow",
+      },
+      priority: {
+        type: DataTypes.ENUM("low", "normal", "high", "urgent"),
+        defaultValue: "normal",
+        comment: "Chat priority level",
+      },
+      // AI Memory Control
+      aiMemoryClearedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "Timestamp when AI memory was manually cleared",
       },
     },
     {

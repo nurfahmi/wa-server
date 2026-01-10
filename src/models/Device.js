@@ -12,9 +12,9 @@ export default (sequelize) => {
         autoIncrement: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
-        comment: "User ID (UUID format) who owns this device",
+        comment: "User ID who owns this device (matches User.id)",
       },
       sessionId: {
         type: DataTypes.STRING,
@@ -303,11 +303,90 @@ export default (sequelize) => {
       aiFallbackProvider: {
         type: DataTypes.STRING(50),
         defaultValue: "deepseek",
-        allowNull: false,
+        allowNull: true,
       },
       aiFallbackModel: {
         type: DataTypes.STRING(100),
         allowNull: true, // Will use default from fallback provider if null
+      },
+      // Enhanced Business Settings
+      aiBrandVoice: {
+        type: DataTypes.STRING,
+        defaultValue: "casual", // casual, formal, expert, luxury
+      },
+      aiBusinessFAQ: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiBusinessFAQ");
+          return raw ? JSON.parse(raw) : { items: [] };
+        },
+        set(value) {
+          this.setDataValue("aiBusinessFAQ", JSON.stringify(value));
+        },
+      },
+      aiProductCatalog: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiProductCatalog");
+          return raw ? JSON.parse(raw) : { items: [] };
+        },
+        set(value) {
+          this.setDataValue("aiProductCatalog", JSON.stringify(value));
+        },
+      },
+      aiPrimaryGoal: {
+        type: DataTypes.STRING,
+        defaultValue: "conversion", // conversion, leads, support
+      },
+      aiOperatingHours: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiOperatingHours");
+          return raw ? JSON.parse(raw) : { enabled: false, schedule: {} };
+        },
+        set(value) {
+          this.setDataValue("aiOperatingHours", JSON.stringify(value));
+        },
+      },
+      aiBoundariesEnabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      aiHandoverTriggers: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiHandoverTriggers");
+          return raw ? JSON.parse(raw) : ["human", "agent", "bantuan", "tolong"];
+        },
+        set(value) {
+          this.setDataValue("aiHandoverTriggers", JSON.stringify(value));
+        },
+      },
+      aiBusinessProfile: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiBusinessProfile");
+          return raw ? JSON.parse(raw) : { name: "", category: "", logo: "", description: "" };
+        },
+        set(value) {
+          this.setDataValue("aiBusinessProfile", JSON.stringify(value));
+        },
+      },
+      aiBusinessAddress: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const raw = this.getDataValue("aiBusinessAddress");
+          return raw ? JSON.parse(raw) : { street: "", city: "", state: "", zip: "", country: "" };
+        },
+        set(value) {
+          this.setDataValue("aiBusinessAddress", JSON.stringify(value));
+        },
       },
     },
     {

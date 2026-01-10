@@ -16,10 +16,10 @@ export const createDevice = async (req, res) => {
       });
     }
 
-    // Validate userId format (should be UUID or string)
-    if (typeof userId !== "string" || userId.trim().length === 0) {
+    // Validate userId format (allow string or number)
+    if ((typeof userId !== "string" && typeof userId !== "number") || String(userId).trim().length === 0) {
       return res.status(400).json({
-        error: "User ID must be a valid string (UUID format recommended)",
+        error: "User ID must be a valid string or number",
       });
     }
 
@@ -35,9 +35,34 @@ export const createDevice = async (req, res) => {
       });
     }
 
+    // Check for Device Limits if it's a regular user (not System/Superadmin)
+    if (req.user && req.user.role !== 'superadmin') {
+      // 1. Ensure they are creating for themselves
+      if (userId && String(userId) !== String(req.user.id)) {
+         return res.status(403).json({ error: "You can only create devices for yourself" });
+      }
+      
+      // 2. Check limit
+      const currentCount = await Device.count({ where: { userId: String(req.user.id) } });
+      if (currentCount >= (req.user.deviceLimit || 1)) {
+        return res.status(403).json({ 
+          error: "Device limit reached. Upgrade your plan to add more devices.",
+          current: currentCount,
+          limit: req.user.deviceLimit 
+        });
+      }
+      
+      // Force userId to be their own ID
+      // (Variable userId is let/const? It's const in original: const {userId...} = req.body)
+      // We need to use req.user.id for the creation call
+    }
+
+    // Determine final IDs to use
+    const finalUserId = req.user ? String(req.user.id) : userId;
+
     // Start WhatsApp session (this will create the device record)
     const result = await WhatsAppService.createSession(
-      userId,
+      finalUserId,
       alias,
       phoneNumber
     );
@@ -69,7 +94,19 @@ export const createDevice = async (req, res) => {
 // Get all devices for a user with their connection status
 export const getUserDevices = async (req, res) => {
   try {
-    const { userId } = req.params;
+    let { userId } = req.params;
+
+    // Security Check: Users can only see their own devices
+    if (req.user && req.user.role !== 'superadmin') {
+      // If they asked for someone else's devices, deny or redirect to their own
+      userId = String(req.user.id); 
+    }
+    
+    // If Superadmin/System and no userId specified, return ALL devices? 
+    // The original route is /users/:userId/devices, so userId is usually present.
+    // We might want a new route /devices for admin to see all. 
+    // But for this specific function, it handles fetching by userId.
+    
     const devices = await Device.findAll({
       where: { userId },
       order: [["lastConnection", "DESC"]],
@@ -366,18 +403,28 @@ export const getAISettings = async (req, res) => {
       upsellStrategies: device.upsellStrategies || "",
       objectionHandling: device.objectionHandling || "",
       
-      // Conversation memory settings
       conversationMemoryEnabled: device.aiConversationMemoryEnabled || false,
       maxHistoryLength: device.aiMaxHistoryLength || 10,
       expiryDays: device.aiConversationExpiryDays || 1,
 
+      // Enhanced Business Context
+      aiBrandVoice: device.aiBrandVoice || "casual",
+      aiBusinessFAQ: device.aiBusinessFAQ || { items: [] },
+      aiPrimaryGoal: device.aiPrimaryGoal || "conversion",
+      aiOperatingHours: device.aiOperatingHours || { enabled: false, schedule: {} },
+      aiBoundariesEnabled: device.aiBoundariesEnabled ?? true,
+      aiHandoverTriggers: device.aiHandoverTriggers || ["human", "agent", "bantuan", "tolong"],
+      aiProductCatalog: device.aiProductCatalog || { items: [] },
+      aiBusinessProfile: device.aiBusinessProfile || "",
+      aiBusinessAddress: device.aiBusinessAddress || "",
+
       // Read-only: From environment (shown for info only)
       _systemDefaults: {
-        provider: "openai",
-        model: envModel,
+        provider: device.aiProvider || "openai",
+        model: device.aiModel || envModel,
         temperature: envTemperature,
         maxTokens: envMaxTokens,
-        note: "Provider, model, and temperature are configured by system administrator"
+        note: "API keys are securely managed by the system"
       }
     });
   } catch (error) {
@@ -434,10 +481,21 @@ export const updateAISettings = async (req, res) => {
           ? Math.max(1, Math.min(30, req.body.expiryDays))
           : device.aiConversationExpiryDays,
 
-      // Provider settings are now fixed to OpenAI from environment
-      aiProvider: "openai",
-      aiModel: null, // Will use env default
-      aiFallbackProvider: "openai",
+      // Enhanced Business Context Updates
+      aiBrandVoice: req.body.aiBrandVoice ?? device.aiBrandVoice,
+      aiBusinessFAQ: req.body.aiBusinessFAQ ?? device.aiBusinessFAQ,
+      aiProductCatalog: req.body.aiProductCatalog ?? device.aiProductCatalog,
+      aiPrimaryGoal: req.body.aiPrimaryGoal ?? device.aiPrimaryGoal,
+      aiOperatingHours: req.body.aiOperatingHours ?? device.aiOperatingHours,
+      aiBoundariesEnabled: req.body.aiBoundariesEnabled ?? device.aiBoundariesEnabled,
+      aiHandoverTriggers: req.body.aiHandoverTriggers ?? device.aiHandoverTriggers,
+      aiBusinessProfile: req.body.aiBusinessProfile ?? device.aiBusinessProfile,
+      aiBusinessAddress: req.body.aiBusinessAddress ?? device.aiBusinessAddress,
+
+      // Provider settings from user choice
+      aiProvider: req.body.aiProvider ?? device.aiProvider,
+      aiModel: req.body.aiModel ?? device.aiModel,
+      aiFallbackProvider: null, // Fallback disabled as requested
       aiFallbackModel: null,
     };
 
@@ -468,10 +526,19 @@ export const updateAISettings = async (req, res) => {
         conversationMemoryEnabled: device.aiConversationMemoryEnabled,
         maxHistoryLength: device.aiMaxHistoryLength,
         expiryDays: device.aiConversationExpiryDays,
+        aiBrandVoice: device.aiBrandVoice,
+        aiBusinessFAQ: device.aiBusinessFAQ,
+        aiPrimaryGoal: device.aiPrimaryGoal,
+        aiOperatingHours: device.aiOperatingHours,
+        aiBoundariesEnabled: device.aiBoundariesEnabled,
+        aiHandoverTriggers: device.aiHandoverTriggers,
+        aiProductCatalog: device.aiProductCatalog,
+        aiBusinessProfile: device.aiBusinessProfile,
+        aiBusinessAddress: device.aiBusinessAddress,
       },
       _systemDefaults: {
-        provider: "openai",
-        model: envModel,
+        provider: device.aiProvider,
+        model: device.aiModel || envModel,
         temperature: envTemperature,
         maxTokens: envMaxTokens,
       }
@@ -540,18 +607,28 @@ export const getSessions = async (req, res) => {
         "status",
         "lastConnection",
         "phoneNumber",
+        "apiKey",
+        "createdAt",
+        "updatedAt"
       ],
       where: {
         status: {
           [Op.ne]: "deleted",
         },
+        ...(req.user && req.user.role !== 'superadmin' ? { userId: String(req.user.id) } : {})
       },
       order: [["lastConnection", "DESC"]],
     });
 
+    // Enhance with connection status
+    const sessionsWithStatus = devices.map((device) => ({
+      ...device.toJSON(),
+      isConnected: WhatsAppService.isSessionActive(device.sessionId),
+    }));
+
     res.json({
       success: true,
-      sessions: devices,
+      sessions: sessionsWithStatus,
     });
   } catch (error) {
     console.error("Error fetching sessions:", error);
@@ -632,6 +709,16 @@ export const testAI = async (req, res) => {
       salesScripts: device.salesScripts,
       aiLanguage: device.aiLanguage || "id",
       rules: device.aiRules,
+      // Enhanced settings
+      aiBrandVoice: device.aiBrandVoice,
+      aiBusinessFAQ: device.aiBusinessFAQ,
+      aiPrimaryGoal: device.aiPrimaryGoal,
+      aiOperatingHours: device.aiOperatingHours,
+      aiBoundariesEnabled: device.aiBoundariesEnabled,
+      aiHandoverTriggers: device.aiHandoverTriggers,
+      businessType: device.businessType,
+      upsellStrategies: device.upsellStrategies,
+      objectionHandling: device.objectionHandling,
       isGroup: false,
     };
 
@@ -647,16 +734,18 @@ export const testAI = async (req, res) => {
     );
 
     if (aiResponse && aiResponse.content) {
-      res.json({
-        success: true,
-        response: aiResponse.content,
-        settings: {
-          botName: aiContext.botName,
-          temperature: aiContext.temperature,
-          maxTokens: aiContext.maxTokens,
-          language: aiContext.aiLanguage,
-        },
-      });
+        res.json({
+          success: true,
+          response: aiResponse.content,
+          imageId: aiResponse.imageId,
+          needsHandover: aiResponse.needsHandover,
+          settings: {
+            botName: aiContext.botName,
+            brandVoice: aiContext.aiBrandVoice,
+            primaryGoal: aiContext.aiPrimaryGoal,
+            language: aiContext.aiLanguage,
+          },
+        });
     } else {
       // Return detailed error information if available
       const errorMessage = aiResponse?.error 
@@ -748,134 +837,4 @@ export const getAIProviders = async (req, res) => {
   }
 };
 
-// Get global AI cost statistics (admin only)
-export const getGlobalAICosts = async (req, res) => {
-  try {
-
-    // Get date ranges
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    // Daily costs
-    const dailyCosts = await AIUsageLog.findOne({
-      attributes: [
-        [sequelize.fn("SUM", sequelize.col("costUSD")), "totalCost"],
-        [
-          sequelize.fn("SUM", sequelize.col("promptTokens")),
-          "totalInputTokens",
-        ],
-        [
-          sequelize.fn("SUM", sequelize.col("completionTokens")),
-          "totalOutputTokens",
-        ],
-      ],
-      where: {
-        createdAt: {
-          [Op.gte]: startOfDay,
-        },
-        success: true,
-      },
-    });
-
-    // Monthly costs
-    const monthlyCosts = await AIUsageLog.findOne({
-      attributes: [
-        [sequelize.fn("SUM", sequelize.col("costUSD")), "totalCost"],
-        [
-          sequelize.fn("SUM", sequelize.col("promptTokens")),
-          "totalInputTokens",
-        ],
-        [
-          sequelize.fn("SUM", sequelize.col("completionTokens")),
-          "totalOutputTokens",
-        ],
-      ],
-      where: {
-        createdAt: {
-          [Op.gte]: startOfMonth,
-        },
-        success: true,
-      },
-    });
-
-    // Provider breakdown (monthly)
-    const providerBreakdown = await AIUsageLog.findAll({
-      attributes: [
-        "provider",
-        "model",
-        [sequelize.fn("SUM", sequelize.col("costUSD")), "totalCost"],
-        [sequelize.fn("COUNT", sequelize.col("id")), "requestCount"],
-      ],
-      where: {
-        createdAt: {
-          [Op.gte]: startOfMonth,
-        },
-        success: true,
-      },
-      group: ["provider", "model"],
-      order: [[sequelize.fn("SUM", sequelize.col("costUSD")), "DESC"]],
-    });
-
-    // Recent usage (last 24 hours)
-    const recentUsage = await AIUsageLog.findAll({
-      attributes: [
-        "provider",
-        "model",
-        "costUSD",
-        "promptTokens",
-        "completionTokens",
-        "createdAt",
-      ],
-      where: {
-        createdAt: {
-          [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
-        success: true,
-      },
-      order: [["createdAt", "DESC"]],
-      limit: 50,
-    });
-
-    res.json({
-      success: true,
-      costs: {
-        daily: {
-          totalCost: parseFloat(dailyCosts?.dataValues?.totalCost || 0),
-          totalInputTokens: parseInt(
-            dailyCosts?.dataValues?.totalInputTokens || 0
-          ),
-          totalOutputTokens: parseInt(
-            dailyCosts?.dataValues?.totalOutputTokens || 0
-          ),
-        },
-        monthly: {
-          totalCost: parseFloat(monthlyCosts?.dataValues?.totalCost || 0),
-          totalInputTokens: parseInt(
-            monthlyCosts?.dataValues?.totalInputTokens || 0
-          ),
-          totalOutputTokens: parseInt(
-            monthlyCosts?.dataValues?.totalOutputTokens || 0
-          ),
-        },
-        providerBreakdown: providerBreakdown.map((item) => ({
-          provider: item.provider,
-          model: item.model,
-          totalCost: parseFloat(item.dataValues.totalCost),
-          requestCount: parseInt(item.dataValues.requestCount),
-        })),
-        recentUsage: recentUsage,
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching global AI costs:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch AI cost statistics",
-    });
-  }
-};
+// Analytics and Global Costs removed as requested

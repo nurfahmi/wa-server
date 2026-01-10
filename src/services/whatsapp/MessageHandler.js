@@ -7,8 +7,11 @@ import { promises as fs } from "fs";
 import path from "path";
 import sharp from "sharp";
 import config from "../../config/config.js";
-import { Device, ChatSettings, StoredFile, WarmerCampaign } from "../../models/index.js";
+import { Device, ChatSettings, StoredFile, WarmerCampaign, ChatHistory } from "../../models/index.js";
 import { Op } from "sequelize";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import { v4 as uuidv4 } from "uuid";
+import BunnyStorageService from "../storage/BunnyStorageService.js";
 import { getMimeType } from "../../utils/mimeHelper.js";
 
 // Helper to detect if file is an image based on extension
@@ -63,10 +66,10 @@ class MessageHandler {
         return;
       }
 
-      // Skip own messages
+      // Process "own" messages (sent from phone manually)
       if (message.key.fromMe === true) {
-        console.log(`Skipping own message from ${sender} (fromMe=true)`);
-        return;
+        console.log(`Processing own message from ${sender} (manual send)`);
+        // We continue execution to save it to history, but we skip AI processing
       }
 
       const messageContent =
@@ -121,26 +124,138 @@ class MessageHandler {
           chatId: effectiveSender,
           phoneNumber: phoneNumber,
           contactName: message.pushName || "Unknown",
-          latestMessage: messageContent,
-          latestMessageType: "text",
-          latestMessageDirection: "incoming",
-          latestMessageTimestamp: new Date(),
-          incomingMessageCount: 1,
-          outgoingMessageCount: 0,
+          lastMessageContent: messageContent,
+          lastMessageDirection: "incoming",
+          lastMessageTimestamp: new Date(),
           aiEnabled: true,
         });
         console.log(`Created new ChatSettings for ${phoneNumber} (${isLID ? 'from LID' : 'PN'})`);
       } else {
         await chatSettings.update({
           contactName: message.pushName || chatSettings.contactName,
-          latestMessage: messageContent,
-          latestMessageType: "text",
-          latestMessageDirection: "incoming",
-          latestMessageTimestamp: new Date(),
-          incomingMessageCount: chatSettings.incomingMessageCount + 1,
+          lastMessageContent: messageContent,
+          lastMessageDirection: "incoming",
+          lastMessageTimestamp: new Date(),
           phoneNumber: phoneNumber || chatSettings.phoneNumber,
         });
         console.log(`Updated ChatSettings for ${phoneNumber}`);
+      }
+
+      // Save incoming message to ChatHistory
+      try {
+        const whatsappMessageId = message.key?.id;
+        
+        // Determine message type and content
+        let msgType = "text";
+        let content = messageContent;
+        let caption = null;
+        let mediaUrl = null;
+        
+        if (message.message?.imageMessage) {
+          msgType = "image";
+          caption = message.message.imageMessage.caption || null;
+          content = caption || "[Image]";
+
+          try {
+             const buffer = await downloadMediaMessage(
+                message,
+                'buffer',
+                { },
+                { level: 'silent', trace: () => {}, debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, fatal: () => {} }
+             );
+             
+             if (buffer) {
+                 const filename = `img-${device.sessionId}-${Date.now()}-${uuidv4().substring(0,8)}.jpg`;
+                 // Organize by User -> Session -> Type
+                 const storagePath = `${device.userId}/${device.sessionId}/images`;
+                 mediaUrl = await BunnyStorageService.uploadFile(buffer, filename, storagePath);
+                 
+                 if (mediaUrl) {
+                     await StoredFile.create({
+                        userId: device.userId,
+                        deviceId: device.id,
+                        originalName: "whatsapp-image.jpg",
+                        storedName: filename,
+                        mimeType: "image/jpeg",
+                        fileType: "image",
+                        size: buffer.length,
+                        filePath: mediaUrl,
+                        isPublic: true,
+                        tags: ["whatsapp", "incoming", device.sessionId]
+                     });
+
+                     // Broadcast update to frontend
+                     if (this.service.connectionHandler) {
+                        console.log(`[MEDIA] Broadcasting mediaUrl update for message ${message.key?.id}`);
+                        this.service.connectionHandler.broadcastMessageUpdate(device.sessionId, {
+                            messageId: message.key?.id,
+                            mediaUrl: mediaUrl
+                        });
+                     } else {
+                        console.warn(`[MEDIA] Cannot broadcast - connectionHandler not available`);
+                     }
+                 }
+             }
+          } catch (dlError) {
+             console.error(`[MEDIA] Failed to download/upload image: ${dlError.message}`);
+          }
+
+        } else if (message.message?.videoMessage) {
+          msgType = "video";
+          caption = message.message.videoMessage.caption || null;
+          content = caption || "[Video]";
+        } else if (message.message?.audioMessage) {
+          msgType = "audio";
+          content = "[Audio]";
+        } else if (message.message?.documentMessage) {
+          msgType = "document";
+          content = message.message.documentMessage.fileName || "[Document]";
+        } else if (message.message?.stickerMessage) {
+          msgType = "sticker";
+          content = "[Sticker]";
+        }
+        
+        // Check for duplicate (by messageId)
+        const existing = await ChatHistory.findOne({
+          where: {
+            deviceId: device.id,
+            messageId: whatsappMessageId,
+          },
+        });
+        
+        
+        if (!existing && whatsappMessageId) {
+          const isFromMe = message.key.fromMe === true;
+          
+          await ChatHistory.create({
+            deviceId: device.id,
+            sessionId: device.sessionId,
+            chatId: effectiveSender,
+            phoneNumber: phoneNumber,
+            messageId: whatsappMessageId,
+            direction: isFromMe ? "outgoing" : "incoming",
+            messageType: msgType,
+            content: content,
+            caption: caption,
+            mediaUrl: mediaUrl,
+            timestamp: new Date(message.messageTimestamp ? message.messageTimestamp * 1000 : Date.now()),
+            fromMe: isFromMe,
+            senderName: isFromMe ? null : (message.pushName || null),
+            agentName: isFromMe ? "External" : null, // Mark as External if sent from Phone
+          });
+          console.log(`[ChatHistory] Saved ${isFromMe ? 'outgoing (external)' : 'incoming'} message for ${phoneNumber}`);
+        } else if (existing && mediaUrl && !existing.mediaUrl) {
+          // Update existing record with mediaUrl if we just uploaded it
+          await existing.update({ mediaUrl: mediaUrl });
+          console.log(`[ChatHistory] Updated message ${whatsappMessageId} with mediaUrl`);
+        }
+      } catch (historyError) {
+        console.error(`[ChatHistory] Error saving message:`, historyError.message);
+      }
+
+      // Skip AI processing for own messages
+      if (message.key.fromMe === true) {
+         return;
       }
 
       // Determine AI settings
@@ -178,6 +293,19 @@ class MessageHandler {
           salesScripts: device.salesScripts,
           aiLanguage: device.aiLanguage,
           rules: device.aiRules,
+          // New enhanced fields
+          aiBrandVoice: device.aiBrandVoice,
+          aiBusinessFAQ: device.aiBusinessFAQ,
+          aiPrimaryGoal: device.aiPrimaryGoal,
+          aiOperatingHours: device.aiOperatingHours,
+          aiBoundariesEnabled: device.aiBoundariesEnabled,
+          aiHandoverTriggers: device.aiHandoverTriggers,
+          aiBusinessProfile: device.aiBusinessProfile,
+          aiProductCatalog: device.aiProductCatalog,
+          businessType: device.businessType,
+          upsellStrategies: device.upsellStrategies,
+          objectionHandling: device.objectionHandling,
+          aiMemoryClearedAt: chatSettings.aiMemoryClearedAt,
         };
 
         console.log(`[AUTOREPLY] Processing message with AI. Context:`, {
@@ -354,7 +482,10 @@ class MessageHandler {
             sender,
             imageBuffer,
             caption,
-            mimeType
+            mimeType,
+            null,
+            null,
+            { isAiGenerated: true }
           );
           
           await storedFile.incrementUsage();
@@ -385,14 +516,32 @@ class MessageHandler {
         const cleanedContent = this.cleanImageCaption(aiResponse.content);
         await this.sendNaturalReply(device.sessionId, sender, messageKey, cleanedContent || aiResponse.content);
       } else {
-        await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content);
+        await this.sendNaturalReply(device.sessionId, sender, messageKey, aiResponse.content, { isAiGenerated: true });
       }
     }
 
-    await chatSettings.update({
+    const updateData = {
       outgoingMessageCount: chatSettings.outgoingMessageCount + 1,
       lastProcessedAt: new Date(),
-    });
+    };
+
+    // Handle AI Handover if requested
+    if (aiResponse.needsHandover) {
+      console.log(`[AI-HANDOVER] Handover detected for ${phoneNumber}. Updating chat settings.`);
+      updateData.humanTakeover = true;
+      updateData.humanTakeoverAt = new Date();
+      updateData.priority = "high";
+      updateData.status = "pending";
+      
+      // Add 'ai-handover' label if JSON supported, or via helper
+      let labels = chatSettings.labels || [];
+      if (!labels.includes("ai-handover")) {
+        labels.push("ai-handover");
+        updateData.labels = labels;
+      }
+    }
+
+    await chatSettings.update(updateData);
 
     console.log(`AI response sent to ${phoneNumber}: ${aiResponse.content.substring(0, 50)}...`);
   }
@@ -400,7 +549,7 @@ class MessageHandler {
   /**
    * Send reply with natural human-like behavior
    */
-  async sendNaturalReply(sessionId, recipient, messageKey, replyContent) {
+  async sendNaturalReply(sessionId, recipient, messageKey, replyContent, options = {}) {
     try {
       const session = this.service.sessions.get(sessionId);
       if (!session) {
@@ -413,7 +562,7 @@ class MessageHandler {
 
       if (!naturalSettings.enabled) {
         console.log(`[NATURAL-REPLY] Natural reply disabled, sending direct message`);
-        await this.sendMessage(sessionId, recipient, replyContent);
+        await this.sendMessage(sessionId, recipient, replyContent, null, null, options);
         return;
       }
 
@@ -463,12 +612,12 @@ class MessageHandler {
       }
 
       // Send the message
-      await this.sendMessage(sessionId, recipient, replyContent);
+      await this.sendMessage(sessionId, recipient, replyContent, null, null, options);
       console.log(`[NATURAL-REPLY] Reply sent naturally to ${recipient}`);
     } catch (error) {
       console.error(`[NATURAL-REPLY] Error in natural reply to ${recipient}:`, error);
       try {
-        await this.sendMessage(sessionId, recipient, replyContent);
+        await this.sendMessage(sessionId, recipient, replyContent, null, null, options);
         console.log(`[NATURAL-REPLY] Fallback direct message sent to ${recipient}`);
       } catch (fallbackError) {
         console.error(`[NATURAL-REPLY] Fallback also failed for ${recipient}:`, fallbackError);
@@ -480,7 +629,7 @@ class MessageHandler {
   /**
    * Send a text message
    */
-  async sendMessage(sessionId, recipient, message) {
+  async sendMessage(sessionId, recipient, message, agentId = null, agentName = null, options = {}) {
     console.log(`[SEND-MESSAGE] Attempting to send message via session ${sessionId} to ${recipient}`);
     
     const validation = await this.service.sessionManager.validateSession(sessionId);
@@ -494,7 +643,7 @@ class MessageHandler {
     try {
       const device = await Device.findOne({ where: { sessionId } });
       if (!device) {
-        throw new Error("Device not found");
+        throw new Error("Device not found for session");
       }
 
       let normalizedRecipient = recipient;
@@ -520,9 +669,9 @@ class MessageHandler {
       const sent = await sendWithTimeout;
       console.log(`[SEND-MESSAGE] Message sent successfully to ${formattedRecipient}`);
 
-      // Update chat settings
+      // Update chat settings and save to ChatHistory
       if (formattedRecipient.endsWith("@s.whatsapp.net")) {
-        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, message, "text");
+        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, message, "text", sent?.key?.id, agentId, agentName, options);
       }
 
       return {
@@ -538,10 +687,19 @@ class MessageHandler {
   /**
    * Send an image message
    */
-  async sendImage(sessionId, recipient, imageBuffer, caption = "", mimetype = "image/jpeg") {
+  async sendImage(sessionId, recipient, imageBuffer, caption = "", mimetype = "image/jpeg", viewOnce = false, options = {}) {
     const validation = await this.service.sessionManager.validateSession(sessionId);
     if (!validation.valid) {
       throw new Error(validation.error || "Session not found");
+    }
+
+    // Extract agent info from options if not passed directly (legacy support - although signature changed, we respect options)
+    // Note: options is now the last arg.
+    
+    // Store agent info for the outgoing message listener if needed
+    if (options.agentName || options.agentId) {
+        // We can track it via messageMetadata if we had a message ID beforehand, but we don't.
+        // We rely on updateChatSettingsForOutgoing passing it.
     }
 
     try {
@@ -575,27 +733,61 @@ class MessageHandler {
         }
       }
 
+      // Upload to BunnyCDN logic
+      // Check if mediaUrl is already provided (e.g. from controller direct upload)
+      let mediaUrl = options.mediaUrl || null;
+
+      if (!mediaUrl) {
+          try {
+            const filename = `img-sent-${device.sessionId}-${Date.now()}-${uuidv4().substring(0,8)}.jpg`;
+            // Organize by User -> Session -> Type
+            const storagePath = `${device.userId}/${device.sessionId}/images`;
+            mediaUrl = await BunnyStorageService.uploadFile(finalImageBuffer, filename, storagePath);
+
+            if (mediaUrl) {
+                 await StoredFile.create({
+                    userId: device.userId,
+                    deviceId: device.id,
+                    originalName: "outgoing-image.jpg",
+                    storedName: filename,
+                    mimeType: finalMimetype,
+                    fileType: "image",
+                    size: finalImageBuffer.length,
+                    filePath: mediaUrl,
+                    isPublic: true,
+                    tags: ["whatsapp", "outgoing", device.sessionId]
+                 });
+            }
+          } catch (uploadError) {
+            console.error(`[SEND-IMAGE] Failed to upload image to Bunny: ${uploadError.message}`);
+          }
+      }
+
       const sendWithTimeout = Promise.race([
         validation.session.sendMessage(formattedRecipient, {
           image: finalImageBuffer,
           caption: caption,
           mimetype: finalMimetype,
+          viewOnce: viewOnce
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error("Image send timeout after 60 seconds")), 60000)
         )
       ]);
 
-      const sent = await sendWithTimeout;
+      const sentMsg = await sendWithTimeout;
 
-      if (formattedRecipient.endsWith("@s.whatsapp.net")) {
-        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, caption || "[Image]", "image");
-      }
-
-      return {
-        success: true,
-        messageId: sent?.key?.id || null,
+      // Update ChatHistory
+      const updateOptions = { 
+          mediaUrl: mediaUrl,
+          isAiGenerated: options.isAiGenerated,
+          agentName: options.agentName,
+          caption: caption
       };
+      
+      await this.updateChatSettingsForOutgoing(device, formattedRecipient, normalizedRecipient, caption || "[Image]", "image", sentMsg.key.id, options.agentId, options.agentName, updateOptions);
+      
+      return sentMsg;
     } catch (error) {
       console.error("Error sending image:", error);
       throw error;
@@ -605,7 +797,7 @@ class MessageHandler {
   /**
    * Send a video message
    */
-  async sendVideo(sessionId, recipient, buffer, caption = "") {
+  async sendVideo(sessionId, recipient, buffer, caption = "", agentId = null, agentName = null, options = {}) {
     try {
       const { valid, session, device } = await this.service.sessionManager.validateSession(sessionId);
       if (!valid || !session) {
@@ -635,7 +827,7 @@ class MessageHandler {
       const sent = await sendWithTimeout;
 
       if (formattedRecipient.endsWith("@s.whatsapp.net")) {
-        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, caption || "[Video]", "video");
+        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, caption || "[Video]", "video", sent?.key?.id, agentId, agentName, options);
       }
 
       return {
@@ -651,7 +843,7 @@ class MessageHandler {
   /**
    * Send a document message
    */
-  async sendDocument(sessionId, recipient, buffer, fileName) {
+  async sendDocument(sessionId, recipient, buffer, fileName, agentId = null, agentName = null, options = {}) {
     try {
       const { valid, session, device } = await this.service.sessionManager.validateSession(sessionId);
       if (!valid || !session) {
@@ -681,7 +873,7 @@ class MessageHandler {
       const sent = await sendWithTimeout;
 
       if (formattedRecipient.endsWith("@s.whatsapp.net")) {
-        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, `[Document: ${fileName}]`, "document");
+        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, `[Document: ${fileName}]`, "document", sent?.key?.id, agentId, agentName, options);
       }
 
       return {
@@ -697,8 +889,10 @@ class MessageHandler {
   /**
    * Update chat settings for outgoing messages
    */
-  async updateChatSettingsForOutgoing(device, chatId, phoneNumber, message, messageType) {
+  async updateChatSettingsForOutgoing(device, chatId, phoneNumber, message, messageType, whatsappMessageId = null, agentId = null, agentName = null, options = {}) {
     try {
+      console.log(`[OUTGOING] Updating settings/history for ${chatId}, msgId: ${whatsappMessageId}`);
+      
       let chatSettings = await ChatSettings.findOne({
         where: {
           deviceId: device.id,
@@ -706,33 +900,93 @@ class MessageHandler {
         },
       });
 
+      // Clean phone number (remove @s.whatsapp.net suffix and ensure it's a string)
+      const cleanPhone = String(phoneNumber || chatId).replace(/@s\.whatsapp\.net$/, '').replace(/[+\s-]/g, "");
+
       if (!chatSettings) {
+        console.log(`[OUTGOING] Creating new settings for ${chatId}`);
         chatSettings = await ChatSettings.create({
           userId: device.userId,
           sessionId: device.sessionId,
           deviceId: device.id,
           chatId: chatId,
-          phoneNumber: phoneNumber,
+          phoneNumber: cleanPhone,
           contactName: "Unknown",
-          latestMessage: message,
-          latestMessageType: messageType,
-          latestMessageDirection: "outgoing",
-          latestMessageTimestamp: new Date(),
-          incomingMessageCount: 0,
-          outgoingMessageCount: 1,
+          lastMessageContent: message,
+          lastMessageDirection: "outgoing",
+          lastMessageTimestamp: new Date(),
           aiEnabled: true,
+          assignedAgentId: agentId,
+          assignedAgentName: agentName,
         });
       } else {
-        await chatSettings.update({
-          latestMessage: message,
-          latestMessageType: messageType,
-          latestMessageDirection: "outgoing",
-          latestMessageTimestamp: new Date(),
-          outgoingMessageCount: chatSettings.outgoingMessageCount + 1,
-        });
+        const updateData = {
+          lastMessageContent: message,
+          lastMessageDirection: "outgoing",
+          lastMessageTimestamp: new Date(),
+        };
+        // Auto-assign if sending agent is provided
+        if (agentId) {
+            updateData.assignedAgentId = agentId;
+            updateData.assignedAgentName = agentName;
+        }
+        await chatSettings.update(updateData);
       }
 
-      console.log(`Updated chat settings for outgoing ${messageType} to ${phoneNumber}`);
+      // Store metadata for real-time enrichment
+      if (whatsappMessageId && agentName) {
+        this.service.messageMetadata.set(whatsappMessageId, { agentName });
+        setTimeout(() => this.service.messageMetadata.delete(whatsappMessageId), 3600000);
+      }
+
+      // Save outgoing message to ChatHistory
+      try {
+        console.log(`[OUTGOING] Saving message to ChatHistory for ${cleanPhone}`);
+        await ChatHistory.create({
+          deviceId: device.id,
+          sessionId: device.sessionId,
+          chatId: chatId,
+          phoneNumber: cleanPhone,
+          messageId: whatsappMessageId,
+          direction: "outgoing",
+          messageType: messageType,
+          content: message,
+          caption: options.caption || null,
+          mediaUrl: options.mediaUrl || null,
+          timestamp: new Date(),
+          fromMe: true,
+          senderName: agentName || "System",
+          agentId: agentId,
+          agentName: agentName,
+          isAiGenerated: !!options.isAiGenerated
+        });
+        console.log(`[ChatHistory] Successfully saved outgoing message to ${cleanPhone}`);
+      } catch (historyError) {
+        // If duplicate, it means handleIncomingMessage already saved it via upsert event.
+        // We should update it because this function has richer metadata (mediaUrl, agentName).
+        if (historyError.name === 'SequelizeUniqueConstraintError' || historyError.message?.includes('Duplicate')) {
+          console.log(`[ChatHistory] Duplicate message detected for ${whatsappMessageId}, updating metadata.`);
+          try {
+             await ChatHistory.update({
+                mediaUrl: options.mediaUrl || undefined, // Update if provided
+                agentName: agentName || undefined,
+                agentId: agentId || undefined,
+                isAiGenerated: !!options.isAiGenerated,
+                content: message, // Update content just in case
+                caption: options.caption || undefined
+             }, {
+                where: {
+                   deviceId: device.id,
+                   messageId: whatsappMessageId
+                }
+             });
+          } catch (updateErr) {
+             console.error(`[ChatHistory] Failed to update existing message:`, updateErr.message);
+          }
+        } else {
+          console.error(`[ChatHistory] Error saving outgoing message:`, historyError);
+        }
+      }
     } catch (error) {
       console.error(`Error updating chat settings for outgoing ${messageType}:`, error);
     }
@@ -742,9 +996,16 @@ class MessageHandler {
    * Determine if AI should be used for this chat
    */
   shouldUseAI(chatSettings, device) {
+    // Check if human has taken over this chat
+    if (chatSettings.humanTakeover === true) {
+      console.log(`[AI] Human takeover active for chat ${chatSettings.chatId}, skipping AI`);
+      return false;
+    }
+    // Check device-level AI setting
     if (device.aiEnabled === false) {
       return false;
     }
+    // Check chat-level AI setting
     return chatSettings.aiEnabled;
   }
 

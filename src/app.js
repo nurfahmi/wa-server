@@ -15,6 +15,8 @@ const __dirname = dirname(__filename);
 import whatsappRoutes from "./routes/index.js";
 import businessTemplateRoutes from "./routes/businessTemplateRoutes.js";
 import warmerRoutes from "./routes/warmerRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import authMiddleware from "./middleware/authMiddleware.js"; // Fix: Default import
 
 // Import WhatsApp service (it's exported as a singleton instance)
 import whatsappService from "./services/WhatsAppService.js";
@@ -38,6 +40,7 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 // Create Express app
+
 const app = express();
 
 // Trust proxy - required when running behind reverse proxy (Nginx, Apache, etc.)
@@ -51,11 +54,12 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-        imgSrc: ["'self'", "data:", "blob:", "http://localhost:*", "https://localhost:*"],
-        connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net"],
-        scriptSrcAttr: ["'unsafe-hashes'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
+        fontSrc: ["'self'", "fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "blob:", "http://localhost:*", "https://localhost:*", "https://user-images.githubusercontent.com"],
+        connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+        scriptSrcAttr: ["'unsafe-hashes'", "'unsafe-inline'"],
         upgradeInsecureRequests: [],
       },
     },
@@ -66,8 +70,9 @@ app.use(
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from public directory
+// Serve static files from public and uploads directories
 app.use(express.static(path.join(__dirname, "../public")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -80,6 +85,7 @@ app.use(limiter);
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/business-templates", businessTemplateRoutes);
 app.use("/api/warmer", warmerRoutes);
+app.use("/api/auth", authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -98,7 +104,7 @@ async function startServer() {
     try {
       await sequelize.sync({
         force: false, // Never force drop tables - preserve data
-        alter: false, // Disabled to prevent "too many keys" error - use migrations for schema changes
+        alter: false, // Disabled to prevent redundant index creation and "Too many keys" error
       });
       console.log("Database models synchronized successfully");
     } catch (syncError) {
@@ -126,6 +132,7 @@ async function startServer() {
     } else {
       console.log("Warmer service disabled via WARMER_ENABLED=false");
     }
+
 
     // Start server
     const PORT = config.port;

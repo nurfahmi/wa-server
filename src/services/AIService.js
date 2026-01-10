@@ -2,22 +2,18 @@ import OpenAI from "openai";
 import config from "../config/config.js";
 import {
   Message,
-  AIConversationMemory,
+  ChatHistory,
   Device,
-  AIUsageLog,
-  AICostAlert,
-  AIProvider,
-  AIModel,
 } from "../models/index.js";
+
 import { Op } from "sequelize";
 import { getJakartaTime } from "../utils/timeHelper.js";
-import EnhancedAIService from "./EnhancedAIService.js";
+
+import UniversalAIService from "./UniversalAIService.js";
 
 class AIService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: config.openai.apiKey,
-    });
+    this.universalAI = new UniversalAIService();
   }
 
   async processMessage(message, context = {}) {
@@ -78,24 +74,32 @@ class AIService {
         );
         const now = getJakartaTime();
         const expiryTime = new Date(now.getTime() - expiryMinutes * 60000);
+        const historyTimeLimit = context.aiMemoryClearedAt 
+          ? new Date(Math.max(expiryTime.getTime(), new Date(context.aiMemoryClearedAt).getTime()))
+          : expiryTime;
 
-        const historyMessages = await AIConversationMemory.findAll({
+        const historyMessages = await ChatHistory.findAll({
           where: {
-            sessionId,
-            remoteJid,
+            deviceId: context.deviceId,
+            chatId: remoteJid,
             timestamp: {
-              [Op.gt]: expiryTime,
+              [Op.gt]: historyTimeLimit,
             },
+            // Include text or messages with captions for better context
+            [Op.or]: [
+              { messageType: 'text' },
+              { caption: { [Op.ne]: null } }
+            ]
           },
           order: [["timestamp", "DESC"]],
-          limit: maxHistoryLength * 2, // *2 for both user and assistant messages
+          limit: maxHistoryLength, 
         });
 
         // Add history messages in chronological order
         for (const msg of historyMessages.reverse()) {
           messages.push({
-            role: msg.role,
-            content: msg.content,
+            role: msg.direction === 'incoming' ? 'user' : 'assistant',
+            content: msg.content || msg.caption,
           });
         }
       } else {
@@ -110,17 +114,6 @@ class AIService {
         content: messageText,
       });
 
-      console.log("Sending messages to AI provider:", messages);
-
-      // Use Enhanced AI Service for provider-specific processing
-      const enhancedAI = new EnhancedAIService({
-        Device,
-        AIUsageLog,
-        AICostAlert,
-        AIProvider,
-        AIModel,
-      });
-
       // Get device data for AI provider settings
       const device = await Device.findOne({
         where: { id: context.deviceId },
@@ -130,16 +123,15 @@ class AIService {
         throw new Error(`Device not found for ID: ${context.deviceId}`);
       }
 
-      // Get AI response using device provider settings with tracking
-      const aiResult = await enhancedAI.sendWithTracking(
-        device,
-        messages,
-        remoteJid, // chatId
-        {
-          temperature: context.temperature || device.aiTemperature || 0.7,
-          maxTokens: context.maxTokens || device.aiMaxTokens || 500,
-        }
-      );
+      console.log(`Sending messages to AI provider (${device.aiProvider || 'openai'}):`, messages);
+
+      // Get AI response using Universal AI Service (bypassing Enhanced/Tracking as requested)
+      const aiResult = await this.universalAI.chatCompletion(messages, {
+        provider: device.aiProvider || "openai",
+        model: device.aiModel,
+        temperature: context.temperature || device.aiTemperature || 0.7,
+        maxTokens: context.maxTokens || device.aiMaxTokens || 500,
+      });
 
       // Get the AI response
       const aiResponse = aiResult?.content;
@@ -151,27 +143,29 @@ class AIService {
       // Detect if a product is mentioned and find matching product image
       let productImageId = null;
       const productKnowledge = context.productKnowledge;
-      console.log(`[AI-SERVICE] Checking product knowledge:`, {
+      const productCatalog = context.aiProductCatalog;
+      console.log(`[AI-SERVICE] Checking product knowledge & catalog:`, {
         hasProductKnowledge: !!productKnowledge,
-        type: typeof productKnowledge,
-        hasItems: productKnowledge && typeof productKnowledge === "object" && !!productKnowledge.items,
-        itemsCount: productKnowledge && typeof productKnowledge === "object" && productKnowledge.items ? productKnowledge.items.length : 0,
+        hasProductCatalog: !!productCatalog,
+        itemsCount: (productKnowledge?.items?.length || 0) + (productCatalog?.items?.length || 0),
       });
       
-      if (productKnowledge && typeof productKnowledge === "object" && productKnowledge.items) {
-        const items = productKnowledge.items || [];
+      const allProductItems = [
+        ...(productKnowledge?.items || []),
+        ...(productCatalog?.items || [])
+      ];
+
+      if (allProductItems.length > 0) {
+        const items = allProductItems;
         const messageTextLower = messageText.toLowerCase();
         const aiResponseLower = aiResponse.toLowerCase();
         
-        // Helper function to extract imageId from imageUrl
+        // Helper function to extract imageId from it
         const extractImageIdFromUrl = (url) => {
           if (!url) return null;
-          // Match UUID format in URL
           const uuidPatterns = [
-            /\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
-            /\/api\/whatsapp\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/preview/i,
-            /\/files\/([a-f0-9-]{36})\/preview/i,
-            /\/api\/whatsapp\/files\/([a-f0-9-]{36})\/preview/i,
+            /\/files\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
+            /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i,
           ];
           for (const pattern of uuidPatterns) {
             const match = url.match(pattern);
@@ -180,122 +174,61 @@ class AIService {
           return null;
         };
         
-        // Find products mentioned in the user's message or AI response
-        // Check for exact matches first, then partial matches
         let bestMatch = null;
-        let bestMatchScore = 0;
-        
+        let highestScore = 0;
+
         for (const item of items) {
-          // Get imageId - either directly or extract from imageUrl
-          let itemImageId = item.imageId;
-          if (!itemImageId && item.imageUrl) {
-            itemImageId = extractImageIdFromUrl(item.imageUrl);
-          }
+          if (!item.name) continue;
           
-          // Only process items with name AND some form of image reference
-          if (item.name && (itemImageId || item.imageUrl)) {
-            const productNameLower = item.name.toLowerCase();
-            const productWords = productNameLower.split(/\s+/);
-            
-            // Calculate match score from user message
-            let matchScore = 0;
-            
-            // Check for image-related keywords in user message (boost if asking for image)
-            const imageKeywords = ['gambar', 'foto', 'image', 'picture', 'photo', 'lihat', 'tampilkan', 'show', 'view'];
-            const hasImageRequest = imageKeywords.some(keyword => messageTextLower.includes(keyword));
-            if (hasImageRequest) {
-              matchScore += 25; // Boost score if user is asking for image
-            }
-            
-            // Exact match gets highest score
-            if (messageTextLower.includes(productNameLower)) {
-              matchScore = 100;
-            } else {
-              // Check for individual word matches
-              for (const word of productWords) {
-                if (word.length > 2 && messageTextLower.includes(word)) {
-                  matchScore += 10;
-                }
-              }
-            }
-            
-            // Boost score if AI response also mentions the product
-            if (aiResponseLower.includes(productNameLower)) {
-              matchScore += 50;
-            }
-            
-            // Prefer matches with images
-            if (matchScore > bestMatchScore) {
-              bestMatchScore = matchScore;
-              bestMatch = { ...item, resolvedImageId: itemImageId };
-            }
+          let score = 0;
+          const namePart = item.name.toLowerCase();
+          
+          // Check if product name is in the AI response (strong indicator)
+          if (aiResponseLower.includes(namePart)) score += 50;
+          
+          // Check if specific keywords are in user query
+          const keywords = namePart.split(/\s+/).filter(w => w.length > 2);
+          const userMatchCount = keywords.filter(w => messageTextLower.includes(w)).length;
+          if (userMatchCount > 0) score += (userMatchCount / keywords.length) * 30;
+
+          // Multiplier if asking for image/price
+          const intentKeywords = ["harga", "berapa", "foto", "gambar", "price", "image", "photo"];
+          if (intentKeywords.some(ik => messageTextLower.includes(ik)) && userMatchCount > 0) {
+            score += 20;
+          }
+
+          if (score > highestScore) {
+            highestScore = score;
+            bestMatch = item;
           }
         }
-        
-        // Use best match if score is above threshold
-        if (bestMatch && bestMatchScore >= 10) {
-          productImageId = bestMatch.resolvedImageId || bestMatch.imageId;
-          console.log(`[AI-SERVICE] Found matching product image for "${bestMatch.name}" (score: ${bestMatchScore}):`, {
-            productName: bestMatch.name,
-            imageId: productImageId,
-            imageIdType: typeof productImageId,
-            hasImageUrl: !!bestMatch.imageUrl,
-            imageUrl: bestMatch.imageUrl,
-          });
-        } else {
-          console.log(`[AI-SERVICE] No product match found (best score: ${bestMatchScore}, threshold: 10)`);
-          // Log all available products for debugging
-          if (items.length > 0) {
-            console.log(`[AI-SERVICE] Available products:`, items.map(item => ({
-              name: item.name,
-              hasImageId: !!item.imageId,
-              imageId: item.imageId,
-              hasImageUrl: !!item.imageUrl,
-            })));
-          }
+
+        if (bestMatch && highestScore >= 40) { // Threshold for auto-attaching images
+           productImageId = bestMatch.imageId || extractImageIdFromUrl(bestMatch.imageUrl);
+           console.log(`[RAG-LITE] Auto-selected image for product: ${bestMatch.name} (Score: ${highestScore})`);
         }
-      } else {
-        console.log(`[AI-SERVICE] Product knowledge structure invalid or empty`);
       }
 
-      // Save messages if memory should be used
-      if (shouldUseMemory) {
-        console.log(
-          "Saving messages to memory (memory enabled or auto-reply active)"
-        );
-        const now = getJakartaTime();
-        const expiresAt = new Date(now.getTime() + expiryMinutes * 60000);
+      // No need to save messages here anymore, as they are saved to ChatHistory 
+      // automatically by MessageHandler for both incoming and outgoing messages.
+      console.log("[AI-SERVICE] Skipping redundant memory save - using ChatHistory source.");
 
-        // Save user message
-        await AIConversationMemory.create({
-          sessionId,
-          remoteJid,
-          role: "user",
-          content: messageText,
-          timestamp: now,
-          expiresAt,
-        });
 
-        // Save AI response
-        await AIConversationMemory.create({
-          sessionId,
-          remoteJid,
-          role: "assistant",
-          content: aiResponse,
-          timestamp: now,
-          expiresAt,
-        });
-      } else {
-        console.log(
-          "Skipping message saving - memory and auto-reply are disabled"
-        );
+      // Handover detection: Check if AI response contains [HANDOVER] or matches user triggers
+      let needsHandover = aiResponse.includes("[HANDOVER]");
+      const handoverTriggers = context.aiHandoverTriggers || ["human", "agent", "bantuan", "tolong", "staf"];
+      
+      if (!needsHandover) {
+        const lowerMsg = messageText.toLowerCase();
+        needsHandover = handoverTriggers.some(t => lowerMsg.includes(t.toLowerCase()));
       }
 
       const response = {
         type: "text",
-        content: aiResponse,
+        content: aiResponse.replace("[HANDOVER]", "").trim(),
         shouldRespond: true,
-        imageId: productImageId || null, // Include image ID if product was mentioned
+        imageId: productImageId || null,
+        needsHandover: needsHandover,
       };
       
       console.log(`[AI-SERVICE] Returning response:`, {
@@ -325,19 +258,51 @@ class AIService {
     }
   }
 
-  // Helper method to clean up expired memories
+  // Helper method to clean up old conversation memories globally (called by cron/interval)
   async cleanupExpiredMemories() {
     try {
       const now = getJakartaTime();
-      await AIConversationMemory.destroy({
+      // Use setting from config or default to 48 hours for global cleanup
+      const hours = config.ai?.memoryRetentionHours || 48;
+      const expiryDate = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+      
+      const deletedCount = await ChatHistory.destroy({
         where: {
-          expiresAt: {
-            [Op.lt]: now,
+          timestamp: {
+            [Op.lt]: expiryDate,
+          },
+        },
+      });
+      
+      if (deletedCount > 0) {
+        console.log(`[CLEANUP] Deleted ${deletedCount} expired conversation memories older than ${hours} hours`);
+      }
+      return deletedCount;
+    } catch (error) {
+      console.error("Error cleaning up expired memories:", error);
+      throw error;
+    }
+  }
+
+  // Helper method to clean up old chat history for a specific device (usually handled by global policy)
+  async cleanupExpiredHistory(deviceId, months = 3) {
+    try {
+      if (!deviceId) {
+        return this.cleanupExpiredMemories();
+      }
+      
+      const now = getJakartaTime();
+      const expiryDate = new Date(now.getTime() - (months * 30 * 24 * 60 * 60 * 1000));
+      await ChatHistory.destroy({
+        where: {
+          deviceId,
+          timestamp: {
+            [Op.lt]: expiryDate,
           },
         },
       });
     } catch (error) {
-      console.error("Error cleaning up expired memories:", error);
+      console.error("Error cleaning up old history:", error);
     }
   }
 
@@ -351,6 +316,16 @@ class AIService {
       productKnowledge,
       salesScripts,
       aiLanguage = "id",
+      aiBrandVoice = "casual",
+      aiBusinessFAQ,
+      aiPrimaryGoal = "conversion",
+      aiOperatingHours,
+      aiBoundariesEnabled = true,
+      businessType,
+      upsellStrategies,
+      objectionHandling,
+      aiBusinessProfile,
+      aiProductCatalog,
     } = context;
 
     let prompt = "";
@@ -360,13 +335,40 @@ class AIService {
       prompt = customPrompt + " ";
     } else {
       prompt = `You are ${
-        botName || "Assistant"
+        botName || aiBusinessProfile?.name || "Assistant"
       }, a highly skilled and charismatic WhatsApp ${
         isGroup ? "group" : "private"
-      } sales assistant. You are PERSUASIVE, REASSURING, PROFESSIONAL, FRIENDLY, and ENTHUSIASTIC. `;
+      } sales assistant${aiBusinessProfile?.name ? ` for ${aiBusinessProfile.name}` : ""}. You are PERSUASIVE, REASSURING, PROFESSIONAL, FRIENDLY, and ENTHUSIASTIC. `;
+
+      if (aiBusinessProfile?.category) {
+        prompt += `Our business operates in the ${aiBusinessProfile.category} sector. `;
+      }
+      if (aiBusinessProfile?.description) {
+        prompt += `ABOUT US: ${aiBusinessProfile.description} `;
+      }
 
       prompt += "COMMUNICATION STYLE: ";
-      prompt += "• Be confident and assertive, not questioning ";
+      
+      // Brand Voice Mapping
+      if (aiBrandVoice === "formal") {
+        prompt += "• Use formal and respectful language (Bahasa Baku/Formal) ";
+        prompt += "• Be polished, authoritative, and professional ";
+        prompt += "• Avoid slang and maintain a high-level corporate tone ";
+      } else if (aiBrandVoice === "expert") {
+        prompt += "• Use technical, precise, and educational language ";
+        prompt += "• Be the ultimate authority in your field ";
+        prompt += "• Provide deep insights and value-driven explanations ";
+      } else if (aiBrandVoice === "luxury") {
+        prompt += "• Use sophisticated, exclusive, and elegant language ";
+        prompt += "• Focus on prestige, quality, and 'white-glove' service ";
+        prompt += "• Be understated yet highly persuasive ";
+      } else {
+        // Casual (Default)
+        prompt += "• Use friendly, approachable, and warm language ";
+        prompt += "• Be lively and energetic but stay professional ";
+        prompt += "• Use appropriate emojis to feel human ";
+      }
+
       prompt += "• Focus on benefits and solutions, not problems ";
       prompt += "• Use positive, action-oriented language ";
       prompt += "• Create excitement about products/services ";
@@ -374,8 +376,14 @@ class AIService {
       prompt += "• Minimize questions - provide value immediately ";
       prompt += "• Use social proof and urgency when appropriate ";
 
-      prompt +=
-        "\nYour goal is to CONVERT conversations into sales while providing exceptional customer experience. ";
+      prompt += `\nYour primary goal is: ${aiPrimaryGoal.toUpperCase()}. `;
+      if (aiPrimaryGoal === "conversion") {
+        prompt += "Guide the user to make a purchase or visit the checkout link. ";
+      } else if (aiPrimaryGoal === "leads") {
+        prompt += "Get the user's contact information or interest for a follow-up. ";
+      } else if (aiPrimaryGoal === "support") {
+        prompt += "Resolve the inquiry thoroughly and ensure high satisfaction. ";
+      }
     }
 
     // Add memory instructions
@@ -392,22 +400,24 @@ class AIService {
     }
 
     // Add language instruction with sales focus
+    prompt += "\nLANGUAGE FOCUS:\n";
     if (aiLanguage === "id") {
-      prompt +=
-        "Respond primarily in Bahasa Indonesia unless customer uses English. ";
-      prompt +=
-        "SALES APPROACH: Gunakan bahasa yang hangat dan meyakinkan seperti 'Pasti cocok untuk Anda!', 'Ini kesempatan terbaik', 'Saya rekomendasikan', 'Dijamin berkualitas'. ";
-    } else if (aiLanguage === "en") {
-      prompt +=
-        "Respond primarily in English unless customer uses another language. ";
-      prompt +=
-        "SALES APPROACH: Use warm and convincing language like 'Perfect for you!', 'This is the best opportunity', 'I highly recommend', 'Guaranteed quality'. ";
+      prompt += "• Primary Language: Bahasa Indonesia.\n";
+      prompt += "• Respond in Bahasa Indonesia with a polite, warm, and helpful tone (Ramah & Sopan).\n";
+      prompt += "• Use Indonesian cultural norms of politeness (e.g., using 'Kak', 'Sis', 'Gan', or 'Bapak/Ibu' appropriately).\n";
+      prompt += "• SALES APPROACH: Gunakan kata-kata yang meyakinkan seperti 'Pasti cocok untuk Anda!', 'Ini kesempatan terbaik', 'Saya rekomendasikan', 'Dijamin berkualitas'.\n";
     } else if (aiLanguage === "ms") {
-      prompt +=
-        "Respond primarily in Bahasa Melayu unless customer uses another language. ";
-      prompt +=
-        "SALES APPROACH: Gunakan bahasa yang mesra dan meyakinkan seperti 'Pasti sesuai untuk anda!', 'Ini peluang terbaik', 'Saya cadangkan', 'Dijamin berkualiti'. ";
+      prompt += "• Primary Language: Bahasa Malaysia.\n";
+      prompt += "• Respond in Bahasa Malaysia with a friendly and respectful tone (Mesra & Hormat).\n";
+      prompt += "• Use Malaysian local preferences (e.g., 'Tuan/Puan', 'Cik', 'Abang/Kakak').\n";
+      prompt += "• SALES APPROACH: Gunakan bahasa yang mesra dan meyakinkan seperti 'Pasti sesuai untuk anda!', 'Ini peluang terbaik', 'Saya cadangkan', 'Dijamin berkualiti'.\n";
+    } else {
+      // English or Default
+      prompt += "• Primary Language: English.\n";
+      prompt += "• Respond in clear, professional, yet friendly English.\n";
+      prompt += "• SALES APPROACH: Use warm and convincing language like 'Perfect for you!', 'This is the best opportunity', 'I highly recommend', 'Guaranteed quality'.\n";
     }
+    prompt += "• Note: If the customer uses a different language among these three, you may switch to match their preference, but prioritize the Primary Language for initial contact.\n";
 
     // Add product knowledge if available
     // Handle both string format (legacy) and structured format (new)
@@ -450,6 +460,60 @@ class AIService {
           "Use this product information to answer customer questions accurately. ";
       }
     }
+
+    // Add Product Catalog if available
+    if (aiProductCatalog && aiProductCatalog.items && aiProductCatalog.items.length > 0) {
+      prompt += "\n\nOFFICIAl PRODUCT CATALOG:\n";
+      aiProductCatalog.items.forEach((item, index) => {
+        prompt += `${index + 1}. ${item.name || "Unnamed"}`;
+        if (item.price) prompt += ` - ${item.currency || "IDR"} ${item.price}`;
+        if (item.description) prompt += `\n   Description: ${item.description}`;
+        if (item.inStock === false) prompt += `\n   STATUS: Currently Out of Stock`;
+        const images = item.images || (item.imageUrl ? [item.imageUrl] : []);
+        if (images.length > 0) {
+          prompt += `\n   Images available: ${images.join(", ")}`;
+        }
+        prompt += "\n";
+      });
+      prompt += "Reference these products when customers ask for recommendations or specific items.\n";
+    }
+
+    // Add FAQ
+    if (aiBusinessFAQ && aiBusinessFAQ.items && aiBusinessFAQ.items.length > 0) {
+      prompt += "\n\nCOMPANY POLICIES & FAQ:\n";
+      aiBusinessFAQ.items.forEach(faq => {
+        prompt += `Q: ${faq.question}\nA: ${faq.answer}\n`;
+      });
+    }
+
+    // Add Business Info
+    if (businessType) prompt += `\nBUSINESS TYPE: ${businessType}\n`;
+    if (upsellStrategies) prompt += `UPSELL STRATEGIES: ${upsellStrategies}\n`;
+    if (objectionHandling) prompt += `OBJECTION HANDLING: ${objectionHandling}\n`;
+
+    // Add Boundaries (Guardrails)
+    if (aiBoundariesEnabled) {
+      prompt += "\nSTRICT BUSINESS BOUNDARIES:\n";
+      prompt += "1. You are a dedicated commercial assistant. ONLY discuss topics related to our products, services, company policies, and business operations.\n";
+      prompt += "2. DO NOT answer general knowledge, politics, celebrities, history, religion, or trivia.\n";
+      
+      let refusalMsg = "";
+      if (aiLanguage === "id") refusalMsg = "Maaf, saya hanya dapat membantu hal-hal terkait produk dan layanan bisnis kami.";
+      else if (aiLanguage === "ms") refusalMsg = "Maaf, saya hanya boleh membantu urusan berkaitan produk dan perkhidmatan perniagaan kami sahaja.";
+      else refusalMsg = "I'm sorry, I can only assist with matters related to our products and business services.";
+      
+      prompt += `3. If the user asks an off-topic question, politely refuse using this exact sentiment: '${refusalMsg}'\n`;
+    }
+
+    // Handover instructions
+    prompt += "\nHANDOVER INSTRUCTION:\n";
+    let handoverKeywords = "";
+    if (aiLanguage === "id") handoverKeywords = "'admin', 'manusia', 'staf', 'orang', 'hubungi seller'";
+    else if (aiLanguage === "ms") handoverKeywords = "'admin', 'manusia', 'staf', 'orang', 'hubungi penjual'";
+    else handoverKeywords = "'agent', 'human', 'person', 'staff', 'manager'";
+    
+    prompt += `1. If the customer requests to talk to a real person (e.g., using keywords like ${handoverKeywords}), append '[HANDOVER]' to the end of your response.\n`;
+    prompt += "2. If you cannot answer a complex question even after checking knowledge bases, or if the customer is frustrated, append '[HANDOVER]'.\n";
 
     // Add sales scripts if available
     // Handle both string format (legacy) and structured format (new)
@@ -531,6 +595,30 @@ class AIService {
     if (!context.aiEnabled) {
       console.log("AI is disabled, skipping message");
       return false;
+    }
+
+    // Check Operating Hours if enabled
+    if (context.aiOperatingHours && context.aiOperatingHours.enabled) {
+      const { schedule } = context.aiOperatingHours;
+      const now = getJakartaTime();
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const currentDay = days[now.getDay()];
+      const daySchedule = schedule[currentDay];
+      
+      if (daySchedule && daySchedule.open && daySchedule.close) {
+        const [openH, openM] = daySchedule.open.split(':').map(Number);
+        const [closeH, closeM] = daySchedule.close.split(':').map(Number);
+        const currentH = now.getHours();
+        const currentM = now.getMinutes();
+        const currentTimeInM = currentH * 60 + currentM;
+        const openTimeInM = openH * 60 + openM;
+        const closeTimeInM = closeH * 60 + closeM;
+        
+        if (currentTimeInM < openTimeInM || currentTimeInM > closeTimeInM) {
+          console.log(`[OPERATING-HOURS] Outside of business hours (${daySchedule.open}-${daySchedule.close}). Skipping AI response.`);
+          return false;
+        }
+      }
     }
 
     // If auto-reply is enabled, respond to all messages

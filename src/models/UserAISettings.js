@@ -10,10 +10,10 @@ export default (sequelize) => {
         autoIncrement: true,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         unique: true,
-        comment: "User ID (UUID format) for AI settings",
+        comment: "User ID for AI settings (matches User.id)",
       },
       // Quota Management
       maxDevicesWithAI: {

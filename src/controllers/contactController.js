@@ -1,4 +1,4 @@
-import { ContactData, Device } from "../models/index.js";
+import { ContactData, Device, ChatSettings, ChatHistory, sequelize } from "../models/index.js";
 import { Op } from "sequelize";
 import whatsappService from "../services/WhatsAppService.js";
 
@@ -39,19 +39,31 @@ export const getChats = async (req, res) => {
     // Validate device exists
     const device = await validateDevice(deviceId);
 
-    const chats = await ContactData.findAll({
+    // Use ChatSettings as the source for active chats (updated by MessageHandler)
+    const chats = await ChatSettings.findAll({
       where: {
-        sessionId: device.sessionId,
-        source: "chat",
+        deviceId: device.id
       },
+      order: [['lastMessageTimestamp', 'DESC']]
     });
 
-    res.json({ chats });
+    // Map to expected format - use only fields that exist in the model
+    const mappedChats = chats.map(chat => ({
+      jid: chat.chatId,
+      name: chat.contactName,
+      phoneNumber: chat.phoneNumber,
+      lastMessageTimestamp: chat.lastMessageTimestamp,
+      unreadCount: 0, // Default value - column may not exist yet
+      ...chat.toJSON()
+    }));
+
+    res.json({ chats: mappedChats });
   } catch (error) {
+    console.error("[getChats] Error fetching chats:", error);
     if (error.message === "Device not found") {
       return res.status(404).json({ error: error.message });
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 };
 
@@ -256,6 +268,313 @@ export const fetchChatsFromBaileysStore = async (req, res) => {
     ) {
       return res.status(404).json({ error: error.message });
     }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+export const fetchMessagesFromBaileysStore = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const { limit } = req.query;
+    const result = await whatsappService.chatHandler.fetchMessagesFromBaileysStore(
+      deviceId,
+      limit ? parseInt(limit) : 100
+    );
+    res.json(result); // result already has { success, messages, count }
+  } catch (error) {
+    if (
+      error.message === "Device not found" ||
+      error.message === "Device is not connected to WhatsApp"
+    ) {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getChatHistory = async (req, res) => {
+  try {
+    const { deviceId, chatId } = req.params;
+    const { limit = 100, before } = req.query;
+
+    // Validate device exists
+    const device = await validateDevice(deviceId);
+
+    // Build where clause
+    const whereClause = {
+      deviceId: device.id,
+      chatId: chatId,
+    };
+
+    // Add pagination by timestamp
+    if (before) {
+      whereClause.timestamp = { [Op.lt]: new Date(before) };
+    }
+
+    const messages = await ChatHistory.findAll({
+      where: whereClause,
+      order: [['timestamp', 'DESC']],
+      limit: parseInt(limit),
+    });
+
+    res.json({
+      success: true,
+      messages: messages,
+      count: messages.length,
+      chatId: chatId,
+    });
+  } catch (error) {
+    if (error.message === "Device not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update chat settings (labels, status, priority, AI toggle)
+export const updateChatSettings = async (req, res) => {
+  try {
+    const { deviceId, chatId } = req.params;
+    const updates = req.body;
+
+    const device = await validateDevice(deviceId);
+
+    const chatSettings = await ChatSettings.findOne({
+      where: {
+        deviceId: device.id,
+        chatId: chatId,
+      },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    // Allowed fields to update
+    const allowedFields = [
+      'labels', 'status', 'priority', 'notes', 'customerSegment',
+      'aiEnabled', 'assignedAgentId', 'assignedAgentName', 'contactName', 'profilePictureUrl'
+    ];
+
+    const filteredUpdates = {};
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        filteredUpdates[field] = updates[field];
+      }
+    }
+
+    // If assigning agent, set timestamp
+    if (updates.assignedAgentId) {
+      filteredUpdates.assignedAt = new Date();
+    }
+
+    await chatSettings.update(filteredUpdates);
+
+    res.json({
+      success: true,
+      message: "Chat settings updated",
+      chatSettings: chatSettings.toJSON(),
+    });
+  } catch (error) {
+    if (error.message === "Device not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Human takeover - disable AI for this chat
+export const takeoverChat = async (req, res) => {
+  try {
+    const { deviceId, chatId } = req.params;
+    const { agentId, agentName } = req.body;
+
+    const device = await validateDevice(deviceId);
+
+    const chatSettings = await ChatSettings.findOne({
+      where: {
+        deviceId: device.id,
+        chatId: chatId,
+      },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    await chatSettings.update({
+      humanTakeover: true,
+      humanTakeoverAt: new Date(),
+      humanTakeoverBy: agentId || null,
+      assignedAgentId: agentId || chatSettings.assignedAgentId,
+      assignedAgentName: agentName || chatSettings.assignedAgentName,
+    });
+
+    res.json({
+      success: true,
+      message: "Human takeover activated - AI will not reply to this chat",
+      chatSettings: chatSettings.toJSON(),
+    });
+  } catch (error) {
+    if (error.message === "Device not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Release chat back to AI
+export const releaseChat = async (req, res) => {
+  try {
+    const { deviceId, chatId } = req.params;
+
+    const device = await validateDevice(deviceId);
+
+    const chatSettings = await ChatSettings.findOne({
+      where: {
+        deviceId: device.id,
+        chatId: chatId,
+      },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    await chatSettings.update({
+      humanTakeover: false,
+      humanTakeoverAt: null,
+      humanTakeoverBy: null,
+    });
+
+    res.json({
+      success: true,
+      message: "Chat released - AI will resume replying",
+      chatSettings: chatSettings.toJSON(),
+    });
+  } catch (error) {
+    if (error.message === "Device not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Handover chat to another agent
+export const handoverChat = async (req, res) => {
+  try {
+    const { deviceId, chatId } = req.params;
+    const { toAgentId, toAgentName, notes } = req.body;
+
+    if (!toAgentId) {
+      return res.status(400).json({ error: "toAgentId is required" });
+    }
+
+    const device = await validateDevice(deviceId);
+
+    const chatSettings = await ChatSettings.findOne({
+      where: {
+        deviceId: device.id,
+        chatId: chatId,
+      },
+    });
+
+    if (!chatSettings) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const previousAgent = chatSettings.assignedAgentId;
+
+    await chatSettings.update({
+      assignedAgentId: toAgentId,
+      assignedAgentName: toAgentName || toAgentId,
+      assignedAt: new Date(),
+      notes: notes ? `${chatSettings.notes || ''}\n[Handover] ${previousAgent || 'Unassigned'} → ${toAgentId}: ${notes}` : chatSettings.notes,
+    });
+
+    res.json({
+      success: true,
+      message: `Chat handed over from ${previousAgent || 'unassigned'} to ${toAgentId}`,
+      chatSettings: chatSettings.toJSON(),
+    });
+  } catch (error) {
+    if (error.message === "Device not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCSDashboardStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get all devices for this user
+    const devices = await Device.findAll({ where: { userId } });
+    const deviceIds = devices.map(d => d.id);
+
+    // 1. Chat Statistics
+    const stats = await ChatSettings.findAll({
+      where: { deviceId: { [Op.in]: deviceIds } },
+      attributes: ['status', 'priority', 'assignedAgentId']
+    });
+
+    const counts = {
+      open: 0,
+      pending: 0,
+      resolved: 0,
+      unassigned: 0,
+      urgent: 0,
+      total: stats.length
+    };
+
+    stats.forEach(s => {
+      if (s.status === 'open') counts.open++;
+      if (s.status === 'pending') counts.pending++;
+      if (s.status === 'resolved') counts.resolved++;
+      if (!s.assignedAgentId) counts.unassigned++;
+      if (s.priority === 'urgent' || s.priority === 'high') counts.urgent++;
+    });
+
+    // 2. AI Statistics (Last 24 hours)
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const historyStats = await ChatHistory.findAll({
+      where: {
+        deviceId: { [Op.in]: deviceIds },
+        timestamp: { [Op.gt]: last24h },
+        direction: 'outgoing'
+      },
+      attributes: ['isAiGenerated']
+    });
+
+    const aiCount = historyStats.filter(h => h.isAiGenerated).length;
+    const humanCount = historyStats.length - aiCount;
+
+    // 3. Priority Queue (Top 10 urgent/open chats)
+    const priorityQueue = await ChatSettings.findAll({
+      where: {
+        deviceId: { [Op.in]: deviceIds },
+        status: { [Op.ne]: 'resolved' }
+      },
+      order: [
+        [sequelize.literal("CASE WHEN priority = 'urgent' THEN 1 WHEN priority = 'high' THEN 2 ELSE 3 END")],
+        ['updatedAt', 'DESC']
+      ],
+      limit: 10
+    });
+
+    res.json({
+      counts,
+      aiStats: {
+        aiCount,
+        humanCount,
+        ratio: historyStats.length > 0 ? (aiCount / historyStats.length) * 100 : 0
+      },
+      priorityQueue
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
     res.status(500).json({ error: error.message });
   }
 };

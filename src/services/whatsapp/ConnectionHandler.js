@@ -178,6 +178,25 @@ class ConnectionHandler {
   }
 
   /**
+   * Broadcast message update to WebSocket clients
+   */
+  broadcastMessageUpdate(sessionId, messageUpdate) {
+    try {
+      const ws = this.service.wsClients.get(sessionId);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "message_update",
+          sessionId,
+          data: messageUpdate,
+          timestamp: new Date().toISOString()
+        }));
+      }
+    } catch (error) {
+      console.error(`Error broadcasting message update for ${sessionId}:`, error);
+    }
+  }
+
+  /**
    * Setup session event handlers for a Baileys socket
    * 
    * Per Baileys documentation at https://baileys.wiki/docs/socket/connecting:
@@ -316,6 +335,32 @@ class ConnectionHandler {
 
     // Handle messages
     sock.ev.on("messages.upsert", async (m) => {
+      // Broadcast to WebSocket clients
+      try {
+        const ws = this.service.wsClients.get(sessionId);
+        if (ws && ws.readyState === WebSocket.OPEN && m.messages && m.messages.length > 0) {
+          // Enrich messages with agent name for outgoing if available
+          const enrichedMessages = m.messages.map(msg => {
+            if (msg.key?.fromMe) {
+              const meta = this.service.messageMetadata.get(msg.key.id);
+              if (meta) {
+                return { ...msg, agentName: meta.agentName };
+              }
+            }
+            return msg;
+          });
+
+          ws.send(JSON.stringify({
+            type: "messages.upsert",
+            sessionId,
+            data: { messages: enrichedMessages },
+            timestamp: new Date().toISOString()
+          }));
+        }
+      } catch (broadcastError) {
+        console.error(`[WS] Error broadcasting messages.upsert for ${sessionId}:`, broadcastError);
+      }
+
       if (m.type === "notify") {
         for (const msg of m.messages) {
           await this.service.messageHandler.handleIncomingMessage(sessionId, msg);

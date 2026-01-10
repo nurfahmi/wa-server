@@ -406,6 +406,105 @@ class ChatHandler {
       throw error;
     }
   }
+
+  /**
+   * Fetch messages from Baileys store
+   */
+  async fetchMessagesFromBaileysStore(deviceId, limit = 100) {
+    try {
+      console.log(`[BAILEYS-STORE] Fetching messages for device ${deviceId}`);
+
+      const device = await Device.findOne({ where: { id: deviceId } });
+      if (!device) {
+        throw new Error(`Device with ID ${deviceId} not found`);
+      }
+
+      const sessionId = device.sessionId;
+      const store = this.service.stores.get(sessionId);
+
+      if (!store) {
+        throw new Error(`No Baileys store found for session ${sessionId}`);
+      }
+
+      // store.messages is a dictionary { jid: [messages] }
+      // We need to flatten and sort
+      let allMessages = [];
+      const chats = store.chats.all();
+      
+      for (const chat of chats) {
+         const messages = store.messages[chat.id]; // Access by JID
+         if (messages && messages.array) {
+             // It's a dict/array list
+             allMessages = allMessages.concat(messages.array);
+         }
+      }
+
+      // If store.messages is not accessible directly or empty, try iterating object keys if not array
+      if (allMessages.length === 0 && store.messages) {
+          Object.keys(store.messages).forEach(jid => {
+              const msgs = store.messages[jid];
+              if (Array.isArray(msgs)) {
+                  allMessages = allMessages.concat(msgs);
+              } else if (msgs && msgs.array) {
+                  allMessages = allMessages.concat(msgs.array);
+              }
+          });
+      }
+
+      // Sort by timestamp desc
+      allMessages.sort((a, b) => {
+          const tA = a.messageTimestamp || 0;
+          const tB = b.messageTimestamp || 0;
+          return tB - tA;
+      });
+
+      // Slice
+      const recentMessages = allMessages.slice(0, limit);
+
+      console.log(`[BAILEYS-STORE] Found ${allMessages.length} total messages, returning top ${recentMessages.length}`);
+
+      // Map to simplified format
+      const formattedMessages = recentMessages.map(msg => {
+          const isFromMe = msg.key.fromMe;
+          const remoteJid = msg.key.remoteJid;
+          const conversationContent = msg.message?.conversation || 
+                                    msg.message?.extendedTextMessage?.text || 
+                                    msg.message?.imageMessage?.caption ||
+                                    "";
+          
+          let type = "text";
+          if (msg.message?.imageMessage) type = "image";
+          else if (msg.message?.videoMessage) type = "video";
+          else if (msg.message?.documentMessage) type = "document";
+
+          return {
+              id: msg.key.id,
+              whatsappMessageId: msg.key.id,
+              sessionId: sessionId,
+              phoneNumber: remoteJid ? remoteJid.split("@")[0] : "",
+              remoteJid: remoteJid,
+              messageType: type,
+              content: { text: conversationContent },
+              type: isFromMe ? "outgoing" : "incoming",
+              status: "delivered", // Assumed
+              timestamp: new Date((msg.messageTimestamp || Date.now() / 1000) * 1000),
+              createdAt: new Date((msg.messageTimestamp || Date.now() / 1000) * 1000)
+          };
+      });
+
+      return {
+        success: true,
+        source: "baileys_store",
+        message: `Successfully fetched ${formattedMessages.length} messages from Baileys store`,
+        messages: formattedMessages,
+        count: formattedMessages.length,
+      };
+
+    } catch (error) {
+      console.error(`[BAILEYS-STORE] Error fetching messages:`, error);
+      throw error;
+    }
+  }
 }
 
 export default ChatHandler;
