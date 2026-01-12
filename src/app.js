@@ -14,15 +14,13 @@ const __dirname = dirname(__filename);
 // Import routes
 import whatsappRoutes from "./routes/index.js";
 import businessTemplateRoutes from "./routes/businessTemplateRoutes.js";
-import warmerRoutes from "./routes/warmerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import authMiddleware from "./middleware/authMiddleware.js"; // Fix: Default import
 
 // Import WhatsApp service (it's exported as a singleton instance)
 import whatsappService from "./services/WhatsAppService.js";
 
-// Import Warmer service
-import warmerService from "./services/WarmerService.js";
+
 
 // Import cron jobs
 import "./jobs/cleanupMemories.js";
@@ -57,7 +55,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
         fontSrc: ["'self'", "fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "blob:", "http://localhost:*", "https://localhost:*", "https://user-images.githubusercontent.com"],
+        imgSrc: ["'self'", "data:", "blob:", "http://localhost:*", "https://localhost:*", "https://*.githubusercontent.com", "https://*.bunnycdn.com", "https://*.b-cdn.net", "https://*.whatsapp.net", "https://*.whatsapp.com"],
         connectSrc: ["'self'", "ws:", "wss:", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
         scriptSrcAttr: ["'unsafe-hashes'", "'unsafe-inline'"],
         upgradeInsecureRequests: [],
@@ -70,8 +68,10 @@ app.use(
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from public and uploads directories
-app.use(express.static(path.join(__dirname, "../public")));
+// Serve static files from React Frontend (client/dist)
+app.use(express.static(path.join(__dirname, "../client/dist")));
+
+// Serve uploads directory
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Rate limiting
@@ -84,8 +84,17 @@ app.use(limiter);
 // Routes
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/business-templates", businessTemplateRoutes);
-app.use("/api/warmer", warmerRoutes);
 app.use("/api/auth", authRoutes);
+
+// Catch-all route to serve React App for non-API requests
+app.get("*", (req, res) => {
+  // Don't intercept API requests that might have 404'd (optional refinement, 
+  // but usually good simply to let client handle 404s via router or show its own 404)
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -119,40 +128,18 @@ async function startServer() {
       }
     }
 
-    // Initialize WhatsApp service
-    console.log("Initializing WhatsApp service...");
-    await whatsappService.init();
-    console.log("WhatsApp service initialized");
-
-    // Initialize Warmer service (if enabled)
-    if (config.warmer.enabled) {
-      console.log("Initializing Warmer service...");
-      await warmerService.init();
-      console.log("Warmer service initialized");
-    } else {
-      console.log("Warmer service disabled via WARMER_ENABLED=false");
-    }
-
-
     // Start server
     const PORT = config.port;
     
     // Create server and set up error handler BEFORE listening
+    // We capture the server instance to pass to WebSocketService
     const server = app.listen(PORT);
     
     // Handle server errors (e.g., port already in use)
-    // This must be set up immediately after creating the server
     server.on('error', (error) => {
       console.error('Express server error:', error);
       if (error.code === 'EADDRINUSE') {
         console.error(`\n❌ Port ${PORT} is already in use.`);
-        console.error(`\nTo resolve this:`);
-        console.error(`  1. Stop the other process using port ${PORT}`);
-        console.error(`  2. Or change PORT in your .env file`);
-        console.error(`\nTo find the process using port ${PORT}, run:`);
-        console.error(`  lsof -i :${PORT}`);
-        console.error(`\nTo kill the process, run:`);
-        console.error(`  kill -9 $(lsof -t -i:${PORT})`);
         process.exit(1);
       }
     });
@@ -160,8 +147,15 @@ async function startServer() {
     // Handle successful server start
     server.on('listening', () => {
       console.log(`REST API server is running on port ${PORT}`);
-      console.log(`WebSocket server is running on port ${config.wsPort}`);
+      console.log(`WebSocket server is sharing port ${PORT}`);
     });
+
+    // Initialize WhatsApp service (with HTTP server for WebSocket)
+    console.log("Initializing WhatsApp service...");
+    await whatsappService.init(server);
+    console.log("WhatsApp service initialized");
+
+
   } catch (err) {
     console.error("Failed to start server:", err);
     

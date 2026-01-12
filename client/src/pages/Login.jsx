@@ -130,7 +130,7 @@ export default function Login() {
                         className="w-full py-5 bg-primary hover:bg-primary/90 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-primary/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
                       >
                          <Globe className="w-6 h-6" />
-                         Sign in with IndosoftHouse
+                         Sign in with Membership Hub
                          <ArrowRight className="w-6 h-6" />
                       </button>
                    </div>

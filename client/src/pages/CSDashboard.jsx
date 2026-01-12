@@ -52,8 +52,12 @@ export default function CSDashboard() {
     try {
       setLoading(true);
       const [agentsRes, statsRes] = await Promise.all([
-        axios.get("/api/whatsapp/agents"),
-        axios.get("/api/whatsapp/cs/dashboard-stats")
+        axios.get("/api/whatsapp/agents", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        }),
+        axios.get("/api/whatsapp/cs/dashboard-stats", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        })
       ]);
       setAgents(agentsRes.data.agents || []);
       setStats(statsRes.data);

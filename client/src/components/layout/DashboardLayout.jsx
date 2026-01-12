@@ -92,7 +92,7 @@ export default function DashboardLayout() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                <MessageSquare className="w-6 h-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight">WA Server</span>
+            <span className="text-xl font-bold tracking-tight">Balas Chat AI</span>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)} 
@@ -256,7 +256,7 @@ export default function DashboardLayout() {
                 </div>
             )}
             <span className="text-lg font-black tracking-tight">
-              {isAtHub ? 'WA Server' : location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').toUpperCase().substring(0, 12)}
+              {isAtHub ? 'Balas Chat AI' : location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').toUpperCase().substring(0, 12)}
             </span>
           </div>
           
@@ -331,6 +331,14 @@ export default function DashboardLayout() {
           <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-3 duration-700">
             <Outlet />
           </div>
+
+          {/* Footer */}
+          <footer className="max-w-7xl mx-auto mt-20 pb-8 border-t border-border/50 pt-8 text-center">
+            <p className="text-sm text-muted-foreground font-medium">
+              &copy; {new Date().getFullYear()} <span className="text-foreground font-bold">Balas Chat AI</span>. 
+              Powered by <a href="https://indosofthouse.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">indosofthouse</a>
+            </p>
+          </footer>
         </main>
 
         {/* Bottom Navigation for Mobile */}

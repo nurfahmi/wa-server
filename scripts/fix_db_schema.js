@@ -105,10 +105,10 @@ async function fixDatabase() {
     await sequelize.query('ALTER TABLE stored_files MODIFY COLUMN userId INT(11) NOT NULL');
 
 
-    // 7. Fix warmer_campaigns
-    console.log('Fixing warmer_campaigns table...');
-    await sequelize.query("DELETE FROM warmer_campaigns WHERE userId NOT REGEXP '^[0-9]+$'");
-    await sequelize.query('ALTER TABLE warmer_campaigns MODIFY COLUMN userId INT(11) NOT NULL');
+    // 7. Fix warmer_campaigns - REMOVED (warmer feature has been removed)
+    // console.log('Fixing warmer_campaigns table...');
+    // await sequelize.query("DELETE FROM warmer_campaigns WHERE userId NOT REGEXP '^[0-9]+$'");
+    // await sequelize.query('ALTER TABLE warmer_campaigns MODIFY COLUMN userId INT(11) NOT NULL');
 
 
     // 8. Fix UserAISettings

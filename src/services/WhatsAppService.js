@@ -59,8 +59,9 @@ class WhatsAppService {
   /**
    * Initialize the WhatsApp service
    * Cleans up old sessions and restores previously connected devices
+   * @param {Object} httpServer - Optional HTTP server instance for WebSocket attachment
    */
-  async init() {
+  async init(httpServer = null) {
     try {
       // Clean up old pending sessions first
       console.log("Cleaning up old pending sessions...");
@@ -168,7 +169,7 @@ class WhatsAppService {
       }
 
       // Setup WebSocket server
-      this.connectionHandler.setupWebSocket();
+      this.connectionHandler.setupWebSocket(httpServer);
     } catch (error) {
       console.error("Failed to initialize WhatsAppService:", error);
     }

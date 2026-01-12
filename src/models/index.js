@@ -30,10 +30,7 @@ import AuthDataModel from "./AuthData.js";
 import ChatHistoryModel from "./ChatHistory.js";
 import UserModel from "./User.js";
 
-// Warmer models
-import WarmerCampaignModel from "./WarmerCampaign.js";
-import WarmerConversationTemplateModel from "./WarmerConversationTemplate.js";
-import WarmerConversationLogModel from "./WarmerConversationLog.js";
+
 
 const Device = DeviceModel(sequelize);
 const Message = MessageModel(sequelize);
@@ -53,10 +50,7 @@ const AuthData = AuthDataModel(sequelize);
 const ChatHistory = ChatHistoryModel(sequelize);
 const User = UserModel(sequelize);
 
-// Warmer models
-const WarmerCampaign = WarmerCampaignModel(sequelize);
-const WarmerConversationTemplate = WarmerConversationTemplateModel(sequelize);
-const WarmerConversationLog = WarmerConversationLogModel(sequelize);
+
 
 // Define associations
 Device.hasMany(Message, { foreignKey: "sessionId", sourceKey: "sessionId" });
@@ -89,24 +83,7 @@ StoredFile.belongsTo(Device, { foreignKey: "deviceId", as: "device" });
 Device.hasMany(ChatHistory, { foreignKey: "deviceId", as: "chatHistory", onDelete: "CASCADE" });
 ChatHistory.belongsTo(Device, { foreignKey: "deviceId" });
 
-// Call associate methods for warmer models
-if (WarmerCampaign.associate) {
-  WarmerCampaign.associate({
-    WarmerConversationTemplate,
-    WarmerConversationLog,
-  });
-}
-if (WarmerConversationTemplate.associate) {
-  WarmerConversationTemplate.associate({
-    WarmerCampaign,
-  });
-}
-if (WarmerConversationLog.associate) {
-  WarmerConversationLog.associate({
-    WarmerCampaign,
-    WarmerConversationTemplate,
-  });
-}
+
 
 export {
   sequelize,
@@ -123,9 +100,6 @@ export {
   BusinessTemplate,
   AIProvider,
   AIModel,
-  WarmerCampaign,
-  WarmerConversationTemplate,
-  WarmerConversationLog,
   StoredFile,
   AuthData,
   ChatHistory,

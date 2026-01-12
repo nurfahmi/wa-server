@@ -26,7 +26,6 @@ Complete API documentation for the WhatsApp REST API.
 |--------|-------------|
 | [Admin & AI Configuration](./api/admin-configuration.md) | AI settings, providers |
 | [Business Templates](./api/business-templates.md) | Pre-built message templates |
-| [Warmer System](./api/warmer-system.md) | Account warming automation |
 | [Analytics & Monitoring](./api/analytics-monitoring.md) | Stats and logging |
 
 ### Reference
@@ -46,7 +45,6 @@ Complete API documentation for the WhatsApp REST API.
 | **REST API** | `http://localhost:3000/api/whatsapp` |
 | **WebSocket** | `ws://localhost:3001` |
 | **Admin API** | `http://localhost:3000/api/admin` |
-| **Warmer API** | `http://localhost:3000/api/warmer` |
 
 ## 🔑 Authentication
 
@@ -87,7 +85,6 @@ documentation/
     ├── contact-chat.md          # Contacts API
     ├── admin-configuration.md   # Admin/AI API
     ├── business-templates.md    # Templates API
-    ├── warmer-system.md         # Warmer API
     ├── analytics-monitoring.md  # Analytics API
     ├── integration-examples.md  # Code examples
     └── complete-endpoint-reference.md  # All endpoints

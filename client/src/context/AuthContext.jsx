@@ -25,7 +25,20 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
     } catch (error) {
       console.error("Auth check failed", error);
-      logout();
+      
+      // Clear invalid tokens automatically
+      localStorage.removeItem("token");
+      setUser(null);
+      
+      // If it's a 401 (invalid token), redirect to login
+      // unless we're already on login/callback pages
+      if (error.response?.status === 401) {
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && currentPath !== '/auth/callback') {
+          console.log("Invalid token detected, redirecting to login...");
+          window.location.href = "/login";
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -44,7 +57,10 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    window.location.href = "/login";
+    // Only redirect if we aren't already going somewhere else
+    if (window.location.pathname !== '/login') {
+      window.location.href = "/login";
+    }
   };
 
   return (

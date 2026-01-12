@@ -137,11 +137,6 @@ export default {
     },
   },
 
-  // Warmer System Configuration
-  warmer: {
-    enabled: process.env.WARMER_ENABLED !== "false", // Enabled by default
-    autoStartCampaigns: process.env.WARMER_AUTO_START_CAMPAIGNS !== "false", // Auto-start enabled by default
-  },
 
   // Bunny.net Storage Configuration
   bunny: {

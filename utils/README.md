@@ -85,12 +85,6 @@ These are the **ESSENTIAL** migration scripts for upgrading your database:
   - Only needed if you want to use AI functionality
   - Creates: AIProviders, AIModels, AIUsageLogs, UserAISettings, etc.
 
-### 🔥 **OPTIONAL - Warmer Features**
-
-- **`create-warmer-tables.js`** - Creates conversation warming system tables
-  - Only needed if you want to use the warmer/campaign features
-  - Creates: WarmerCampaigns, WarmerTemplates, WarmerLogs, etc.
-
 ## Database Scripts (`database-scripts/`)
 
 These are utility scripts for specific database maintenance tasks:
@@ -131,7 +125,6 @@ npm start
 ```bash
 # After basic migration, add optional features:
 node utils/migration-scripts/run-ai-migrations.js          # For AI features
-node utils/migration-scripts/create-warmer-tables.js       # For warmer features
 ```
 
 ### For Database Issues:

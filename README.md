@@ -7,7 +7,6 @@ Multi-tenant WhatsApp REST API built with Baileys, Node.js, and PostgreSQL.
 - **Multi-Device Support** - Manage multiple WhatsApp accounts per user
 - **Messaging** - Send text, images, videos, documents, audio
 - **AI Auto-Reply** - OpenAI-powered automatic responses
-- **Warmer System** - Gradual warm-up for new numbers (can be disabled via .env)
 - **File Management** - Upload, store, and reuse media files
 - **Real-time Updates** - WebSocket for QR codes and messages
 - **Webhooks** - HTTP callbacks for events
@@ -37,7 +36,6 @@ npm start
 |-------|-------------|----------|
 | [**SaaS Integration Guide**](./SAAS_INTEGRATION_GUIDE.md) | 🔥 Complete guide for integrating into your SaaS | CRM, E-commerce, Support platforms |
 | [**Device Connection Guide**](./DEVICE_CONNECTION_GUIDE.md) | ⭐ Complete guide with code examples for connecting devices | Quick implementation |
-| [**Warmer Configuration**](./WARMER_CONFIGURATION.md) | ⚙️ Enable/disable warmer system via environment variables | Production deployment |
 
 ### 📖 API Documentation
 
@@ -71,12 +69,9 @@ OPENAI_MODEL=gpt-3.5-turbo
 AI_TEMPERATURE=0.7
 AI_MAX_TOKENS=500
 
-# Warmer System (Optional)
-WARMER_ENABLED=true                 # Enable/disable warmer (default: true)
-WARMER_AUTO_START_CAMPAIGNS=true   # Auto-start campaigns (default: true)
 ```
 
-See [`env.example`](./env.example) for all options and [Warmer Configuration Guide](./WARMER_CONFIGURATION.md) for details.
+See [`env.example`](./env.example) for all options.
 
 ## 🔑 API Authentication
 

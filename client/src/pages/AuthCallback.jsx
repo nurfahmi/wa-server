@@ -13,34 +13,57 @@ export default function AuthCallback() {
   useEffect(() => {
     if (processed.current) return;
     
-    // Check for ?token= (legacy/direct) OR ?code= (frontend flow)
+    console.log("[AUTH-CALLBACK] Starting authentication callback...");
+    console.log("[AUTH-CALLBACK] Current URL:", window.location.href);
+    
+    // The new SaaS system sends ?token=
     const token = searchParams.get("token");
+    // Legacy support for ?code=
     const code = searchParams.get("code");
 
+    console.log("[AUTH-CALLBACK] Token present:", !!token);
+    console.log("[AUTH-CALLBACK] Code present:", !!code);
+    
     if (token) {
+      console.log("[AUTH-CALLBACK] Token received (first 20 chars):", token.substring(0, 20) + "...");
+    }
+
+    if (token || code) {
       processed.current = true;
-      handleCallback(token).then(() => navigate("/dashboard", { replace: true }));
-    } else if (code) {
-      processed.current = true;
-      // Exchange code for token via backend
-      axios.post("/api/auth/exchange", { code })
+      
+      console.log("[AUTH-CALLBACK] Exchanging token with backend...");
+      
+      // Exchange either token or code for our local system token
+      axios.post("/api/auth/exchange", { token, code })
         .then(res => {
-           handleCallback(res.data.token).then(() => navigate("/dashboard", { replace: true }));
+           console.log("[AUTH-CALLBACK] Exchange successful!");
+           console.log("[AUTH-CALLBACK] Received local token (first 20 chars):", res.data.token.substring(0, 20) + "...");
+           console.log("[AUTH-CALLBACK] User:", res.data.user?.email);
+           
+           // res.data.token is our local JWT
+           handleCallback(res.data.token).then(() => {
+             console.log("[AUTH-CALLBACK] Token stored, navigating to dashboard...");
+             navigate("/dashboard", { replace: true });
+           });
         })
         .catch(err => {
-           console.error("Login failed", err);
-           // Only alert if it's not a cancelled/aborted request
-           // alert("Login failed: " + (err.response?.data?.error || err.message));
+           console.error("[AUTH-CALLBACK] Login exchange failed:", err);
+           console.error("[AUTH-CALLBACK] Error response:", err.response?.data);
+           console.error("[AUTH-CALLBACK] Error status:", err.response?.status);
            navigate("/login");
         });
     } else {
+      console.log("[AUTH-CALLBACK] No token or code found in URL, redirecting to login");
       navigate("/login");
     }
   }, [searchParams, handleCallback, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-xl font-semibold">Authenticating...</div>
+    <div className="flex items-center justify-center min-h-screen bg-[#0b0e14]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-xl font-semibold text-white">Authenticating...</div>
+      </div>
     </div>
   );
 }

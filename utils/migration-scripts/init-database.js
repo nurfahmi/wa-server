@@ -80,11 +80,12 @@ async function initDatabase() {
     const AIModel = require("../../src/models/AIModel")(sequelize);
     const StoredFile = require("../../src/models/StoredFile")(sequelize);
     const AuthData = require("../../src/models/AuthData")(sequelize);
-    const WarmerCampaign = require("../../src/models/WarmerCampaign")(sequelize);
-    const WarmerConversationTemplate = require("../../src/models/WarmerConversationTemplate")(sequelize);
-    const WarmerConversationLog = require("../../src/models/WarmerConversationLog")(sequelize);
+    // Warmer models removed - feature has been removed from the application
+    // const WarmerCampaign = require("../../src/models/WarmerCampaign")(sequelize);
+    // const WarmerConversationTemplate = require("../../src/models/WarmerConversationTemplate")(sequelize);
+    // const WarmerConversationLog = require("../../src/models/WarmerConversationLog")(sequelize);
 
-    log.success("18 models loaded successfully!");
+    log.success("15 models loaded successfully!");
 
     // Step 3: Define associations
     log.info("Setting up model associations...");
@@ -101,12 +102,12 @@ async function initDatabase() {
     AIProvider.hasMany(AIModel, { foreignKey: "providerId", as: "models" });
     AIModel.belongsTo(AIProvider, { foreignKey: "providerId", as: "provider" });
 
-    // Warmer associations
-    WarmerCampaign.hasMany(WarmerConversationTemplate, { foreignKey: "campaignId", as: "conversationTemplates", onDelete: "CASCADE" });
-    WarmerConversationTemplate.belongsTo(WarmerCampaign, { foreignKey: "campaignId", as: "campaign" });
-    WarmerCampaign.hasMany(WarmerConversationLog, { foreignKey: "campaignId", as: "conversationLogs", onDelete: "CASCADE" });
-    WarmerConversationLog.belongsTo(WarmerCampaign, { foreignKey: "campaignId", as: "campaign" });
-    WarmerConversationLog.belongsTo(WarmerConversationTemplate, { foreignKey: "templateId", as: "template" });
+    // Warmer associations - removed (feature has been removed)
+    // WarmerCampaign.hasMany(WarmerConversationTemplate, { foreignKey: "campaignId", as: "conversationTemplates", onDelete: "CASCADE" });
+    // WarmerConversationTemplate.belongsTo(WarmerCampaign, { foreignKey: "campaignId", as: "campaign" });
+    // WarmerCampaign.hasMany(WarmerConversationLog, { foreignKey: "campaignId", as: "conversationLogs", onDelete: "CASCADE" });
+    // WarmerConversationLog.belongsTo(WarmerCampaign, { foreignKey: "campaignId", as: "campaign" });
+    // WarmerConversationLog.belongsTo(WarmerConversationTemplate, { foreignKey: "templateId", as: "template" });
 
     log.success("Model associations configured!");
 
@@ -131,9 +132,10 @@ async function initDatabase() {
       { name: "AIModels", model: AIModel },
       { name: "StoredFiles", model: StoredFile },
       { name: "AuthData", model: AuthData },
-      { name: "WarmerCampaigns", model: WarmerCampaign },
-      { name: "WarmerConversationTemplates", model: WarmerConversationTemplate },
-      { name: "WarmerConversationLogs", model: WarmerConversationLog },
+      // Warmer tables removed - feature has been removed
+      // { name: "WarmerCampaigns", model: WarmerCampaign },
+      // { name: "WarmerConversationTemplates", model: WarmerConversationTemplate },
+      // { name: "WarmerConversationLogs", model: WarmerConversationLog },
     ];
 
     // Use sync with alter:true to create tables if they don't exist
@@ -144,7 +146,7 @@ async function initDatabase() {
     }
 
     console.log("");
-    log.success("All 18 tables created successfully!");
+    log.success("All 15 tables created successfully!");
 
     // Step 5: Ensure postgres-baileys auth_data table has correct schema
     log.info("Ensuring postgres-baileys auth_data table has correct schema...");

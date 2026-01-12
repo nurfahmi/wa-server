@@ -1,17 +1,22 @@
-import axios from "axios";
 import jwt from "jsonwebtoken";
-import { User, Device } from "../models/index.js";
+import { User } from "../models/index.js";
 import config from "../config/config.js";
+import MembershipHub from "../utils/MembershipHub.js";
 
-// OAuth Configuration
-// Mapped from environment variables provided by user
-const OAUTH_URL = process.env.AUTH_SERVER_URL || "https://membership.indosofthouse.com";
-const CLIENT_ID = process.env.OAUTH_CLIENT_ID;
-const CLIENT_SECRET = process.env.OAUTH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || "http://localhost:5173/auth/callback";
+// Initialize MembershipHub
+const hub = new MembershipHub({
+  hubUrl: process.env.MEMBERSHIP_HUB_URL,
+  serviceId: process.env.MEMBERSHIP_SERVICE_ID,
+  apiKey: process.env.MEMBERSHIP_API_KEY,
+  webhookSecret: process.env.MEMBERSHIP_WEBHOOK_SECRET
+});
+
+const REDIRECT_URI = process.env.MEMBERSHIP_REDIRECT_URI || "http://localhost:3000/auth/callback";
 
 // Generate JWT for frontend
 const generateToken = (user) => {
+  const secret = process.env.JWT_SECRET || "default_jwt_secret_change_me";
+  console.log("[OAUTH] Generating token with secret (first 4):", secret.substring(0, 4));
   return jwt.sign(
     { 
       id: user.id, 
@@ -19,105 +24,97 @@ const generateToken = (user) => {
       role: user.role, 
       name: user.name 
     },
-    process.env.JWT_SECRET || "default_jwt_secret_change_me",
+    secret,
     { expiresIn: "24h" }
   );
 };
 
 export const login = (req, res) => {
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    scope: "profile email subscriptions",
-    state: Math.random().toString(36).substring(7),
-  });
-
-  const authUrl = `${OAUTH_URL}/oauth/authorize?${params.toString()}`;
+  const authUrl = hub.getLoginUrl(REDIRECT_URI);
   res.redirect(authUrl);
 };
 
-// New function to exchange code coming from Frontend
+// New function to exchange/validate token coming from SaaS Hub
 export const exchange = async (req, res) => {
-  const { code } = req.body;
+  const { token } = req.body;
 
-  if (!code) {
-    return res.status(400).json({ error: "Authorization code missing" });
+  if (!token) {
+    return res.status(400).json({ error: "Token missing" });
   }
 
   try {
-    // 1. Exchange code for access token
-    const tokenResponse = await axios.post(
-      `${OAUTH_URL}/oauth/token`,
-      new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: REDIRECT_URI, // Must match the one used in authorize
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-      }).toString(),
-      {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    console.log("[OAUTH] Starting exchange for token:", token.substring(0, 10) + "...");
+    console.log("[OAUTH] Hub URL:", process.env.MEMBERSHIP_HUB_URL);
+    console.log("[OAUTH] Service ID:", process.env.MEMBERSHIP_SERVICE_ID);
+    
+    // 1. Validate token with SaaS Hub
+    const validation = await hub.validateToken(token);
+    
+    console.log("[OAUTH] Validation response:", JSON.stringify(validation, null, 2));
+
+    if (!validation.valid) {
+      console.error("[OAUTH] Hub validation failed:", validation.error || "Invalid token");
+      console.error("[OAUTH] Full validation object:", validation);
+      
+      // Provide specific error message for CSRF issues
+      if (validation.csrfError) {
+        return res.status(500).json({ 
+          error: "Membership hub configuration error",
+          message: "The membership hub has CSRF protection enabled on the API endpoint. Please exempt /api/saas/validate-token from CSRF middleware.",
+          details: validation.error,
+          fix: "See MEMBERSHIP_HUB_CSRF_FIX.md for solutions",
+          hubResponse: validation.originalResponse
+        });
       }
-    );
-
-    const { access_token } = tokenResponse.data;
-
-    // 2. Get User Profile
-    const userResponse = await axios.get(`${OAUTH_URL}/oauth/userinfo`, {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-
-    const userData = userResponse.data;
-    console.log("Full UserInfo Response:", JSON.stringify(userData, null, 2)); 
-
-    // Attempt to find ID in common fields
-    const remoteId = userData.id || userData.userId || userData.user_id || userData.sub;
-
-    if (!remoteId) {
-       console.error("Critical: Missing User ID in OAuth response", userData);
-       return res.status(500).json({ 
-         error: "OAuth UserInfo missing 'id' field", 
-         receivedData: userData 
-       });
+      
+      return res.status(401).json({ 
+        error: "Invalid token from membership hub",
+        details: validation.error,
+        hubResponse: validation.originalResponse
+      });
     }
 
+    // Handle both singular and plural from Hub
+    const hubUser = validation.user;
+    const subscription = validation.subscription || (validation.subscriptions && validation.subscriptions[0]) || null;
+    
+    console.log("[OAUTH] Hub validation success for user:", hubUser.email, "ID:", hubUser.id);
+    
+    // 2. Fetch User Limits from Hub
+    const limitsData = await hub.getUserLimits(hubUser.id);
+    console.log("[OAUTH] Limits fetched for user ID:", hubUser.id);
+    
     // 3. Determine Plan & Limits
-    let planName = "Free";
-    let deviceLimit = 1;
+    let planName = subscription?.package_name || "Free";
+    let deviceLimit = limitsData?.limits?.device_limit || 1;
     let role = "user";
 
-    // Fix: Check for super_admin (underscore) as well
-    const remoteRole = userData.role || "";
-    if (remoteRole === "admin" || remoteRole === "superadmin" || remoteRole === "super_admin") {
+    // Map roles if needed
+    if (hubUser.role === "admin" || hubUser.role === "superadmin") {
       role = "superadmin";
-      deviceLimit = 1000;
-      planName = "Enterprise";
+      deviceLimit = 999; // Superadmin has high limit
     }
 
-    // Check if user exists by email to prevent ID collision
-    // If user exists with DIFFERENT ID, we should just update it or warn.
-    // Ideally we want to sync the ID, but if PK is different, that's hard.
-    let user = await User.findOne({ where: { email: userData.email } });
+    console.log("[OAUTH] Syncing user in local DB...");
+    // Sync user in local database
+    let user = await User.findOne({ where: { email: hubUser.email } });
     
     if (user) {
-        console.log(`User found by email ${userData.email} (ID: ${user.id}). Updating...`);
+        console.log("[OAUTH] Updating existing user ID:", user.id);
         // Update existing user
-        user.name = userData.name || "Unknown User";
+        user.name = hubUser.name || "Unknown User";
         user.role = role;
         user.planName = planName;
         user.deviceLimit = deviceLimit;
         user.lastLogin = new Date();
-        // If the implementation allows updating ID, we could: user.id = parseInt(remoteId);
-        // But usually we can't change PK easily. We'll stick to existing ID.
         await user.save();
     } else {
-        console.log(`Creating new user with ID: ${remoteId}`);
+        console.log("[OAUTH] Creating new user for:", hubUser.email);
         // Create new
         user = await User.create({
-          id: parseInt(remoteId), // Ensure it's an integer
-          name: userData.name || "Unknown User",
-          email: userData.email,
+          id: hubUser.id, 
+          name: hubUser.name || "Unknown User",
+          email: hubUser.email,
           role: role,
           planName: planName,
           deviceLimit: deviceLimit,
@@ -125,26 +122,83 @@ export const exchange = async (req, res) => {
         });
     }
 
-    console.log("User synced successfully:", user.id);
-
-    // 4. Generate JWT
+    // 3. Generate local JWT
     const frontendToken = generateToken(user);
+    console.log("[OAUTH] Generated local token for user:", user.email);
 
-    // 5. Return token to frontend
-    res.json({ token: frontendToken, user });
+    // 4. Return token to frontend
+    res.json({ token: frontendToken, user, subscription });
 
   } catch (error) {
-    console.error("OAuth Exchange Error:", error.response?.data || error.message);
-    console.error("Full Error Details:", error);
-    res.status(500).json({ error: "Authentication failed", details: error.response?.data || error.message });
+    console.error("[OAUTH] SaaS Exchange Error:", error);
+    res.status(500).json({ error: "Authentication failed", details: error.message });
   }
 };
 
-// Keep callback for legacy/server-side flow if needed, or remove. 
-// For now, let's keep it but redirect to new frontend flow if hit accidentally?
-// Actually, with the new flow, the browser goes straight to frontend. 
-// We don't strictly need a backend GET /callback anymore if REDIRECT_URI is frontend.
-// But we will keep 'exchange' as the main handler.
+export const handleWebhook = async (req, res) => {
+  const signature = req.headers["x-webhook-signature"];
+  const event = req.headers["x-webhook-event"];
+  const body = req.body;
+
+  // 1. Verify signature
+  if (!hub.verifyWebhook(body, signature)) {
+    console.error("Invalid SaaS Hub webhook signature");
+    return res.status(401).send("Unauthorized");
+  }
+
+  console.log(`Received SaaS Hub webhook event: ${event}`, body);
+
+  try {
+    const { user_id, package_name, limits } = body;
+    const user = await User.findByPk(user_id);
+
+    if (!user) {
+      console.warn(`User ${user_id} not found for webhook event ${event}`);
+      return res.status(200).send("User not found locally");
+    }
+
+    // 2. Handle event
+    switch (event) {
+      case "subscription.created":
+      case "subscription.upgraded":
+      case "subscription.renewed":
+        user.planName = package_name;
+        if (limits?.device_limit) {
+          user.deviceLimit = limits.device_limit;
+        }
+        await user.save();
+        break;
+
+      case "subscription.cancelled":
+      case "subscription.expired":
+      case "subscription.suspended":
+        user.planName = "Expired";
+        // Optionally reduce limits or disable account
+        // user.deviceLimit = 0; 
+        await user.save();
+        break;
+    }
+
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("SaaS Webhook Processing Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Handle GET requests (Auto-login from Hub)
+export const handleGetWebhook = (req, res) => {
+  const { token } = req.query;
+  
+  if (token) {
+    console.log('Login token received via GET webhook, redirecting to callback:', token);
+    // Redirect browser to the frontend callback page which will handle the exchange
+    return res.redirect(`/auth/callback?token=${token}`);
+  }
+  
+  res.status(200).send("Webhook endpoint is active. Use POST for actual membership events.");
+};
+
 
 import bcrypt from "bcryptjs";
 
@@ -175,9 +229,10 @@ export const getMe = async (req, res) => {
     res.json({ 
       user, 
       wsToken: config.apiToken,
-      wsPort: config.wsPort || 3001
+      wsPort: config.port || 3000
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+

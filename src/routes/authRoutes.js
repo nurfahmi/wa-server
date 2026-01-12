@@ -8,6 +8,9 @@ const router = express.Router();
 router.get("/login", oauthController.login);
 router.post("/login-local", oauthController.loginLocal);
 router.post("/exchange", oauthController.exchange);
+router.post("/webhooks/membership", oauthController.handleWebhook);
+router.get("/webhooks/membership", oauthController.handleGetWebhook);
+
 // router.get("/callback", oauthController.callback); // Removed as we use frontend callback now
 
 // Protected routes

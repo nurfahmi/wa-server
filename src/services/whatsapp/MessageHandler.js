@@ -7,7 +7,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import sharp from "sharp";
 import config from "../../config/config.js";
-import { Device, ChatSettings, StoredFile, WarmerCampaign, ChatHistory } from "../../models/index.js";
+import { Device, ChatSettings, StoredFile, ChatHistory } from "../../models/index.js";
 import { Op } from "sequelize";
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import { v4 as uuidv4 } from "uuid";
@@ -117,28 +117,38 @@ class MessageHandler {
       });
 
       if (!chatSettings) {
+        // For new chat: use pushName only if message is truly from the customer (not fromMe)
+        // If fromMe, this is agent sending first - contactName will be null or fetched from store
+        const initialContactName = (message.key.fromMe === true) ? null : (message.pushName || null);
+        
         chatSettings = await ChatSettings.create({
           userId: device.userId,
           sessionId: device.sessionId,
           deviceId: device.id,
           chatId: effectiveSender,
           phoneNumber: phoneNumber,
-          contactName: message.pushName || "Unknown",
+          contactName: initialContactName,
           lastMessageContent: messageContent,
           lastMessageDirection: "incoming",
           lastMessageTimestamp: new Date(),
           aiEnabled: true,
         });
-        console.log(`Created new ChatSettings for ${phoneNumber} (${isLID ? 'from LID' : 'PN'})`);
+        console.log(`Created new ChatSettings for ${phoneNumber} (${isLID ? 'from LID' : 'PN'}), contactName: ${initialContactName || 'null'}`);
       } else {
-        await chatSettings.update({
-          contactName: message.pushName || chatSettings.contactName,
+        const updateData = {
           lastMessageContent: messageContent,
           lastMessageDirection: "incoming",
           lastMessageTimestamp: new Date(),
           phoneNumber: phoneNumber || chatSettings.phoneNumber,
-        });
-        console.log(`Updated ChatSettings for ${phoneNumber}`);
+        };
+        
+        // Only update contactName if message is truly from customer (not fromMe)
+        if (message.key.fromMe !== true && message.pushName) {
+          updateData.contactName = message.pushName;
+        }
+        
+        await chatSettings.update(updateData);
+        console.log(`Updated ChatSettings for ${phoneNumber}, contactName updated: ${message.key.fromMe !== true && message.pushName ? 'yes' : 'no'}`);
       }
 
       // Save incoming message to ChatHistory
@@ -341,20 +351,19 @@ class MessageHandler {
         }
       }
 
-      // Emit real-time notification
-      if (this.service.io) {
-        this.service.io.emit("newMessage", {
-          sessionId,
-          sender,
-          phoneNumber,
-          contactName: chatSettings.contactName,
-          message: messageContent,
-          type: "incoming",
-          timestamp: new Date(),
-          aiProcessed: shouldUseAI,
-          autoReplyUsed: shouldUseAutoReply,
-        });
-      }
+      // Emit real-time notification via WebSocket
+      this.service.connectionHandler.broadcastMessageUpdate(sessionId, {
+        sessionId,
+        sender,
+        phoneNumber,
+        chatId: sender, // Include both for matching
+        contactName: chatSettings.contactName,
+        message: messageContent,
+        type: "incoming",
+        timestamp: new Date(),
+        aiProcessed: shouldUseAI,
+        autoReplyUsed: shouldUseAutoReply,
+      });
     } catch (error) {
       console.error("Error handling incoming message:", error);
     }
@@ -651,9 +660,13 @@ class MessageHandler {
         normalizedRecipient = recipient.replace(/[+\s-]/g, "");
       }
 
-      const formattedRecipient = normalizedRecipient.includes("@s.whatsapp.net")
-        ? normalizedRecipient
-        : `${normalizedRecipient}@s.whatsapp.net`;
+      let formattedRecipient = normalizedRecipient;
+      if (!normalizedRecipient.includes("@")) {
+        formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
+      } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
+        // Fallback for cases where there's an @ but not a standard suffix
+        formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+      }
 
       console.log(`[SEND-MESSAGE] Sending message to ${formattedRecipient}...`);
       const sendWithTimeout = Promise.race([
@@ -670,7 +683,7 @@ class MessageHandler {
       console.log(`[SEND-MESSAGE] Message sent successfully to ${formattedRecipient}`);
 
       // Update chat settings and save to ChatHistory
-      if (formattedRecipient.endsWith("@s.whatsapp.net")) {
+      if (formattedRecipient.endsWith("@s.whatsapp.net") || formattedRecipient.endsWith("@lid")) {
         await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, message, "text", sent?.key?.id, agentId, agentName, options);
       }
 
@@ -713,9 +726,12 @@ class MessageHandler {
         normalizedRecipient = recipient.replace(/[+\s-]/g, "");
       }
 
-      const formattedRecipient = normalizedRecipient.includes("@s.whatsapp.net")
-        ? normalizedRecipient
-        : `${normalizedRecipient}@s.whatsapp.net`;
+      let formattedRecipient = normalizedRecipient;
+      if (!normalizedRecipient.includes("@")) {
+        formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
+      } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
+        formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+      }
 
       // Convert WebP to JPEG
       let finalImageBuffer = imageBuffer;
@@ -809,9 +825,12 @@ class MessageHandler {
         normalizedRecipient = recipient.replace(/[+\s-]/g, "");
       }
 
-      const formattedRecipient = normalizedRecipient.includes("@s.whatsapp.net")
-        ? normalizedRecipient
-        : `${normalizedRecipient}@s.whatsapp.net`;
+      let formattedRecipient = normalizedRecipient;
+      if (!normalizedRecipient.includes("@")) {
+        formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
+      } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
+        formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+      }
 
       const sendWithTimeout = Promise.race([
         session.sendMessage(formattedRecipient, {
@@ -826,7 +845,7 @@ class MessageHandler {
 
       const sent = await sendWithTimeout;
 
-      if (formattedRecipient.endsWith("@s.whatsapp.net")) {
+      if (formattedRecipient.endsWith("@s.whatsapp.net") || formattedRecipient.endsWith("@lid")) {
         await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, caption || "[Video]", "video", sent?.key?.id, agentId, agentName, options);
       }
 
@@ -855,9 +874,12 @@ class MessageHandler {
         normalizedRecipient = recipient.replace(/[+\s-]/g, "");
       }
 
-      const formattedRecipient = normalizedRecipient.includes("@s.whatsapp.net")
-        ? normalizedRecipient
-        : `${normalizedRecipient}@s.whatsapp.net`;
+      let formattedRecipient = normalizedRecipient;
+      if (!normalizedRecipient.includes("@")) {
+        formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
+      } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
+        formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+      }
 
       const sendWithTimeout = Promise.race([
         session.sendMessage(formattedRecipient, {
@@ -872,7 +894,7 @@ class MessageHandler {
 
       const sent = await sendWithTimeout;
 
-      if (formattedRecipient.endsWith("@s.whatsapp.net")) {
+      if (formattedRecipient.endsWith("@s.whatsapp.net") || formattedRecipient.endsWith("@lid")) {
         await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, `[Document: ${fileName}]`, "document", sent?.key?.id, agentId, agentName, options);
       }
 
@@ -905,13 +927,29 @@ class MessageHandler {
 
       if (!chatSettings) {
         console.log(`[OUTGOING] Creating new settings for ${chatId}`);
+        
+        // Try to get contact name from WhatsApp store
+        let recipientName = null;
+        try {
+          const session = this.service.sessions.get(device.sessionId);
+          if (session?.store?.contacts) {
+            const contact = session.store.contacts[chatId];
+            if (contact?.name || contact?.notify) {
+              recipientName = contact.name || contact.notify;
+              console.log(`[OUTGOING] Found contact name from store: ${recipientName}`);
+            }
+          }
+        } catch (err) {
+          console.log(`[OUTGOING] Could not fetch contact from store: ${err.message}`);
+        }
+        
         chatSettings = await ChatSettings.create({
           userId: device.userId,
           sessionId: device.sessionId,
           deviceId: device.id,
           chatId: chatId,
           phoneNumber: cleanPhone,
-          contactName: "Unknown",
+          contactName: recipientName, // null if not found, which is correct
           lastMessageContent: message,
           lastMessageDirection: "outgoing",
           lastMessageTimestamp: new Date(),
@@ -961,6 +999,20 @@ class MessageHandler {
           isAiGenerated: !!options.isAiGenerated
         });
         console.log(`[ChatHistory] Successfully saved outgoing message to ${cleanPhone}`);
+        
+        // Broadcast outgoing message to frontend for immediate UI update
+        this.service.connectionHandler.broadcastMessageUpdate(device.sessionId, {
+          sessionId: device.sessionId,
+          chatId: chatId,
+          phoneNumber: cleanPhone,
+          messageId: whatsappMessageId,
+          direction: "outgoing",
+          messageType: messageType,
+          content: message,
+          timestamp: new Date(),
+          agentName: agentName || "AI Assistant",
+          isAiGenerated: !!options.isAiGenerated
+        });
       } catch (historyError) {
         // If duplicate, it means handleIncomingMessage already saved it via upsert event.
         // We should update it because this function has richer metadata (mediaUrl, agentName).
@@ -1014,27 +1066,13 @@ class MessageHandler {
    */
   async shouldUseAutoReply(chatSettings, device) {
     try {
-      const activeWarmerCampaign = await WarmerCampaign.findOne({
-        where: {
-          status: "active",
-          selectedDevices: {
-            [Op.like]: `%${device.id}%`,
-          },
-        },
-      });
-
-      if (activeWarmerCampaign) {
-        console.log(`Device ${device.id} is in warmer campaign, disabling auto-reply`);
-        return false;
-      }
-
       if (device.aiEnabled === false) {
         return false;
       }
 
       return chatSettings.aiEnabled;
     } catch (error) {
-      console.error("Error checking warmer campaign status:", error);
+      console.error("Error checking auto-reply status:", error);
       return device.aiEnabled !== false && chatSettings.aiEnabled;
     }
   }

@@ -17,8 +17,9 @@ class ConnectionHandler {
 
   /**
    * Setup WebSocket server
+   * @param {Object} httpServer - Optional HTTP server instance to attach to (shares port)
    */
-  setupWebSocket() {
+  setupWebSocket(httpServer = null) {
     try {
       if (this.wss) {
         console.log("[WS] Closing existing WebSocket server");
@@ -26,12 +27,19 @@ class ConnectionHandler {
       }
 
       try {
-        this.wss = new WebSocketServer({ port: config.wsPort });
-        console.log(`[WS] WebSocket server started on port ${config.wsPort}`);
+        if (httpServer) {
+          // Attach to existing HTTP server (Single Port Mode)
+          this.wss = new WebSocketServer({ server: httpServer });
+          console.log(`[WS] WebSocket server attached to main HTTP server`);
+        } else {
+          // Standalone Mode (Legacy/Dev)
+          this.wss = new WebSocketServer({ port: config.wsPort });
+          console.log(`[WS] WebSocket server started on standalone port ${config.wsPort}`);
+        }
       } catch (wsError) {
         if (wsError.code === 'EADDRINUSE') {
-          console.error(`[WS] WebSocket server error: Port ${config.wsPort} is already in use.`);
-          throw new Error(`WebSocket port ${config.wsPort} is already in use.`);
+          console.error(`[WS] WebSocket server error: Port conflict.`);
+          throw new Error(`WebSocket port is already in use.`);
         }
         throw wsError;
       }
@@ -41,7 +49,12 @@ class ConnectionHandler {
       });
 
       this.wss.on("connection", (ws, req) => {
-        const token = new URL(req.url, "http://localhost").searchParams.get("token");
+        // Extract token from URL - handle both standalone and shared usage
+        // In shared mode, req.url might be just "/" or "/?token=..." depending on how it's called
+        // But usually browser sends full path
+        const url = new URL(req.url, "http://localhost");
+        const token = url.searchParams.get("token");
+        
         console.log("[WS] New WebSocket connection attempt", {
           hasToken: !!token,
           url: req.url,
@@ -70,13 +83,13 @@ class ConnectionHandler {
             if (data.type === "subscribe" && data.sessionId) {
               console.log(`[WS] Client subscribing to session: ${data.sessionId}`);
 
-              const oldWs = this.service.wsClients.get(data.sessionId);
-              if (oldWs && oldWs !== ws && oldWs.readyState === WebSocket.OPEN) {
-                console.log(`[WS] Closing old WebSocket connection for session: ${data.sessionId}`);
-                oldWs.close(1000, "New client subscribed");
+              // Support multiple clients per session
+              let sessionClients = this.service.wsClients.get(data.sessionId);
+              if (!sessionClients) {
+                sessionClients = new Set();
+                this.service.wsClients.set(data.sessionId, sessionClients);
               }
-
-              this.service.wsClients.set(data.sessionId, ws);
+              sessionClients.add(ws);
               subscribedSessions.add(data.sessionId);
 
               const validation = await this.service.sessionManager.validateSession(data.sessionId);
@@ -119,9 +132,13 @@ class ConnectionHandler {
         ws.on("close", () => {
           console.log("[WS] Client disconnected. Cleaning up subscriptions:", Array.from(subscribedSessions));
           for (const sessionId of subscribedSessions) {
-            if (this.service.wsClients.get(sessionId) === ws) {
-              console.log(`[WS] Removing client from session: ${sessionId}`);
-              this.service.wsClients.delete(sessionId);
+            const sessionClients = this.service.wsClients.get(sessionId);
+            if (sessionClients) {
+              sessionClients.delete(ws);
+              if (sessionClients.size === 0) {
+                this.service.wsClients.delete(sessionId);
+              }
+              console.log(`[WS] Removed client from session: ${sessionId}. Remaining clients: ${sessionClients.size}`);
             }
           }
           subscribedSessions.clear();
@@ -146,8 +163,8 @@ class ConnectionHandler {
    */
   broadcastSessionUpdate(sessionId, status, additionalData = {}) {
     try {
-      const ws = this.service.wsClients.get(sessionId);
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      const clients = this.service.wsClients.get(sessionId);
+      if (clients && clients.size > 0) {
         const now = getJakartaTime();
         const message = JSON.stringify({
           type: "session_update",
@@ -157,20 +174,21 @@ class ConnectionHandler {
           ...additionalData,
         });
 
-        console.log(`Broadcasting session update for ${sessionId}:`, {
+        console.log(`Broadcasting session update for ${sessionId} to ${clients.size} clients:`, {
           status,
           timestamp: now.toISOString(),
           ...additionalData,
         });
 
-        ws.send(message, (error) => {
-          if (error) {
-            console.error(`Error broadcasting to session ${sessionId}:`, error);
-            this.service.wsClients.delete(sessionId);
+        clients.forEach(wsItem => {
+          if (wsItem.readyState === WebSocket.OPEN) {
+            wsItem.send(message, (error) => {
+              if (error) {
+                console.error(`Error broadcasting session update to a client for ${sessionId}:`, error);
+              }
+            });
           }
         });
-      } else {
-        console.log(`No active WebSocket for session ${sessionId} (status: ${status})`);
       }
     } catch (error) {
       console.error(`Error in broadcastSessionUpdate for ${sessionId}:`, error);
@@ -182,14 +200,22 @@ class ConnectionHandler {
    */
   broadcastMessageUpdate(sessionId, messageUpdate) {
     try {
-      const ws = this.service.wsClients.get(sessionId);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
+      const clients = this.service.wsClients.get(sessionId);
+      if (clients && clients.size > 0) {
+        const payload = JSON.stringify({
           type: "message_update",
           sessionId,
           data: messageUpdate,
           timestamp: new Date().toISOString()
-        }));
+        });
+        
+        console.log(`[WS] Broadcasting message_update for ${sessionId} to ${clients.size} clients`);
+        
+        clients.forEach(wsItem => {
+          if (wsItem.readyState === WebSocket.OPEN) {
+            wsItem.send(payload);
+          }
+        });
       }
     } catch (error) {
       console.error(`Error broadcasting message update for ${sessionId}:`, error);
@@ -337,8 +363,8 @@ class ConnectionHandler {
     sock.ev.on("messages.upsert", async (m) => {
       // Broadcast to WebSocket clients
       try {
-        const ws = this.service.wsClients.get(sessionId);
-        if (ws && ws.readyState === WebSocket.OPEN && m.messages && m.messages.length > 0) {
+        const clients = this.service.wsClients.get(sessionId);
+        if (clients && clients.size > 0 && m.messages && m.messages.length > 0) {
           // Enrich messages with agent name for outgoing if available
           const enrichedMessages = m.messages.map(msg => {
             if (msg.key?.fromMe) {
@@ -350,12 +376,18 @@ class ConnectionHandler {
             return msg;
           });
 
-          ws.send(JSON.stringify({
+          const payload = JSON.stringify({
             type: "messages.upsert",
             sessionId,
             data: { messages: enrichedMessages },
             timestamp: new Date().toISOString()
-          }));
+          });
+
+          clients.forEach(ws => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(payload);
+            }
+          });
         }
       } catch (broadcastError) {
         console.error(`[WS] Error broadcasting messages.upsert for ${sessionId}:`, broadcastError);

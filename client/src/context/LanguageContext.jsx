@@ -5,12 +5,6 @@ const LanguageContext = createContext();
 
 // Get default language from environment or fallback to 'id'
 const getDefaultLanguage = () => {
-  // Check if there's a VITE_DEFAULT_LANGUAGE in import.meta.env
-  const envLang = import.meta.env.VITE_DEFAULT_LANGUAGE;
-  if (envLang && translations[envLang]) {
-    return envLang;
-  }
-  
   // Check localStorage
   const savedLang = localStorage.getItem('language');
   if (savedLang && translations[savedLang]) {

@@ -5,7 +5,6 @@ Comprehensive reference of all WhatsApp API endpoints organized by functionality
 ## 🔗 Base URLs
 
 - **Main API**: `http://localhost:3000/api/whatsapp`
-- **Warmer API**: `http://localhost:3000/api/warmer`
 - **Business Templates**: `http://localhost:3000/api/business-templates`
 - **File Storage**: `http://localhost:3000/api/whatsapp/files`
 - **Admin API**: `http://localhost:3000/api/whatsapp/admin`
@@ -197,52 +196,6 @@ Comprehensive reference of all WhatsApp API endpoints organized by functionality
 
 ---
 
-## 🔥 Warmer System Endpoints
-
-### Campaign Management
-
-| Method   | Endpoint                 | Description           | Auth |
-| -------- | ------------------------ | --------------------- | ---- |
-| `POST`   | `/campaigns`             | Create campaign       | None |
-| `GET`    | `/campaigns`             | Get campaigns         | None |
-| `GET`    | `/campaigns/:campaignId` | Get specific campaign | None |
-| `PUT`    | `/campaigns/:campaignId` | Update campaign       | None |
-| `DELETE` | `/campaigns/:campaignId` | Delete campaign       | None |
-
-### Campaign Control
-
-| Method | Endpoint                        | Description     | Auth |
-| ------ | ------------------------------- | --------------- | ---- |
-| `POST` | `/campaigns/:campaignId/pause`  | Pause campaign  | None |
-| `POST` | `/campaigns/:campaignId/resume` | Resume campaign | None |
-| `POST` | `/campaigns/:campaignId/stop`   | Stop campaign   | None |
-
-### Conversation Templates
-
-| Method   | Endpoint                                       | Description           | Auth |
-| -------- | ---------------------------------------------- | --------------------- | ---- |
-| `POST`   | `/campaigns/:campaignId/templates`             | Create template       | None |
-| `GET`    | `/campaigns/:campaignId/templates`             | Get templates         | None |
-| `GET`    | `/campaigns/:campaignId/templates/:templateId` | Get specific template | None |
-| `PUT`    | `/campaigns/:campaignId/templates/:templateId` | Update template       | None |
-| `DELETE` | `/campaigns/:campaignId/templates/:templateId` | Delete template       | None |
-
-### Warmer Analytics
-
-| Method | Endpoint                       | Description             | Auth |
-| ------ | ------------------------------ | ----------------------- | ---- |
-| `GET`  | `/campaigns/:campaignId/stats` | Get campaign statistics | None |
-| `GET`  | `/campaigns/:campaignId/logs`  | Get conversation logs   | None |
-
-### Warmer Utilities
-
-| Method | Endpoint              | Description           | Auth |
-| ------ | --------------------- | --------------------- | ---- |
-| `GET`  | `/devices`            | Get available devices | None |
-| `GET`  | `/templates/defaults` | Get default templates | None |
-
----
-
 ## 📋 Business Templates Endpoints
 
 ### Template Management
@@ -342,13 +295,6 @@ Comprehensive reference of all WhatsApp API endpoints organized by functionality
 1. `GET /ai/providers` - Check available AI providers
 2. `PUT /devices/:deviceId/settings/ai` - Enable AI
 3. `PUT /devices/:deviceId/chat-settings/:phoneNumber` - Configure auto-reply
-
-### Warmer Campaign Setup
-
-1. `POST /warmer/campaigns` - Create campaign
-2. `POST /warmer/campaigns/:campaignId/templates` - Add templates
-3. `GET /warmer/devices` - Get available devices
-4. `POST /warmer/campaigns/:campaignId/resume` - Start campaign
 
 ---
 

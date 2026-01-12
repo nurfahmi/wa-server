@@ -443,7 +443,6 @@ After completing this quick start:
 3. **Integration Patterns**:
    - [Contact & Chat](./contact-chat.md) - Contact management
    - [Analytics & Monitoring](./analytics-monitoring.md) - Usage tracking
-   - [Warmer System](./warmer-system.md) - Account warming automation
 
 ## 🆘 Common Issues & Solutions
 

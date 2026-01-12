@@ -1,12 +1,15 @@
 {
-  "name": "waserver",
+  "name": "Balas Chat AI",
   "version": "1.0.0",
-  "description": "WhatsApp REST API server using Baileys",
+  "description": "Unified WhatsApp AI Chat",
   "type": "module",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
+    "dev:safe": "./kill-port.sh 3000 && npm run dev",
+    "kill:3000": "./kill-port.sh 3000",
+    "kill:port": "./kill-port.sh",
     "db:init": "node utils/migration-scripts/init-database.js",
     "db:setup": "npm run db:init && npm run seed:ai && npm run seed:business",
     "db:clean": "node utils/clean-database.js",
