@@ -13,6 +13,7 @@ import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import { v4 as uuidv4 } from "uuid";
 import BunnyStorageService from "../storage/BunnyStorageService.js";
 import { getMimeType } from "../../utils/mimeHelper.js";
+import wabaProvider from "../providers/WABAProvider.js";
 
 // Helper to detect if file is an image based on extension
 const isImageByExtension = (filename) => {
@@ -641,6 +642,39 @@ class MessageHandler {
   async sendMessage(sessionId, recipient, message, agentId = null, agentName = null, options = {}) {
     console.log(`[SEND-MESSAGE] Attempting to send message via session ${sessionId} to ${recipient}`);
     
+    const device = await Device.findOne({ where: { sessionId } });
+    if (!device) {
+      throw new Error("Device not found for session");
+    }
+
+    let normalizedRecipient = recipient;
+    if (!recipient.includes("@")) {
+      normalizedRecipient = recipient.replace(/[+\s-]/g, "");
+    }
+
+    let formattedRecipient = normalizedRecipient;
+    if (!normalizedRecipient.includes("@")) {
+      formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
+    } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
+      formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+    }
+
+    // WABA HANDLING
+    if (device.provider === 'waba') {
+      try {
+        const response = await wabaProvider.sendMessage(device, recipient, message, options);
+        const messageId = response.messages?.[0]?.id;
+        console.log(`[WABA-SEND] Message sent successfully via WABA. ID: ${messageId}`);
+        
+        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, message, "text", messageId, agentId, agentName, options);
+        return { success: true, messageId };
+      } catch (err) {
+        console.error('[WABA-SEND] Error:', err);
+        throw err;
+      }
+    }
+
+    // BAILEYS HANDLING
     const validation = await this.service.sessionManager.validateSession(sessionId);
     if (!validation.valid) {
       console.error(`[SEND-MESSAGE] Validation failed: ${validation.error}`);
@@ -650,24 +684,6 @@ class MessageHandler {
     console.log(`[SEND-MESSAGE] Session validated successfully, proceeding with message send`);
 
     try {
-      const device = await Device.findOne({ where: { sessionId } });
-      if (!device) {
-        throw new Error("Device not found for session");
-      }
-
-      let normalizedRecipient = recipient;
-      if (!recipient.includes("@")) {
-        normalizedRecipient = recipient.replace(/[+\s-]/g, "");
-      }
-
-      let formattedRecipient = normalizedRecipient;
-      if (!normalizedRecipient.includes("@")) {
-        formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
-      } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
-        // Fallback for cases where there's an @ but not a standard suffix
-        formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
-      }
-
       console.log(`[SEND-MESSAGE] Sending message to ${formattedRecipient}...`);
       const sendWithTimeout = Promise.race([
         validation.session.sendMessage(formattedRecipient, { text: message }),
@@ -701,15 +717,8 @@ class MessageHandler {
    * Send an image message
    */
   async sendImage(sessionId, recipient, imageBuffer, caption = "", mimetype = "image/jpeg", viewOnce = false, options = {}) {
-    const validation = await this.service.sessionManager.validateSession(sessionId);
-    if (!validation.valid) {
-      throw new Error(validation.error || "Session not found");
-    }
 
-    // Extract agent info from options if not passed directly (legacy support - although signature changed, we respect options)
-    // Note: options is now the last arg.
-    
-    // Store agent info for the outgoing message listener if needed
+    // Extract agent info from options if not passed directly
     if (options.agentName || options.agentId) {
         // We can track it via messageMetadata if we had a message ID beforehand, but we don't.
         // We rely on updateChatSettingsForOutgoing passing it.
@@ -779,6 +788,26 @@ class MessageHandler {
           }
       }
 
+      // WABA PROVIDER
+      if (device.provider === 'waba') {
+        const response = await wabaProvider.sendImage(device, recipient, mediaUrl || "https://placehold.co/600x400?text=Upload+Failed", caption);
+        const updateOptions = { 
+            mediaUrl: mediaUrl,
+            isAiGenerated: options.isAiGenerated,
+            agentName: options.agentName,
+            caption: caption
+        };
+        const messageId = response.messages?.[0]?.id;
+        await this.updateChatSettingsForOutgoing(device, formattedRecipient, normalizedRecipient, caption || "[Image]", "image", messageId, options.agentId, options.agentName, updateOptions);
+        return { key: { id: messageId } };
+      }
+
+      // BAILEYS PROVIDER
+      const validation = await this.service.sessionManager.validateSession(sessionId);
+      if (!validation.valid) {
+        throw new Error(validation.error || "Session not found");
+      }
+
       const sendWithTimeout = Promise.race([
         validation.session.sendMessage(formattedRecipient, {
           image: finalImageBuffer,
@@ -815,9 +844,9 @@ class MessageHandler {
    */
   async sendVideo(sessionId, recipient, buffer, caption = "", agentId = null, agentName = null, options = {}) {
     try {
-      const { valid, session, device } = await this.service.sessionManager.validateSession(sessionId);
-      if (!valid || !session) {
-        throw new Error("Invalid or inactive session");
+      const device = await Device.findOne({ where: { sessionId } });
+      if (!device) {
+        throw new Error("Device not found");
       }
 
       let normalizedRecipient = recipient;
@@ -830,6 +859,25 @@ class MessageHandler {
         formattedRecipient = `${normalizedRecipient}@s.whatsapp.net`;
       } else if (!normalizedRecipient.endsWith("@s.whatsapp.net") && !normalizedRecipient.endsWith("@lid")) {
         formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
+      }
+
+      // WABA PROVIDER
+      if (device.provider === 'waba') {
+        // Assuming buffer is a URL string for WABA video for now, or we need an upload step
+        const videoUrl = Buffer.isBuffer(buffer) ? "buffer_not_supported_yet" : buffer;
+        const response = await wabaProvider.sendVideo(device, recipient, videoUrl, caption);
+        const messageId = response.messages?.[0]?.id;
+        
+        if (formattedRecipient.endsWith("@s.whatsapp.net") || formattedRecipient.endsWith("@lid")) {
+          await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, caption || "[Video]", "video", messageId, agentId, agentName, options);
+        }
+        return { success: true, messageId };
+      }
+
+      // BAILEYS PROVIDER
+      const { valid, session } = await this.service.sessionManager.validateSession(sessionId);
+      if (!valid || !session) {
+        throw new Error("Invalid or inactive session");
       }
 
       const sendWithTimeout = Promise.race([
@@ -864,9 +912,9 @@ class MessageHandler {
    */
   async sendDocument(sessionId, recipient, buffer, fileName, agentId = null, agentName = null, options = {}) {
     try {
-      const { valid, session, device } = await this.service.sessionManager.validateSession(sessionId);
-      if (!valid || !session) {
-        throw new Error("Invalid or inactive session");
+      const device = await Device.findOne({ where: { sessionId } });
+      if (!device) {
+        throw new Error("Device not found");
       }
 
       let normalizedRecipient = recipient;
@@ -881,11 +929,66 @@ class MessageHandler {
         formattedRecipient = `${normalizedRecipient.split('@')[0]}@s.whatsapp.net`;
       }
 
+      // Upload to BunnyCDN logic
+      let mediaUrl = options.mediaUrl || null;
+      let finalBuffer = buffer;
+
+      if (!mediaUrl && Buffer.isBuffer(buffer)) {
+          try {
+            const fileExtension = fileName.split('.').pop();
+            const filename = `doc-sent-${device.sessionId}-${Date.now()}-${uuidv4().substring(0,8)}.${fileExtension}`;
+            const storagePath = `${device.userId}/${device.sessionId}/documents`;
+            mediaUrl = await BunnyStorageService.uploadFile(buffer, filename, storagePath);
+
+            if (mediaUrl) {
+                 await StoredFile.create({
+                    userId: device.userId,
+                    deviceId: device.id,
+                    originalName: fileName,
+                    storedName: filename,
+                    mimeType: getMimeType(fileName),
+                    fileType: "document",
+                    size: buffer.length,
+                    filePath: mediaUrl,
+                    isPublic: true,
+                    tags: ["whatsapp", "outgoing", device.sessionId]
+                 });
+            }
+          } catch (uploadError) {
+            console.error(`[SEND-DOCUMENT] Failed to upload document to Bunny: ${uploadError.message}`);
+          }
+      } else if (!Buffer.isBuffer(buffer)) {
+          // If buffer is already a URL string, use it directly
+          mediaUrl = buffer;
+      }
+
+      // WABA PROVIDER
+      if (device.provider === 'waba') {
+         const docUrl = mediaUrl || "buffer_not_supported"; // WABA expects a URL
+         const response = await wabaProvider.sendDocument(device, recipient, docUrl, fileName, options.caption);
+         const messageId = response.messages?.[0]?.id;
+         
+         const updateOptions = { 
+            mediaUrl: mediaUrl,
+            isAiGenerated: options.isAiGenerated,
+            agentName: agentName,
+            caption: options.caption
+         };
+         await this.updateChatSettingsForOutgoing(device, formattedRecipient, normalizedRecipient, fileName || "[Document]", "document", messageId, agentId, agentName, updateOptions);
+         return { key: { id: messageId } };
+      }
+
+      // BAILEYS PROVIDER
+      const { valid, session } = await this.service.sessionManager.validateSession(sessionId);
+      if (!valid || !session) {
+        throw new Error("Invalid or inactive session");
+      }
+
       const sendWithTimeout = Promise.race([
         session.sendMessage(formattedRecipient, {
-          document: buffer,
-          fileName: fileName,
+          document: finalBuffer,
           mimetype: getMimeType(fileName),
+          fileName: fileName,
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error("Document send timeout after 60 seconds")), 60000)
@@ -894,9 +997,13 @@ class MessageHandler {
 
       const sent = await sendWithTimeout;
 
-      if (formattedRecipient.endsWith("@s.whatsapp.net") || formattedRecipient.endsWith("@lid")) {
-        await this.updateChatSettingsForOutgoing(device, formattedRecipient, recipient, `[Document: ${fileName}]`, "document", sent?.key?.id, agentId, agentName, options);
-      }
+      const updateOptions = { 
+          mediaUrl: mediaUrl,
+          isAiGenerated: options.isAiGenerated,
+          agentName: agentName,
+          caption: options.caption
+      };
+      await this.updateChatSettingsForOutgoing(device, formattedRecipient, normalizedRecipient, fileName || "[Document]", "document", sent?.key?.id, agentId, agentName, updateOptions);
 
       return {
         success: true,
@@ -1000,19 +1107,8 @@ class MessageHandler {
         });
         console.log(`[ChatHistory] Successfully saved outgoing message to ${cleanPhone}`);
         
-        // Broadcast outgoing message to frontend for immediate UI update
-        this.service.connectionHandler.broadcastMessageUpdate(device.sessionId, {
-          sessionId: device.sessionId,
-          chatId: chatId,
-          phoneNumber: cleanPhone,
-          messageId: whatsappMessageId,
-          direction: "outgoing",
-          messageType: messageType,
-          content: message,
-          timestamp: new Date(),
-          agentName: agentName || "AI Assistant",
-          isAiGenerated: !!options.isAiGenerated
-        });
+        // Note: Real-time update is already handled by messages.upsert event in ConnectionHandler
+        // No need to broadcast here to avoid duplicate messages in UI
       } catch (historyError) {
         // If duplicate, it means handleIncomingMessage already saved it via upsert event.
         // We should update it because this function has richer metadata (mediaUrl, agentName).

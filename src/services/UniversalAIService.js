@@ -151,18 +151,25 @@ class UniversalAIService {
    */
   buildRequest(messages, modelConfig, options) {
     const { requestFormat, model } = modelConfig;
-    const { maxTokens, temperature, stream } = options;
+    const { maxTokens, temperature, stream, tools, tool_choice } = options;
 
     switch (requestFormat) {
       case "openai":
         // OpenAI, DeepSeek, Groq format
-        return {
+        const body = {
           model: model,
           messages: messages,
           max_tokens: maxTokens,
           temperature: temperature,
           stream: stream,
         };
+        
+        if (tools) {
+          body.tools = tools;
+          if (tool_choice) body.tool_choice = tool_choice;
+        }
+
+        return body;
 
       case "anthropic":
         // Claude format
@@ -256,6 +263,7 @@ class UniversalAIService {
         const choice = responseData.choices[0];
         return {
           content: choice.message.content,
+          tool_calls: choice.message.tool_calls,
           finishReason: choice.finish_reason,
           usage: responseData.usage,
           provider: provider,

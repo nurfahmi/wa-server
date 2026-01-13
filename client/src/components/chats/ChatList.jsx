@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Trash2, User, Bot } from "lucide-react";
+import { Loader2, Trash2, User, Bot, TrendingUp, Flame } from "lucide-react";
 import clsx from "clsx";
 import { parseLabels, formatJid } from "../../utils/chatUtils";
 
@@ -114,6 +114,30 @@ export const ChatList = ({
                         {chat.unreadCount > 0 && <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-blue-500/20">{t('chats.new')}</span>}
                         {chat.priority === 'urgent' && <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] rounded font-black uppercase tracking-tighter shadow-sm shadow-red-500/20">{t('chats.urgent')}</span>}
                         {chat.priority === 'high' && <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[9px] rounded font-black uppercase tracking-tighter">{t('chats.high')}</span>}
+                        
+                        {/* Purchase Intent Score Badge */}
+                        {chat.purchaseIntentScore > 0 && (
+                          <span 
+                            className={clsx(
+                              "px-1.5 py-0.5 text-[9px] rounded font-bold flex items-center gap-1",
+                              chat.purchaseIntentStage === 'closing' && "bg-gradient-to-r from-red-500 to-orange-500 text-white animate-pulse shadow-md shadow-red-500/30",
+                              chat.purchaseIntentStage === 'hot' && "bg-gradient-to-r from-orange-400 to-yellow-400 text-white",
+                              chat.purchaseIntentStage === 'interested' && "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30",
+                              chat.purchaseIntentStage === 'curious' && "bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/30",
+                              chat.purchaseIntentStage === 'cold' && "bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30"
+                            )}
+                            title={`Intent Score: ${chat.purchaseIntentScore}% | Stage: ${chat.purchaseIntentStage || 'cold'}`}
+                          >
+                            {(chat.purchaseIntentStage === 'hot' || chat.purchaseIntentStage === 'closing') && (
+                              <Flame className="w-2.5 h-2.5" />
+                            )}
+                            {chat.purchaseIntentStage === 'interested' && (
+                              <TrendingUp className="w-2.5 h-2.5" />
+                            )}
+                            {chat.purchaseIntentScore}%
+                          </span>
+                        )}
+
                         {/* AI / Agent Status Indicator */}
                         {chat.humanTakeover ? (
                           <span className="px-1.5 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] rounded font-bold border border-purple-500/20 flex items-center gap-1 uppercase tracking-wider">
@@ -132,11 +156,16 @@ export const ChatList = ({
                             👤 {String(chat.assignedAgentId) === String(currentUserId) ? t('chats.me') : chat.assignedAgentName}
                           </span>
                         )}
-                        {parseLabels(chat.labels).map((l, i) => (
-                          <span key={i} className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] rounded font-medium border border-indigo-500/20">
-                            {l}
-                          </span>
-                        ))}
+                        {parseLabels(chat.labels).filter(l => !['cold-lead', 'curious-lead', 'interested-lead', 'hot-lead', 'closing-deal'].includes(l)).map((l, i) => {
+                          return (
+                            <span 
+                              key={i} 
+                              className="px-1.5 py-0.5 text-[9px] rounded font-bold uppercase tracking-wider border flex items-center gap-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+                            >
+                              {l.replace('-', ' ')}
+                            </span>
+                          );
+                        })}
                     </div>
                  </div>
 

@@ -44,6 +44,11 @@ export default (sequelize) => {
         allowNull: true,
         comment: "URL of the contact's profile picture",
       },
+      unreadCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Number of unread messages in this chat",
+      },
       // AI Settings - Core functionality
       aiEnabled: {
         type: DataTypes.BOOLEAN,
@@ -131,6 +136,123 @@ export default (sequelize) => {
         type: DataTypes.DATE,
         allowNull: true,
         comment: "Timestamp when AI memory was manually cleared",
+      },
+      // ============================================
+      // PURCHASE INTENT TRACKING (AI Lead Scoring)
+      // ============================================
+      purchaseIntentScore: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Purchase intent score from 0 (cold) to 100 (ready to buy)",
+      },
+      purchaseIntentStage: {
+        type: DataTypes.STRING(20),
+        defaultValue: "cold",
+        comment: "Intent stage: cold, curious, interested, hot, closing",
+      },
+      intentSignals: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "Array of detected buying signals",
+      },
+      intentObjections: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "Array of objections/hesitations detected",
+      },
+      productsOfInterest: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "Array of products the customer has shown interest in",
+      },
+      aiRecommendedAction: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        comment: "AI recommended next action: nurture, educate, present_offer, handle_objection, close_sale, handover",
+      },
+      intentUpdatedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "Last time intent was analyzed",
+      },
+      intentHistory: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "History of intent score changes over time",
+      },
+      // ============================================
+      // CONVERSATION OUTCOME TRACKING (Learning)
+      // ============================================
+      conversationOutcome: {
+        type: DataTypes.ENUM("pending", "converted", "lost", "follow_up", "handed_over"),
+        defaultValue: "pending",
+        comment: "Final outcome of conversation: converted=sale made, lost=customer left, follow_up=needs follow-up",
+      },
+      outcomeMarkedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "When the outcome was marked",
+      },
+      outcomeMarkedBy: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Agent ID or 'ai' who marked the outcome",
+      },
+      conversionValue: {
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: true,
+        comment: "Value of the conversion (sale amount) if converted",
+      },
+      conversionProducts: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: "Products purchased in this conversion",
+      },
+      lostReason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Reason for lost lead: price, timing, competitor, no_response, other",
+      },
+      followUpDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "Scheduled follow-up date if outcome is follow_up",
+      },
+      followUpNotes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: "Notes for follow-up",
+      },
+      // Conversation Analytics
+      firstMessageAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "When the first message was received",
+      },
+      totalMessages: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Total number of messages in conversation",
+      },
+      aiMessagesCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Number of AI-generated messages",
+      },
+      humanMessagesCount: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Number of human agent messages",
+      },
+      averageResponseTime: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: "Average response time in seconds",
+      },
+      peakIntentScore: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: "Highest intent score reached during conversation",
       },
     },
     {

@@ -52,7 +52,30 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // 4b. AI Cost Stats (Last 24 Hours)
-    const dailyCost = await AIUsageLog.sum('costUSD', { where: messageWhere }) || 0;
+    // 4b. AI Cost Stats (Last 24 Hours)
+    // AIUsageLog doesn't have userId directly, so we need to filter by associated devices if not superadmin
+    let aiCostWhere = {
+        createdAt: { [Op.gte]: oneDayAgo }
+    };
+    
+    if (!isSuperAdmin) {
+        // Find all devices owned by this user
+        const userDevices = await Device.findAll({ 
+            where: { userId },
+            attributes: ['id']
+        });
+        const deviceIds = userDevices.map(d => d.id);
+        
+        // If user has no devices, cost is 0
+        if (deviceIds.length > 0) {
+           aiCostWhere.deviceId = { [Op.in]: deviceIds };
+        } else {
+           // Impossible condition to return 0
+           aiCostWhere.deviceId = -1;
+        }
+    }
+
+    const dailyCost = await AIUsageLog.sum('costUSD', { where: aiCostWhere }) || 0;
 
     // 5. Traffic Analysis (Hourly stats for the last 24 hours)
     // We group by hour

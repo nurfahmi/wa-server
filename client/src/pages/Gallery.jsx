@@ -42,6 +42,7 @@ export default function Gallery() {
       setFiles(prev => prev.filter(f => f.id !== fileId));
       await showAlert({ title: t('modal.success'), message: t('messages.deleteSuccess'), type: 'success' });
     } catch (err) {
+      console.error(err);
       await showAlert({ title: t('modal.error'), message: "Failed to delete file", type: 'danger' });
     } finally {
       setDeleting(null);

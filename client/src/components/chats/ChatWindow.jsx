@@ -11,7 +11,6 @@ export const ChatWindow = ({
   selectedChat,
   setSelectedChat,
   messages,
-  user,
   messageText,
   setMessageText,
   onSendMessage,
@@ -35,6 +34,15 @@ export const ChatWindow = ({
   toggleEnterToSend,
   t
 }) => {
+  const textareaRef = React.useRef(null);
+  const [showAttachMenu, setShowAttachMenu] = React.useState(false);
+
+  React.useEffect(() => {
+     if (!messageText && textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+     }
+  }, [messageText]);
+
   if (!selectedChat) {
     return (
       <div className={clsx(
@@ -64,15 +72,6 @@ export const ChatWindow = ({
                    "";
      return content.toLowerCase().includes(messageSearchQuery.toLowerCase());
   });
-
-  const textareaRef = React.useRef(null);
-  const [showAttachMenu, setShowAttachMenu] = React.useState(false);
-
-  React.useEffect(() => {
-     if (!messageText && textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-     }
-  }, [messageText]);
 
   return (
       <div className={clsx(

@@ -18,7 +18,8 @@ import {
   MoreHorizontal,
   Sun,
   Moon,
-  Globe
+  Globe,
+  Archive
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
@@ -26,7 +27,7 @@ import { availableLanguages } from "../../locales";
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
   const { language, changeLanguage, t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ export default function DashboardLayout() {
     { name: t('nav.chats'), href: '/chats', icon: MessagesSquare, roles: ['user', 'superadmin', 'agent'] },
     { name: t('nav.csManagement'), href: '/cs-dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
     { name: t('nav.gallery'), href: '/gallery', icon: Image, roles: ['user', 'superadmin'] },
+    { name: t('nav.chatHistory') || 'Chat History', href: '/chat-history', icon: Archive, roles: ['user', 'superadmin'] },
   ].filter(item => item.roles.includes(user?.role));
 
   const mobileNavItems = [
@@ -70,7 +72,7 @@ export default function DashboardLayout() {
 
   // Helper to check if we are on a nested route or specific page beyond the hub
   const isAtHub = location.pathname === '/menu';
-  const isNested = location.pathname.split('/').filter(Boolean).length > 1 || (!isAtHub && location.pathname !== '/dashboard');
+  // const isNested = location.pathname.split('/').filter(Boolean).length > 1 || (!isAtHub && location.pathname !== '/dashboard');
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300 overflow-hidden">

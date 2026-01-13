@@ -29,6 +29,11 @@ router.delete(
   chatSettingsController.deleteChat
 );
 
+// Mark messages in a chat as read (send read receipts)
+router.post(
+  "/devices/:deviceId/chats/:chatId/read",
+  chatSettingsController.markAsRead
+);
 
 // Bulk update multiple chats
 router.post(
@@ -56,6 +61,68 @@ router.get(
 router.get(
   "/devices/:deviceId/chat-settings/:phoneNumber/stats",
   chatSettingsController.getChatStats
+);
+
+// ============================================================================
+// PURCHASE INTENT ANALYTICS ROUTES
+// ============================================================================
+
+// Get purchase intent summary for a device (aggregated stats)
+router.get(
+  "/devices/:deviceId/intent/summary",
+  chatSettingsController.getIntentSummary
+);
+
+// Get hot leads for a device (high intent customers)
+router.get(
+  "/devices/:deviceId/intent/hot-leads",
+  chatSettingsController.getHotLeads
+);
+
+// Get all chats with intent analytics (paginated, sortable)
+router.get(
+  "/devices/:deviceId/intent/analytics",
+  chatSettingsController.getIntentAnalytics
+);
+
+// Get intent history for a specific chat
+router.get(
+  "/devices/:deviceId/chat-settings/:phoneNumber/intent-history",
+  chatSettingsController.getChatIntentHistory
+);
+
+// ============================================================================
+// CONVERSATION OUTCOME & LEARNING ROUTES
+// ============================================================================
+
+// Mark conversation outcome (converted, lost, follow_up)
+router.post(
+  "/devices/:deviceId/chat-settings/:phoneNumber/outcome",
+  chatSettingsController.markConversationOutcome
+);
+
+// Get conversion analytics for a device
+router.get(
+  "/devices/:deviceId/analytics/conversions",
+  chatSettingsController.getConversionAnalytics
+);
+
+// Get follow-up tasks
+router.get(
+  "/devices/:deviceId/analytics/follow-ups",
+  chatSettingsController.getFollowUpTasks
+);
+
+// Get conversion funnel analytics
+router.get(
+  "/devices/:deviceId/analytics/funnel",
+  chatSettingsController.getConversionFunnel
+);
+
+// Get learning insights (what patterns lead to conversions)
+router.get(
+  "/devices/:deviceId/analytics/learning",
+  chatSettingsController.getLearningInsights
 );
 
 export default router;

@@ -149,6 +149,10 @@ class WhatsAppService {
       // Initialize sessions for each device
       for (const device of devices) {
         try {
+          if (device.provider === 'waba') {
+            console.log(`[AUTO-RECONNECT] Skipping WABA device ${device.sessionId} (stateless)`);
+            continue;
+          }
           console.log(`[AUTO-RECONNECT] Processing device ${device.sessionId} with status: ${device.status}`);
 
           if (device.status === "connected") {

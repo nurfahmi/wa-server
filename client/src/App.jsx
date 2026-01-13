@@ -13,6 +13,8 @@ import AISettings from "./pages/AISettings";
 import Agents from "./pages/Agents";
 import Gallery from "./pages/Gallery";
 import MobileMenu from "./pages/MobileMenu";
+import ChatHistoryArchive from "./pages/ChatHistoryArchive";
+import ProductManager from "./components/products/ProductManager";
 import { ModalProvider } from "./context/ModalContext";
 
 // Protected Route Component
@@ -84,6 +86,11 @@ function App() {
                       <Agents />
                     </ProtectedRoute>
                   } />
+                  <Route path="devices/:deviceId/products" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <ProductManager />
+                    </ProtectedRoute>
+                  } />
                    <Route path="chats" element={
                      <ProtectedRoute>
                        <Chat />
@@ -92,6 +99,11 @@ function App() {
                   <Route path="gallery" element={
                     <ProtectedRoute allowedRoles={['user', 'superadmin']}>
                       <Gallery />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="chat-history" element={
+                    <ProtectedRoute allowedRoles={['user', 'superadmin']}>
+                      <ChatHistoryArchive />
                     </ProtectedRoute>
                   } />
                 </Route>

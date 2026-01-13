@@ -58,6 +58,12 @@ router.post("/devices/:deviceId/logout", deviceController.logoutDevice); // Logo
 router.post("/devices/:deviceId/login", deviceController.loginDevice); // Login/relogin device (works for both cases)
 router.get("/devices/:deviceId/qr", deviceController.getDeviceQR); // Get QR code for pairing
 
+// Device Archive Routes (preserve chat history instead of deleting)
+import { archiveDevice, unarchiveDevice, deleteArchivedDevice } from "../controllers/chatHistoryArchiveController.js";
+router.post("/devices/:deviceId/archive", archiveDevice); // Archive device (preserves all data)
+router.post("/devices/:deviceId/unarchive", unarchiveDevice); // Unarchive device
+router.delete("/devices/:deviceId/permanent", deleteArchivedDevice); // Permanently delete archived device
+
 // Message Routes
 // Import middleware
 import { uploadMiddleware } from "../controllers/messageController.js";
@@ -161,6 +167,9 @@ router.use("/", chatSettingsRoutes);
 
 // Admin Routes (AI Provider/Model/Cost Management)
 router.use("/admin", adminRoutes);
+
+import productRoutes from "./productRoutes.js";
+router.use("/devices/:deviceId/products", productRoutes);
 
 import * as dashboardController from "../controllers/dashboardController.js";
 

@@ -272,13 +272,31 @@ class ConnectionHandler {
           this.service.qrAttempts.delete(sessionId);
           this.service.sessionManager.clearQRTimeout(sessionId);
 
+          // Capture real phone number from WhatsApp connection
+          // Format: "628123456789:5@s.whatsapp.net" or "628123456789@s.whatsapp.net"
+          let realPhoneNumber = null;
+          try {
+            const connectedJid = sock.user?.id;
+            if (connectedJid) {
+              realPhoneNumber = connectedJid.includes(':') 
+                ? connectedJid.split(':')[0]
+                : connectedJid.split('@')[0];
+              console.log(`[CONNECTION] Captured real phone number for ${sessionId}: ${realPhoneNumber}`);
+            }
+          } catch (phoneError) {
+            console.warn(`[CONNECTION] Could not capture phone number for ${sessionId}:`, phoneError.message);
+          }
+
           await device.update({
             status: "connected",
+            realPhoneNumber: realPhoneNumber,
             lastConnection: getJakartaTime(),
             lastError: null,
           });
 
-          this.broadcastSessionUpdate(sessionId, "connected");
+          this.broadcastSessionUpdate(sessionId, "connected", {
+            realPhoneNumber: realPhoneNumber
+          });
           this.service.qrCodeCallbacks.delete(sessionId);
 
           console.log(`[CONNECTION] Session ${sessionId} successfully connected to WhatsApp`);
@@ -397,6 +415,101 @@ class ConnectionHandler {
         for (const msg of m.messages) {
           await this.service.messageHandler.handleIncomingMessage(sessionId, msg);
         }
+      }
+    });
+
+    // Handle message status updates (delivery receipts)
+    sock.ev.on("messages.update", async (updates) => {
+      try {
+        const { Message } = await import("../../models/index.js");
+        const device = await Device.findOne({ where: { sessionId } });
+        
+        if (!device) {
+          console.log(`[MSG-UPDATE] Device not found for session ${sessionId}`);
+          return;
+        }
+
+        for (const update of updates) {
+          try {
+            const { key, update: msgUpdate } = update;
+            
+            // Skip if no status update
+            if (msgUpdate.status === undefined) continue;
+            
+            // Map Baileys status codes to our status enum
+            // Baileys status: 1 = PENDING, 2 = SERVER_ACK (sent), 3 = DELIVERY_ACK (delivered), 4 = READ, 5 = PLAYED
+            const statusMap = {
+              1: 'pending',
+              2: 'sent',
+              3: 'delivered',
+              4: 'read',
+              5: 'read' // PLAYED (for voice messages) counts as read
+            };
+            
+            const newStatus = statusMap[msgUpdate.status];
+            if (!newStatus) {
+              console.log(`[MSG-UPDATE] Unknown status code: ${msgUpdate.status}`);
+              continue;
+            }
+            
+            // Find and update the message in database
+            const messageId = key.id;
+            const existingMessage = await Message.findOne({
+              where: {
+                deviceId: device.id,
+                whatsappMessageId: messageId
+              }
+            });
+            
+            if (existingMessage) {
+              const updateData = { status: newStatus };
+              
+              // Add timestamp fields based on status
+              if (newStatus === 'sent' && !existingMessage.sentAt) {
+                updateData.sentAt = new Date();
+              } else if (newStatus === 'delivered' && !existingMessage.deliveredAt) {
+                updateData.deliveredAt = new Date();
+              } else if (newStatus === 'read' && !existingMessage.readAt) {
+                updateData.readAt = new Date();
+              }
+              
+              await existingMessage.update(updateData);
+              
+              console.log(`[MSG-UPDATE] Updated message ${messageId} status to ${newStatus}`);
+              
+              // Broadcast status update to WebSocket clients
+              const clients = this.service.wsClients.get(sessionId);
+              if (clients && clients.size > 0) {
+                const payload = JSON.stringify({
+                  type: "message_status_update",
+                  sessionId,
+                  data: {
+                    messageId,
+                    whatsappMessageId: messageId,
+                    status: newStatus,
+                    sentAt: updateData.sentAt,
+                    deliveredAt: updateData.deliveredAt,
+                    readAt: updateData.readAt,
+                    chatId: key.remoteJid
+                  },
+                  timestamp: new Date().toISOString()
+                });
+                
+                clients.forEach(ws => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(payload);
+                  }
+                });
+              }
+            } else {
+              console.log(`[MSG-UPDATE] Message ${messageId} not found in database`);
+            }
+          } catch (updateError) {
+            console.error(`[MSG-UPDATE] Error processing update:`, updateError);
+          }
+        }
+      } catch (error) {
+        console.error(`[MSG-UPDATE] Error handling messages.update for ${sessionId}:`, error);
       }
     });
 

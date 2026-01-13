@@ -3,7 +3,8 @@ export const parseLabels = (labelsJson) => {
   try {
     if (!labelsJson) return [];
     return typeof labelsJson === 'string' ? JSON.parse(labelsJson) : labelsJson;
-  } catch (e) {
+  } catch (err) {
+    console.error(err);
     return [];
   }
 };

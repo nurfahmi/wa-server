@@ -19,6 +19,7 @@ const StatCard = ({ title, value, change, icon: Icon, color, trend }) => (
   <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-sm border border-border hover:shadow-md transition-all duration-300 group">
     <div className="flex items-center justify-between">
       <div className={clsx("p-3 rounded-xl transition-colors duration-300", color)}>
+        {/* eslint-disable-next-line no-unused-vars */}
         <Icon className="w-6 h-6 text-white" />
       </div>
       {change && (
@@ -49,7 +50,7 @@ export default function Dashboard() {
     traffic: [],
     activity: []
   });
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
 
   // Icon mapping for activity feed
   const iconMap = {
@@ -63,7 +64,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
         try {
-            setLoading(true);
+            // setLoading(true);
             const res = await axios.get('/api/whatsapp/dashboard/stats', {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
@@ -80,7 +81,7 @@ export default function Dashboard() {
         } catch (error) {
             console.error("Failed to fetch dashboard stats", error);
         } finally {
-            setLoading(false);
+            // setLoading(false);
         }
     };
     fetchStats();

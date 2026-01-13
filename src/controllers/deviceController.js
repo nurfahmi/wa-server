@@ -8,7 +8,7 @@ import config from "../config/config.js";
 // Create new device and start WhatsApp session
 export const createDevice = async (req, res) => {
   try {
-    const { userId, alias, phoneNumber } = req.body;
+    const { userId, alias, phoneNumber, provider, wabaPhoneNumberId, wabaBusinessAccountId, wabaAccessToken } = req.body;
 
     if (!userId || !alias) {
       return res.status(400).json({
@@ -51,15 +51,51 @@ export const createDevice = async (req, res) => {
           limit: req.user.deviceLimit 
         });
       }
-      
-      // Force userId to be their own ID
-      // (Variable userId is let/const? It's const in original: const {userId...} = req.body)
-      // We need to use req.user.id for the creation call
     }
 
     // Determine final IDs to use
     const finalUserId = req.user ? String(req.user.id) : userId;
 
+    // --- WABA Handling ---
+    if (provider === 'waba') {
+      if (!wabaPhoneNumberId || !wabaBusinessAccountId || !wabaAccessToken) {
+        return res.status(400).json({
+          error: "Missing WABA credentials. Phone Number ID, Business Account ID, and Access Token are required."
+        });
+      }
+
+      // Check if WABA Phone ID is already used
+      const existingWaba = await Device.findOne({ where: { wabaPhoneNumberId } });
+      if (existingWaba) {
+        return res.status(409).json({
+          error: "A device with this WhatsApp Phone Number ID already exists."
+        });
+      }
+
+      // Create new WABA device
+      const device = await Device.create({
+        userId: finalUserId,
+        sessionId: `waba_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        alias,
+        phoneNumber: phoneNumber || null, // Optional, can be fetched later or manually entered
+        provider: 'waba',
+        status: 'connected', // WABA is always connected unless creds are invalid
+        wabaPhoneNumberId,
+        wabaBusinessAccountId,
+        wabaAccessToken,
+        lastConnection: new Date(),
+        connectionMode: 'default',
+        aiEnabled: true,
+      });
+
+      return res.json({
+        message: "WhatsApp Business API device connected successfully",
+        device: device.toJSON(),
+        qr: null,
+      });
+    } 
+    
+    // --- Baileys Handling (Default) ---
     // Start WhatsApp session (this will create the device record)
     const result = await WhatsAppService.createSession(
       finalUserId,

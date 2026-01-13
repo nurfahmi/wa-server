@@ -47,9 +47,44 @@ export default (sequelize) => {
           "logged_out",
           "reconnecting",
           "conflict",
-          "deleted"
+          "deleted",
+          "archived"
         ),
         defaultValue: "pending",
+      },
+      // Archive Support - Real phone number captured from WhatsApp on connection
+      realPhoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Actual WhatsApp phone number captured on connection (e.g., 628123456789)"
+      },
+      archivedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "When device was archived"
+      },
+      archiveReason: {
+        type: DataTypes.ENUM('blocked', 'switched_number', 'inactive', 'manual'),
+        allowNull: true,
+        comment: "Reason for archiving: blocked, switched_number, inactive, manual"
+      },
+      provider: {
+        type: DataTypes.ENUM("baileys", "waba"),
+        defaultValue: "baileys",
+        allowNull: false,
+      },
+      // WhatsApp Business API Credentials
+      wabaPhoneNumberId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      wabaBusinessAccountId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      wabaAccessToken: {
+        type: DataTypes.TEXT,
+        allowNull: true,
       },
       lastConnection: {
         type: DataTypes.DATE,

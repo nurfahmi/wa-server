@@ -17,13 +17,13 @@ import {
   X
 } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 
 export default function Login() {
   const { t } = useLanguage();
   const { login } = useAuth();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("owner"); // "owner" or "agent"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

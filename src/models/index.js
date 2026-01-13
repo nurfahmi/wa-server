@@ -29,6 +29,7 @@ import StoredFileModel from "./StoredFile.js";
 import AuthDataModel from "./AuthData.js";
 import ChatHistoryModel from "./ChatHistory.js";
 import UserModel from "./User.js";
+import ProductModel from "./Product.js";
 
 
 
@@ -49,6 +50,7 @@ const StoredFile = StoredFileModel(sequelize);
 const AuthData = AuthDataModel(sequelize);
 const ChatHistory = ChatHistoryModel(sequelize);
 const User = UserModel(sequelize);
+const Product = ProductModel(sequelize);
 
 
 
@@ -83,6 +85,10 @@ StoredFile.belongsTo(Device, { foreignKey: "deviceId", as: "device" });
 Device.hasMany(ChatHistory, { foreignKey: "deviceId", as: "chatHistory", onDelete: "CASCADE" });
 ChatHistory.belongsTo(Device, { foreignKey: "deviceId" });
 
+// Product associations
+Device.hasMany(Product, { foreignKey: "deviceId", as: "products", onDelete: "CASCADE" });
+Product.belongsTo(Device, { foreignKey: "deviceId", as: "device" });
+
 
 
 export {
@@ -104,4 +110,5 @@ export {
   AuthData,
   ChatHistory,
   User,
+  Product,
 };

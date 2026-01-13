@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCheck, Bot } from "lucide-react";
+import { Check, CheckCheck, Clock, AlertCircle, Bot } from "lucide-react";
 import clsx from "clsx";
 
 // Helper for base64
@@ -25,6 +25,25 @@ const toBase64 = (data) => {
     }
 };
 
+// Message delivery status indicator component
+const DeliveryStatus = ({ status }) => {
+  switch (status) {
+    case 'pending':
+      return <Clock className="w-3 h-3 text-gray-400 dark:text-gray-500 animate-pulse" />;
+    case 'sent':
+      return <Check className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />;
+    case 'delivered':
+      return <CheckCheck className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />;
+    case 'read':
+      return <CheckCheck className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />;
+    case 'failed':
+      return <AlertCircle className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />;
+    default:
+      // Default to sent status for backwards compatibility (old messages without status)
+      return <Check className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />;
+  }
+};
+
 export const MessageBubble = ({ msg, isMe, onViewImage }) => {
   const isImage = msg.messageType === 'image' || !!msg.message?.imageMessage;
   const mediaUrl = msg.mediaUrl || msg.filePath; // Support both DB fields if different
@@ -32,11 +51,15 @@ export const MessageBubble = ({ msg, isMe, onViewImage }) => {
   const contentText = msg.content || msg.message?.conversation || msg.message?.extendedTextMessage?.text;
   const caption = msg.caption || msg.message?.imageMessage?.caption || (contentText !== "[Image]" ? contentText : null);
 
+  // eslint-disable-next-line react-hooks/purity
   const date = new Date((msg.messageTimestamp ? msg.messageTimestamp * 1000 : msg.timestamp) || Date.now());
   const isAi = msg.isAiGenerated || msg.rawMessage?.isAiGenerated;
   const senderName = isMe 
     ? (msg.agentName || (isAi ? "AI Assistant" : "System")) 
     : (msg.pushName || msg.senderName);
+
+  // Get message delivery status - default to 'sent' for backwards compatibility
+  const messageStatus = msg.status || (isMe ? 'sent' : null);
 
   // Function to render image source
   const renderImage = () => {
@@ -84,7 +107,7 @@ export const MessageBubble = ({ msg, isMe, onViewImage }) => {
              isMe ? "text-gray-600 dark:text-gray-300" : "text-gray-500 dark:text-gray-400"
           )}>
              {date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-             {isMe && <CheckCheck className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />} 
+             {isMe && <DeliveryStatus status={messageStatus} />}
           </div>
        </div>
     </div>

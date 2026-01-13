@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useModal } from "../context/ModalContext";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
-import { parseLabels, formatJid } from "../utils/chatUtils";
+import { formatJid } from "../utils/chatUtils";
 
 // Components
 import { ChatSidebar } from "../components/chats/ChatSidebar";
@@ -127,7 +127,8 @@ export default function Chats() {
          mediaUrl: mediaUrl,
          caption: caption,
          timestamp: Date.now() / 1000,
-         agentName: user.name
+         agentName: user.name,
+         status: 'pending'
       }]);
       
       // 3. Cleanup
@@ -166,7 +167,8 @@ export default function Chats() {
         });
       } else {
         // Send as text
-        res = await axios.post("/api/whatsapp/send", {
+        // const res = await axios.post("/api/whatsapp/send", {
+        await axios.post("/api/whatsapp/send", {
           sessionId: device.sessionId,
           recipient: phoneNumber,
           message: message,
@@ -251,7 +253,8 @@ export default function Chats() {
         mediaUrl: productImageUrl,
         caption: productImageUrl ? productPreview.message : null,
         timestamp: Date.now() / 1000,
-        agentName: user.name
+        agentName: user.name,
+        status: 'pending'
       }]);
 
       setProductPreview(null);
@@ -405,7 +408,27 @@ export default function Chats() {
            });
            refreshChatList();
        }
-       
+
+        // Handle message delivery status updates (sent, delivered, read)
+        if (data.type === "message_status_update") {
+            const statusUpdate = data.data;
+            console.log('[WS] Received message_status_update:', statusUpdate);
+            
+            setMessages(prev => prev.map(msg => {
+                const msgId = msg.key?.id || msg.messageId || msg.whatsappMessageId;
+                if (msgId === statusUpdate.messageId || msgId === statusUpdate.whatsappMessageId) {
+                    return {
+                        ...msg,
+                        status: statusUpdate.status,
+                        sentAt: statusUpdate.sentAt || msg.sentAt,
+                        deliveredAt: statusUpdate.deliveredAt || msg.deliveredAt,
+                        readAt: statusUpdate.readAt || msg.readAt
+                    };
+                }
+                return msg;
+            }));
+        }
+        
        if (data.type === "messages.upsert") {
           const newMsgs = data.data.messages;
           if (selectedChat) {
@@ -419,25 +442,34 @@ export default function Chats() {
              });
               if (relevant.length) {
                   setMessages(prev => {
-                    const newMessages = [];
-                    // 1. Filter out duplicates based on ID
-                    const existingIds = new Set(prev.map(m => m.key?.id || m.messageId));
-                    const uniqueNew = relevant.filter(m => !existingIds.has(m.key?.id));
+                    // 1. Get all existing real message IDs (non-temp)
+                    const existingRealIds = new Set(
+                      prev.filter(m => !m.key?.id?.startsWith('temp-'))
+                          .map(m => m.key?.id || m.messageId || m.whatsappMessageId)
+                    );
                     
-                    // 2. Remove temp messages if real one matches content
+                    // 2. Filter out messages that already exist (by real ID)
+                    const uniqueNew = relevant.filter(m => !existingRealIds.has(m.key?.id));
+                    
+                    if (uniqueNew.length === 0) {
+                      // All messages already exist, no changes needed
+                      return prev;
+                    }
+                    
+                    // 3. Remove temp messages that match the new real messages
                     let cleanedPrev = [...prev];
                     uniqueNew.forEach(newMsg => {
                         if (newMsg.key?.fromMe) {
-                           // Handle Text Matching
+                           // Handle Text Matching - remove temp message with same content
                            const newText = newMsg.message?.conversation || newMsg.message?.extendedTextMessage?.text;
                            if (newText) {
-                               cleanedPrev = cleanedPrev.filter(prevMsg => {
-                                   if (prevMsg.key?.id?.startsWith('temp-')) {
-                                       const prevText = prevMsg.message?.conversation || prevMsg.content;
-                                       return prevText !== newText;
-                                   }
-                                   return true;
-                               });
+                               const tempIndex = cleanedPrev.findIndex(prevMsg => 
+                                   prevMsg.key?.id?.startsWith('temp-') &&
+                                   (prevMsg.message?.conversation || prevMsg.content) === newText
+                               );
+                               if (tempIndex !== -1) {
+                                   cleanedPrev.splice(tempIndex, 1);
+                               }
                            }
                            
                            // Handle Image Matching (remove first found temp image)
@@ -451,10 +483,15 @@ export default function Chats() {
                                }
                            }
                         }
-                        newMessages.push(newMsg);
                     });
                     
-                    return [...cleanedPrev, ...newMessages];
+                    // 4. Add the new unique messages with status from the event
+                    const enrichedNew = uniqueNew.map(msg => ({
+                      ...msg,
+                      status: msg.status || 'sent' // New messages from upsert are at least 'sent'
+                    }));
+                    
+                    return [...cleanedPrev, ...enrichedNew];
                  });
                 scrollToBottom();
               }
@@ -507,6 +544,19 @@ export default function Chats() {
        scrollToBottom();
     });
 
+    // Mark messages as read (send blue ticks to customer)
+    axios.post(`/api/whatsapp/devices/${deviceId}/chats/${encodeURIComponent(selectedChat.chatId)}/read`, {}, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    }).then(() => {
+      console.log('[CHAT] Messages marked as read');
+      // Update local unread count
+      setChats(prev => prev.map(c => 
+        c.chatId === selectedChat.chatId ? { ...c, unreadCount: 0 } : c
+      ));
+    }).catch(err => {
+      console.log('[CHAT] Could not mark messages as read:', err.message);
+    });
+
     // Fetch Profile Picture
     axios.get(`/api/whatsapp/devices/${deviceId}/profile/${selectedChat.chatId}`, {
        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -546,7 +596,8 @@ export default function Chats() {
          key: { fromMe: true, id: 'temp-' + Date.now() },
          message: { conversation: text },
          messageTimestamp: Date.now() / 1000,
-         agentName: user.name
+         agentName: user.name,
+         status: 'pending'
       }]);
       scrollToBottom();
       scrollToBottom();
@@ -581,7 +632,10 @@ export default function Chats() {
         const updated = { ...selectedChat, ...res.data.chatSettings };
         setSelectedChat(updated);
         setChats(prev => prev.map(c => c.id === updated.id ? { ...c, ...res.data.chatSettings } : c));
-    } catch (err) { await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); }
+    } catch (err) { 
+        console.error(err);
+        await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); 
+    }
   };
 
   const handleHandover = async () => {
@@ -632,7 +686,10 @@ export default function Chats() {
         const updated = { ...selectedChat, ...res.data.chatSettings };
         setSelectedChat(updated);
         setChats(prev => prev.map(c => c.id === updated.id ? { ...c, ...res.data.chatSettings } : c));
-    } catch (err) { await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); }
+    } catch (err) { 
+        console.error(err);
+        await showAlert({ title: t('modal.error'), message: t('chats.actionFailed'), type: 'danger' }); 
+    }
   };
 
   const handleClearMemory = async () => {

@@ -15,6 +15,8 @@ const __dirname = dirname(__filename);
 import whatsappRoutes from "./routes/index.js";
 import businessTemplateRoutes from "./routes/businessTemplateRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import wabaRoutes from "./routes/wabaRoutes.js";
+import chatHistoryArchiveRoutes from "./routes/chatHistoryArchive.js";
 import authMiddleware from "./middleware/authMiddleware.js"; // Fix: Default import
 
 // Import WhatsApp service (it's exported as a singleton instance)
@@ -85,6 +87,8 @@ app.use(limiter);
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/business-templates", businessTemplateRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/webhooks/waba", wabaRoutes);
+app.use("/api/chat-history", chatHistoryArchiveRoutes);
 
 // Catch-all route to serve React App for non-API requests
 app.get("*", (req, res) => {

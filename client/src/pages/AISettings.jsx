@@ -44,7 +44,7 @@ import { useModal } from "../context/ModalContext";
 
 export default function AISettings() {
   const { deviceId } = useParams();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const { showAlert } = useModal();
   const [device, setDevice] = useState(null);
   const [settings, setSettings] = useState(null);
@@ -60,7 +60,6 @@ export default function AISettings() {
   const [editingProductIndex, setEditingProductIndex] = useState(null);
   const [productForm, setProductForm] = useState({ name: "", price: "", currency: "IDR", description: "", inStock: true, images: [] });
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -198,6 +197,7 @@ export default function AISettings() {
     setSettings(updated);
   };
 
+  /* 
   const openProductModal = (index = null) => {
     if (index !== null) {
       // Edit existing product
@@ -215,6 +215,7 @@ export default function AISettings() {
     }
     setShowProductModal(true);
   };
+  */
 
   const closeProductModal = () => {
     setShowProductModal(false);
@@ -271,7 +272,6 @@ export default function AISettings() {
     if (!file) return;
 
     try {
-      setUploadingLogo(true);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("userId", device.userId);
@@ -296,7 +296,7 @@ export default function AISettings() {
       console.error("Logo upload failed:", error);
       await showAlert({ title: "Error", message: "Failed to upload logo: " + (error.response?.data?.error || error.message), type: "danger" });
     } finally {
-      setUploadingLogo(false);
+      // Done
     }
   };
 
@@ -322,6 +322,7 @@ export default function AISettings() {
     closeProductModal();
   };
 
+  /*
   const removeProduct = async (index) => {
     const items = [...(settings.aiProductCatalog?.items || [])];
     items.splice(index, 1);
@@ -334,7 +335,9 @@ export default function AISettings() {
     setSettings(updatedSettings);
     await handleSave(updatedSettings);
   };
+  */
 
+  /*
   const formatCurrency = (amount, currency = "IDR") => {
     const num = parseFloat(amount) || 0;
     const currencyConfig = {
@@ -345,6 +348,7 @@ export default function AISettings() {
     const config = currencyConfig[currency] || currencyConfig.IDR;
     return `${config.symbol} ${num.toLocaleString(config.locale, { minimumFractionDigits: config.decimals, maximumFractionDigits: config.decimals })}`;
   };
+  */
 
   const removeFAQ = (index) => {
     const updated = { ...settings };
@@ -374,9 +378,9 @@ export default function AISettings() {
 
   if (!settings) return <div className="p-8 text-center">Settings not found. Please ensure the device is connected.</div>;
 
-  const systemDefaults = settings._systemDefaults || {};
+  // const systemDefaults = settings._systemDefaults || {};
   const currentProvider = providers.find(p => p.id === settings.aiProvider);
-  const availableModels = currentProvider?.models || [];
+  // const availableModels = currentProvider?.models || [];
 
   const TABS = [
     { id: "engine", label: "Brain & Engine", icon: Cpu },
@@ -451,75 +455,37 @@ export default function AISettings() {
           {activeTab === "engine" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between">
-                     <h2 className="text-lg font-black flex items-center gap-2"><Cpu className="w-4 h-4 text-indigo-500"/> Core Intelligence</h2>
-                     <div className="flex gap-4">
-                        <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
-                           <span className="text-xs font-black uppercase tracking-widest opacity-60 text-emerald-600">AI Status</span>
-                           <button 
-                              onClick={() => setSettings({...settings, aiEnabled: !settings.aiEnabled})}
-                              className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiEnabled ? "bg-primary" : "bg-muted")}
-                           >
-                              <div className={clsx("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", settings.aiEnabled ? "left-7" : "left-1")} />
-                           </button>
-                        </div>
-                        <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
-                           <span className="text-xs font-black uppercase tracking-widest opacity-60">Auto Reply</span>
-                           <button 
-                              onClick={() => setSettings({...settings, aiAutoReply: !settings.aiAutoReply})}
-                              className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiAutoReply ? "bg-emerald-500" : "bg-muted")}
-                           >
-                              <div className={clsx("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", settings.aiAutoReply ? "left-7" : "left-1")} />
-                           </button>
-                        </div>
-                     </div>
-                  </div>
+                   <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-black flex items-center gap-2"><Cpu className="w-4 h-4 text-indigo-500"/> Core Status</h2>
+                      <div className="flex gap-4">
+                         <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
+                            <span className="text-xs font-black uppercase tracking-widest opacity-60 text-emerald-600">AI Status</span>
+                            <button 
+                               onClick={() => setSettings({...settings, aiEnabled: !settings.aiEnabled})}
+                               className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiEnabled ? "bg-primary" : "bg-muted")}
+                            >
+                               <div className={clsx("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", settings.aiEnabled ? "left-7" : "left-1")} />
+                            </button>
+                         </div>
+                         <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
+                            <span className="text-xs font-black uppercase tracking-widest opacity-60">Auto Reply</span>
+                            <button 
+                               onClick={() => setSettings({...settings, aiAutoReply: !settings.aiAutoReply})}
+                               className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiAutoReply ? "bg-emerald-500" : "bg-muted")}
+                            >
+                               <div className={clsx("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", settings.aiAutoReply ? "left-7" : "left-1")} />
+                            </button>
+                         </div>
+                      </div>
+                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-3">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 flex items-center justify-between">
-                           AI PROVIDER 
-                           {!currentProvider?.apiKeyConfigured && <span className="text-[10px] text-destructive">API Key Missing</span>}
-                        </label>
-                        <div className="relative group">
-                           <select 
-                              value={settings.aiProvider || "openai"}
-                              onChange={e => {
-                                 const p = providers.find(x => x.id === e.target.value);
-                                 setSettings({
-                                    ...settings, 
-                                    aiProvider: e.target.value,
-                                    aiModel: p?.models?.[0]?.id || ""
-                                 });
-                              }}
-                              className="w-full pl-6 pr-12 py-4 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold appearance-none cursor-pointer"
-                           >
-                              {providers.map(p => (
-                                 <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                           </select>
-                           <ChevronDown className="absolute right-5 top-5 w-4 h-4 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-                        </div>
-                     </div>
-
-                     <div className="space-y-3">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">INTELLIGENCE MODEL</label>
-                        <div className="relative group">
-                           <select 
-                              value={settings.aiModel || ""}
-                              onChange={e => setSettings({...settings, aiModel: e.target.value})}
-                              className="w-full pl-6 pr-12 py-4 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold appearance-none cursor-pointer"
-                           >
-                              {availableModels.map(m => (
-                                 <option key={m.id} value={m.id}>
-                                    {m.name} {m.recommended ? "(Recommended)" : ""}
-                                 </option>
-                              ))}
-                           </select>
-                           <ChevronDown className="absolute right-5 top-5 w-4 h-4 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-                        </div>
-                     </div>
-                  </div>
+                   {/* Configuration moved to .env / Admin Panel */}
+                   <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center gap-3">
+                      <Info className="w-4 h-4 text-blue-500" />
+                      <p className="text-xs text-blue-600 font-medium">
+                         AI Provider and Model are managed via system environment variables.
+                      </p>
+                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
                      <div className="space-y-2">
@@ -716,37 +682,28 @@ export default function AISettings() {
                    </div>
                 </div>
 
-                {/* Catalog */}
+                {/* New Product Manager Link */}
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
                    <div className="flex items-center justify-between">
                       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                         <ShoppingBag className="w-4 h-4 text-primary" /> Product Catalog
+                         <Package className="w-4 h-4 text-primary" /> Product Catalog (Advanced)
                       </h3>
-                      <button onClick={() => openProductModal()} className="px-3 py-1.5 bg-primary text-white rounded-lg font-bold text-[10px] uppercase">
-                         Add Product
-                      </button>
+                      <Link 
+                         to={`/devices/${deviceId}/products`}
+                         className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-primary/20 flex items-center gap-2 hover:bg-primary/90 transition-all"
+                      >
+                         <Edit className="w-3 h-3" /> Manage Products
+                      </Link>
                    </div>
-                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {settings.aiProductCatalog?.items.map((prod, i) => (
-                         <div key={i} className="group bg-muted/10 border border-border rounded-xl overflow-hidden shadow-sm flex flex-col">
-                            <div className="relative h-28 bg-muted/30">
-                               <img src={prod.images?.[0] || prod.imageUrl} className="w-full h-full object-cover" />
-                               <div className="absolute top-2 right-2 flex gap-1 transform translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
-                                  <button onClick={() => openProductModal(i)} className="p-1.5 bg-card rounded shadow-md text-foreground hover:text-primary"><Edit className="w-3 h-3"/></button>
-                                  <button onClick={() => removeProduct(i)} className="p-1.5 bg-card rounded shadow-md text-destructive"><Trash2 className="w-3 h-3"/></button>
-                               </div>
-                            </div>
-                            <div className="p-3">
-                               <h4 className="font-bold text-xs truncate mb-1">{prod.name}</h4>
-                               <p className="text-[10px] font-black text-primary">{formatCurrency(prod.price, prod.currency)}</p>
-                            </div>
-                         </div>
-                      ))}
-                      {settings.aiProductCatalog?.items.length === 0 && (
-                         <div className="col-span-full py-8 border-2 border-dashed border-border rounded-xl text-center text-xs text-muted-foreground">
-                            No products in catalog.
-                         </div>
-                      )}
+                   <div className="p-8 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center">
+                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                         <ShoppingBag className="w-8 h-8 text-primary" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2">New Product Manager Available</h4>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                         We have upgraded the product system! You can now add variants, stock tracking, and multiple images. 
+                         Please use the new <b>Product Manager</b> to teach your AI about your inventory.
+                      </p>
                    </div>
                 </div>
 

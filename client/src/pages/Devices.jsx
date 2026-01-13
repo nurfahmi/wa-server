@@ -19,7 +19,9 @@ import {
   Clock,
   User,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  Package as Inventory,
+  Archive,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import clsx from "clsx";
@@ -34,6 +36,14 @@ export default function Devices() {
   const [qrCode, setQrCode] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [copiedId, setCopiedId] = useState(null);
+  
+  // WABA State
+  const [provider, setProvider] = useState("baileys"); // 'baileys' | 'waba'
+  const [wabaCreds, setWabaCreds] = useState({
+    phoneNumberId: "",
+    businessAccountId: "",
+    accessToken: ""
+  });
 
   const fetchDevices = async () => {
     try {
@@ -54,14 +64,32 @@ export default function Devices() {
   }, []);
 
   const handleDelete = async (deviceId) => {
-    if (!confirm("Are you sure you want to delete this device?")) return;
+    if (!confirm("Are you sure you want to delete this device? This will PERMANENTLY delete all chat history. Consider archiving instead.")) return;
     try {
       await axios.delete(`/api/whatsapp/devices/${deviceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       fetchDevices();
     } catch (e) {
+      console.error(e);
       alert("Failed to delete device");
+    }
+  };
+
+  const handleArchive = async (deviceId, deviceAlias) => {
+    const reason = prompt(`Archive device "${deviceAlias}"?\n\nThis preserves all chat history for future restoration.\n\nReason (optional): blocked, switched_number, inactive, manual`, "manual");
+    if (reason === null) return; // User cancelled
+    
+    try {
+      await axios.post(`/api/whatsapp/devices/${deviceId}/archive`, 
+        { reason: reason || 'manual' },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      alert("Device archived successfully! You can restore chat history from the Chat History page.");
+      fetchDevices();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to archive device: " + (e.response?.data?.error || e.message));
     }
   };
 
@@ -72,6 +100,7 @@ export default function Devices() {
         });
         fetchDevices();
     } catch (e) {
+        console.error(e);
         alert("Logout failed");
     }
   };
@@ -81,7 +110,6 @@ export default function Devices() {
         const res = await axios.post(`/api/whatsapp/devices/${deviceId}/login`, {}, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
-        setSelectedDevice(deviceId);
         if (res.data.qr) {
             setQrCode(res.data.qr);
             setShowAddModal(true);
@@ -89,6 +117,7 @@ export default function Devices() {
             fetchDevices();
         }
     } catch (e) {
+        console.error(e);
         alert("Reconnect failed");
     }
   };
@@ -99,7 +128,9 @@ export default function Devices() {
              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
          });
          fetchDevices();
-     } catch (e) {}
+     } catch (e) {
+         console.error(e);
+     }
   };
 
   const handleCopyApiKey = (key, id) => {
@@ -113,27 +144,40 @@ export default function Devices() {
     if (!newSessionId) return;
     setConnectionStatus("connecting");
     try {
-        const res = await axios.post(`/api/whatsapp/devices`, {
+        const payload = {
             alias: newSessionId,
-            userId: user.id
-        }, {
+            userId: user.id,
+            provider: provider,
+        };
+
+        if (provider === 'waba') {
+            payload.wabaPhoneNumberId = wabaCreds.phoneNumberId;
+            payload.wabaBusinessAccountId = wabaCreds.businessAccountId;
+            payload.wabaAccessToken = wabaCreds.accessToken;
+        }
+
+        const res = await axios.post(`/api/whatsapp/devices`, payload, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         
-        const device = res.data.device;
+        // const device = res.data.device;
         let qr = res.data.qr;
         
-        if (qr) {
+        if (qr && provider === 'baileys') {
             setQrCode(qr);
         } else {
              setShowAddModal(false);
              fetchDevices();
+             setProvider("baileys"); // Reset
+             setWabaCreds({ phoneNumberId: "", businessAccountId: "", accessToken: "" });
         }
         
     } catch (err) {
         console.error(err);
         setConnectionStatus("error");
         alert("Failed to create session: " + (err.response?.data?.error || err.message));
+    } finally {
+        if (provider === 'waba') setConnectionStatus("idle");
     }
   };
 
@@ -234,9 +278,14 @@ export default function Devices() {
                          device.status === 'connected' ? "text-emerald-600" : "text-destructive"
                      )}>{device.status}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                     <Clock className="w-3 h-3" />
-                     {formatDate(device.lastConnection)}
+                  <div className="flex items-center gap-2">
+                     {device.provider === 'waba' && (
+                        <span className="text-[10px] font-black text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-md uppercase tracking-wide border border-blue-500/20">Official API</span>
+                     )}
+                     <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <Clock className="w-3 h-3" />
+                        {formatDate(device.lastConnection)}
+                     </div>
                   </div>
                </div>
 
@@ -244,7 +293,10 @@ export default function Devices() {
                   {/* Identity */}
                   <div className="flex items-start justify-between">
                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                        <div className={clsx(
+                            "w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform",
+                            device.provider === 'waba' ? "bg-gradient-to-br from-blue-500 to-indigo-600" : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                        )}>
                            <Smartphone className="w-7 h-7" />
                         </div>
                         <div className="min-w-0">
@@ -313,15 +365,27 @@ export default function Devices() {
                         <MessageSquare className="w-4 h-4" /> {t('devices.chats')}
                      </Link>
                   </div>
+                  
+                  {/* Actions Row 1.5 - Product Catalog */}
+                  <div className="flex gap-2">
+                     <Link 
+                        to={`/devices/${device.id}/products`}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
+                     >
+                        <Inventory className="w-4 h-4" /> Product Catalog (AI)
+                     </Link>
+                  </div>
 
                   {/* Actions Row 2 */}
                   <div className="flex gap-2">
-                     <button 
-                        onClick={() => handleReconnect(device.id)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
-                     >
-                        <Zap className="w-4 h-4" /> {t('devices.reconnect')}
-                     </button>
+                     {device.provider !== 'waba' && (
+                         <button 
+                            onClick={() => handleReconnect(device.id)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
+                         >
+                            <Zap className="w-4 h-4" /> {t('devices.reconnect')}
+                         </button>
+                     )}
                      <button 
                         onClick={() => handleLogout(device.id)}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
@@ -330,13 +394,23 @@ export default function Devices() {
                      </button>
                   </div>
 
-                  {/* Delete Button */}
-                  <button 
-                     onClick={() => handleDelete(device.id)}
-                     className="w-full flex items-center justify-center gap-2 py-2 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl transition-all font-bold text-xs"
-                  >
-                     <Trash2 className="w-3.5 h-3.5" /> {t('devices.deleteDevice') || 'Delete Device'}
-                  </button>
+                   {/* Archive & Delete Buttons */}
+                   <div className="flex gap-2">
+                      <button 
+                         onClick={() => handleArchive(device.id, device.alias)}
+                         className="flex-1 flex items-center justify-center gap-2 py-2 bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-white rounded-xl transition-all font-bold text-xs"
+                         title="Archive device - preserves chat history for restoration"
+                      >
+                         <Archive className="w-3.5 h-3.5" /> {t('devices.archive') || 'Archive'}
+                      </button>
+                      <button 
+                         onClick={() => handleDelete(device.id)}
+                         className="flex-1 flex items-center justify-center gap-2 py-2 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl transition-all font-bold text-xs"
+                         title="Permanently delete device and all data"
+                      >
+                         <Trash2 className="w-3.5 h-3.5" /> {t('devices.deleteDevice') || 'Delete'}
+                      </button>
+                   </div>
                </div>
             </div>
           ))}
@@ -357,6 +431,7 @@ export default function Devices() {
                     setShowAddModal(false);
                     setQrCode(null);
                     setNewSessionId("");
+                    setProvider("baileys"); // Reset
                 }} 
                 className="p-2 hover:bg-muted rounded-full transition-colors"
               >
@@ -367,6 +442,29 @@ export default function Devices() {
             <div className="p-8">
                {!qrCode ? (
                   <div className="space-y-6">
+                     
+                     {/* Provider Tabs */}
+                     <div className="bg-muted/50 p-1 rounded-xl flex gap-1">
+                        <button
+                            onClick={() => setProvider("baileys")}
+                            className={clsx(
+                                "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all",
+                                provider === 'baileys' ? "bg-white text-primary shadow-sm" : "hover:text-foreground text-muted-foreground"
+                            )}
+                        >
+                            Scan QR (Unofficial)
+                        </button>
+                        <button
+                            onClick={() => setProvider("waba")}
+                            className={clsx(
+                                "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all",
+                                provider === 'waba' ? "bg-white text-blue-600 shadow-sm" : "hover:text-foreground text-muted-foreground"
+                            )}
+                        >
+                            Official API
+                        </button>
+                     </div>
+
                      <div className="space-y-2">
                         <label className="text-sm font-bold text-foreground">{t('devices.deviceAlias') || 'Device Alias'}</label>
                         <div className="relative">
@@ -380,13 +478,55 @@ export default function Devices() {
                             />
                         </div>
                      </div>
+
+                     {provider === 'waba' && (
+                        <div className="space-y-4 animate-in slide-in-from-top-2 fade-in">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Phone Number ID</label>
+                                <input 
+                                   type="text" 
+                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                   placeholder="From Meta Dashboard"
+                                   value={wabaCreds.phoneNumberId}
+                                   onChange={(e) => setWabaCreds({...wabaCreds, phoneNumberId: e.target.value})}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Business Account ID</label>
+                                <input 
+                                   type="text" 
+                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                   placeholder="From Meta Dashboard"
+                                   value={wabaCreds.businessAccountId}
+                                   onChange={(e) => setWabaCreds({...wabaCreds, businessAccountId: e.target.value})}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Access Token</label>
+                                <input 
+                                   type="password" 
+                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                   placeholder="Permanent/System User Token"
+                                   value={wabaCreds.accessToken}
+                                   onChange={(e) => setWabaCreds({...wabaCreds, accessToken: e.target.value})}
+                                />
+                            </div>
+                            <div className="text-[10px] text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <b>Note:</b> Make sure to configure the webhook in your Meta Dashboard using the URL: <code>/api/webhooks/waba</code>
+                            </div>
+                        </div>
+                     )}
+
                      <button 
                         onClick={handleCreateSession}
-                        disabled={!newSessionId || connectionStatus === 'connecting'}
-                        className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center justify-center shadow-lg shadow-primary/30"
+                        disabled={!newSessionId || connectionStatus === 'connecting' || (provider === 'waba' && (!wabaCreds.phoneNumberId || !wabaCreds.accessToken))}
+                        className={clsx(
+                            "w-full py-4 rounded-2xl font-bold disabled:opacity-50 transition-all flex items-center justify-center shadow-lg",
+                            provider === 'waba' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/30"
+                        )}
                      >
                         {connectionStatus === 'connecting' ? <RefreshCw className="w-5 h-5 animate-spin mr-2"/> : <Zap className="w-5 h-5 mr-2" />}
-                        {t('devices.generateQR') || 'Generate Connection QR'}
+                        {provider === 'waba' ? 'Connect Official API' : (t('devices.generateQR') || 'Generate Connection QR')}
                      </button>
                   </div>
                ) : (
