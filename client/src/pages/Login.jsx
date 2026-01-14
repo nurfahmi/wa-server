@@ -85,8 +85,8 @@ export default function Login() {
         {/* Left Side: Branding & Value Prop */}
         <div className="hidden lg:block space-y-12">
            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                 <MessageCircle className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform overflow-hidden">
+                 <img src="/logo.webp" alt="Balesin Logo" className="w-full h-full object-cover" />
               </div>
               <span className="text-3xl font-black tracking-tighter">{APP_NAME}</span>
            </Link>
@@ -252,8 +252,8 @@ export default function Login() {
 
               {/* Branding (Mobile Only) */}
               <div className="lg:hidden flex flex-col items-center gap-2 mt-12 pt-8 border-t border-border opacity-60">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-                  <MessageCircle className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 overflow-hidden">
+                  <img src="/logo.webp" alt="Balesin Logo" className="w-full h-full object-cover" />
                 </div>
                 <span className="text-lg font-black tracking-tighter">{APP_NAME}</span>
               </div>
@@ -261,6 +261,14 @@ export default function Login() {
         </div>
 
       </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-6 left-0 right-0 text-center z-20 pointer-events-none">
+        <p className="text-xs text-muted-foreground font-medium pointer-events-auto">
+          Powered by <a href="https://indosofthouse.com/" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">indosofthouse</a>
+        </p>
+      </div>
+
     </div>
   );
 }

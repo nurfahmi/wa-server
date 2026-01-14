@@ -230,8 +230,8 @@ export default function Landing() {
       )}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <MessageCircle className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 overflow-hidden">
+              <img src="/logo.webp" alt={APP_NAME} className="w-full h-full object-cover" />
             </div>
             <span className="text-xl font-black tracking-tight text-foreground">{APP_NAME}</span>
           </div>
@@ -549,14 +549,19 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="/logo.webp" alt={APP_NAME} className="w-full h-full object-cover" />
               </div>
               <span className="text-lg font-black">{APP_NAME}</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} {APP_NAME}. {t('landing.footerRights')}
-            </p>
+            <div className="flex flex-col items-center md:items-end gap-1">
+              <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} {APP_NAME}. {t('landing.footerRights')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Powered by <a href="https://indosofthouse.com/" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">indosofthouse</a>
+              </p>
+            </div>
           </div>
         </div>
       </footer>

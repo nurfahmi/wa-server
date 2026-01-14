@@ -93,8 +93,8 @@ export default function DashboardLayout() {
       )}>
         <div className="flex items-center justify-between h-20 px-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-               <MessageSquare className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
+               <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
           </div>
@@ -255,8 +255,8 @@ export default function DashboardLayout() {
                 </button>
             )}
             {isAtHub && (
-                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-sm">
-                    <MessageSquare className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shadow-sm">
+                    <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
                 </div>
             )}
             <span className="text-lg font-black tracking-tight">
@@ -338,10 +338,14 @@ export default function DashboardLayout() {
 
           {/* Footer */}
           <footer className="max-w-7xl mx-auto mt-20 pb-8 border-t border-border/50 pt-8 text-center">
-            <p className="text-sm text-muted-foreground font-medium">
-              &copy; {new Date().getFullYear()} <span className="text-foreground font-bold">Balas Chat AI</span>. 
-              Powered by <a href="https://indosofthouse.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">indosofthouse</a>
-            </p>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-sm text-muted-foreground font-medium">
+                &copy; {new Date().getFullYear()} <span className="text-foreground font-bold">Balas Chat AI</span>.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Powered by <a href="https://indosofthouse.com/" target="_blank" rel="noopener noreferrer" className="font-bold hover:text-primary transition-colors">indosofthouse</a>
+              </p>
+            </div>
           </footer>
         </main>
 
