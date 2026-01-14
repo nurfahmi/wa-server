@@ -245,7 +245,13 @@ class SessionManager {
       const { valid, session, device } = await this.validateSession(sessionId);
 
       if (!valid) {
-        throw new Error("Session not found or already closed");
+        // Session not found or already closed - that's fine, just cleanup memory
+        console.log(`[CLOSE] Session ${sessionId} not found or already closed, cleaning up`);
+        this.service.sessions.delete(sessionId);
+        this.service.qrCodeCallbacks.delete(sessionId);
+        this.service.stores.delete(sessionId);
+        this.service.wsClients.delete(sessionId);
+        return true;
       }
 
       if (device) {
