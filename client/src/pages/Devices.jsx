@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { QRCodeSVG } from "qrcode.react";
 import { useLanguage } from "../context/LanguageContext";
 import { 
   Smartphone, 
@@ -470,7 +471,7 @@ export default function Devices() {
                ) : (
                   <div className="flex flex-col items-center">
                      <div className="bg-white p-6 rounded-3xl border border-border shadow-xl mb-8 relative group">
-                        <img src={qrCode} alt="WhatsApp QR" className="w-60 h-60" />
+                        <QRCodeSVG value={qrCode} size={240} level="M" />
                         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" />
                      </div>
                      <div className="text-center space-y-2 mb-8">
