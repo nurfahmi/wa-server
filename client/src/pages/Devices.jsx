@@ -37,13 +37,8 @@ export default function Devices() {
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [copiedId, setCopiedId] = useState(null);
   
-  // WABA State
-  const [provider, setProvider] = useState("baileys"); // 'baileys' | 'waba'
-  const [wabaCreds, setWabaCreds] = useState({
-    phoneNumberId: "",
-    businessAccountId: "",
-    accessToken: ""
-  });
+  // WABA State - Disabled for now (Coming Soon)
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
 
   const fetchDevices = async () => {
     try {
@@ -147,29 +142,21 @@ export default function Devices() {
         const payload = {
             alias: newSessionId,
             userId: user.id,
-            provider: provider,
+            provider: "baileys", // Always baileys for now
         };
-
-        if (provider === 'waba') {
-            payload.wabaPhoneNumberId = wabaCreds.phoneNumberId;
-            payload.wabaBusinessAccountId = wabaCreds.businessAccountId;
-            payload.wabaAccessToken = wabaCreds.accessToken;
-        }
 
         const res = await axios.post(`/api/whatsapp/devices`, payload, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         
-        // const device = res.data.device;
-        let qr = res.data.qr;
+        const qr = res.data.qr;
         
-        if (qr && provider === 'baileys') {
+        if (qr) {
             setQrCode(qr);
         } else {
-             setShowAddModal(false);
-             fetchDevices();
-             setProvider("baileys"); // Reset
-             setWabaCreds({ phoneNumberId: "", businessAccountId: "", accessToken: "" });
+            // If no QR returned, close modal and refresh
+            setShowAddModal(false);
+            fetchDevices();
         }
         
     } catch (err) {
@@ -177,7 +164,7 @@ export default function Devices() {
         setConnectionStatus("error");
         alert("Failed to create session: " + (err.response?.data?.error || err.message));
     } finally {
-        if (provider === 'waba') setConnectionStatus("idle");
+        setConnectionStatus("idle");
     }
   };
 
@@ -431,7 +418,6 @@ export default function Devices() {
                     setShowAddModal(false);
                     setQrCode(null);
                     setNewSessionId("");
-                    setProvider("baileys"); // Reset
                 }} 
                 className="p-2 hover:bg-muted rounded-full transition-colors"
               >
@@ -446,20 +432,13 @@ export default function Devices() {
                      {/* Provider Tabs */}
                      <div className="bg-muted/50 p-1 rounded-xl flex gap-1">
                         <button
-                            onClick={() => setProvider("baileys")}
-                            className={clsx(
-                                "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all",
-                                provider === 'baileys' ? "bg-white text-primary shadow-sm" : "hover:text-foreground text-muted-foreground"
-                            )}
+                            className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all bg-white text-primary shadow-sm"
                         >
                             Scan QR (Unofficial)
                         </button>
                         <button
-                            onClick={() => setProvider("waba")}
-                            className={clsx(
-                                "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all",
-                                provider === 'waba' ? "bg-white text-blue-600 shadow-sm" : "hover:text-foreground text-muted-foreground"
-                            )}
+                            onClick={() => setShowComingSoonModal(true)}
+                            className="flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all hover:text-foreground text-muted-foreground"
                         >
                             Official API
                         </button>
@@ -479,54 +458,13 @@ export default function Devices() {
                         </div>
                      </div>
 
-                     {provider === 'waba' && (
-                        <div className="space-y-4 animate-in slide-in-from-top-2 fade-in">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Phone Number ID</label>
-                                <input 
-                                   type="text" 
-                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                   placeholder="From Meta Dashboard"
-                                   value={wabaCreds.phoneNumberId}
-                                   onChange={(e) => setWabaCreds({...wabaCreds, phoneNumberId: e.target.value})}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Business Account ID</label>
-                                <input 
-                                   type="text" 
-                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                   placeholder="From Meta Dashboard"
-                                   value={wabaCreds.businessAccountId}
-                                   onChange={(e) => setWabaCreds({...wabaCreds, businessAccountId: e.target.value})}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Access Token</label>
-                                <input 
-                                   type="password" 
-                                   className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                   placeholder="Permanent/System User Token"
-                                   value={wabaCreds.accessToken}
-                                   onChange={(e) => setWabaCreds({...wabaCreds, accessToken: e.target.value})}
-                                />
-                            </div>
-                            <div className="text-[10px] text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-100">
-                                <b>Note:</b> Make sure to configure the webhook in your Meta Dashboard using the URL: <code>/api/webhooks/waba</code>
-                            </div>
-                        </div>
-                     )}
-
                      <button 
                         onClick={handleCreateSession}
-                        disabled={!newSessionId || connectionStatus === 'connecting' || (provider === 'waba' && (!wabaCreds.phoneNumberId || !wabaCreds.accessToken))}
-                        className={clsx(
-                            "w-full py-4 rounded-2xl font-bold disabled:opacity-50 transition-all flex items-center justify-center shadow-lg",
-                            provider === 'waba' ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/30" : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/30"
-                        )}
+                        disabled={!newSessionId || connectionStatus === 'connecting'}
+                        className="w-full py-4 rounded-2xl font-bold disabled:opacity-50 transition-all flex items-center justify-center shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/30"
                      >
                         {connectionStatus === 'connecting' ? <RefreshCw className="w-5 h-5 animate-spin mr-2"/> : <Zap className="w-5 h-5 mr-2" />}
-                        {provider === 'waba' ? 'Connect Official API' : (t('devices.generateQR') || 'Generate Connection QR')}
+                        {t('devices.generateQR') || 'Generate Connection QR'}
                      </button>
                   </div>
                ) : (
@@ -552,6 +490,27 @@ export default function Devices() {
                   </div>
                )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon Modal for Official API */}
+      {showComingSoonModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-xl p-4 animate-in fade-in duration-300">
+          <div className="bg-card text-card-foreground rounded-[2rem] shadow-2xl border border-border w-full max-w-sm overflow-hidden zoom-in-95 duration-200 animate-in p-8 text-center">
+            <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Clock className="w-10 h-10 text-blue-500" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Coming Soon</h3>
+            <p className="text-muted-foreground mb-6">
+              Official WhatsApp Business API integration is under development. Stay tuned for updates!
+            </p>
+            <button 
+              onClick={() => setShowComingSoonModal(false)}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-primary/90 transition-all"
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}
