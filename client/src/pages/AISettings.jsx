@@ -397,7 +397,7 @@ export default function AISettings() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
         <div className="flex items-center gap-4">
           <Link 
-            to="/devices" 
+            to="/app/devices" 
             className="p-3 bg-card hover:bg-muted text-foreground rounded-2xl transition-all border border-border shadow-sm"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -683,7 +683,7 @@ export default function AISettings() {
                          <Package className="w-4 h-4 text-primary" /> {t('aiSettings.productCatalog')}
                       </h3>
                       <Link 
-                         to={`/devices/${deviceId}/products`}
+                         to={`/app/devices/${deviceId}/products`}
                          className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-primary/20 flex items-center gap-2 hover:bg-primary/90 transition-all"
                       >
                          <Edit className="w-3 h-3" /> {t('aiSettings.manageProducts')}

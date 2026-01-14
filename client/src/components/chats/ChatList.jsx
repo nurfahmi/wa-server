@@ -12,6 +12,7 @@ export const ChatList = ({
   filter, 
   currentUserId, 
   searchQuery, 
+  userRole,
   t 
 }) => {
   if (loading) return (
@@ -56,16 +57,18 @@ export const ChatList = ({
             )}
           >
             {/* Delete Button - Top Right Corner */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(chat);
-              }}
-              className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/10 hover:bg-destructive/20 text-destructive z-10"
-              title="Delete chat"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {userRole !== 'agent' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(chat);
+                }}
+                className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/10 hover:bg-destructive/20 text-destructive z-10"
+                title="Delete chat"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
 
             <div 
               onClick={() => onSelect(chat)}

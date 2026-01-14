@@ -61,10 +61,28 @@ class ConnectionHandler {
           timestamp: new Date().toISOString(),
         });
 
-        if (token !== config.apiToken) {
-          console.log("[WS] Invalid token, closing connection");
-          ws.close(1008, "Invalid token");
-          return;
+        // Check token in URL (legacy/simple auth)
+        const isValidUrlToken = token === config.apiToken;
+        let isAuthenticated = isValidUrlToken;
+
+        console.log("[WS] Connection state:", {
+          hasUrlToken: !!token,
+          isAuthenticated,
+          timestamp: new Date().toISOString()
+        });
+
+        // We don't close immediately if no token - wait for auth/subscribe message
+        if (isAuthenticated) {
+          console.log("[WS] Valid URL token, connection accepted");
+        } else {
+          console.log("[WS] No URL token, waiting for authentication payload");
+          // Set a timeout to disconnect if no auth received
+          setTimeout(() => {
+            if (!isAuthenticated && ws.readyState === ws.OPEN) {
+              console.log("[WS] Auth timeout, closing connection");
+              ws.close(1008, "Auth timeout");
+            }
+          }, 5000);
         }
 
         console.log("[WS] Valid token, connection accepted");
@@ -81,6 +99,19 @@ class ConnectionHandler {
             });
 
             if (data.type === "subscribe" && data.sessionId) {
+              // Validate token if not already authenticated
+              if (!isAuthenticated) {
+                if (data.token === config.apiToken) {
+                  isAuthenticated = true;
+                  console.log("[WS] Authenticated via subscribe payload");
+                } else {
+                  console.log("[WS] Invalid token in subscribe payload");
+                  ws.close(1008, "Invalid token");
+                  return;
+                }
+              }
+
+              console.log(`[WS] Client subscribing to session: ${data.sessionId}`);
               console.log(`[WS] Client subscribing to session: ${data.sessionId}`);
 
               // Support multiple clients per session
@@ -421,7 +452,7 @@ class ConnectionHandler {
     // Handle message status updates (delivery receipts)
     sock.ev.on("messages.update", async (updates) => {
       try {
-        const { Message } = await import("../../models/index.js");
+        const { Message, ChatHistory } = await import("../../models/index.js");
         const device = await Device.findOne({ where: { sessionId } });
         
         if (!device) {
@@ -452,8 +483,9 @@ class ConnectionHandler {
               continue;
             }
             
-            // Find and update the message in database
             const messageId = key.id;
+            
+            // 1. Update Message model (Legacy/Queue)
             const existingMessage = await Message.findOne({
               where: {
                 deviceId: device.id,
@@ -461,48 +493,68 @@ class ConnectionHandler {
               }
             });
             
+            const updateData = { status: newStatus };
+            
+            // Add timestamp fields based on status
+            if (newStatus === 'sent') {
+              updateData.sentAt = new Date();
+            } else if (newStatus === 'delivered') {
+              updateData.deliveredAt = new Date();
+            } else if (newStatus === 'read') {
+              updateData.readAt = new Date();
+            }
+
             if (existingMessage) {
-              const updateData = { status: newStatus };
-              
-              // Add timestamp fields based on status
-              if (newStatus === 'sent' && !existingMessage.sentAt) {
-                updateData.sentAt = new Date();
-              } else if (newStatus === 'delivered' && !existingMessage.deliveredAt) {
-                updateData.deliveredAt = new Date();
-              } else if (newStatus === 'read' && !existingMessage.readAt) {
-                updateData.readAt = new Date();
-              }
+              if (newStatus === 'sent' && !existingMessage.sentAt) updateData.sentAt = new Date();
+              if (newStatus === 'delivered' && !existingMessage.deliveredAt) updateData.deliveredAt = new Date();
+              if (newStatus === 'read' && !existingMessage.readAt) updateData.readAt = new Date();
               
               await existingMessage.update(updateData);
-              
-              console.log(`[MSG-UPDATE] Updated message ${messageId} status to ${newStatus}`);
-              
-              // Broadcast status update to WebSocket clients
-              const clients = this.service.wsClients.get(sessionId);
-              if (clients && clients.size > 0) {
-                const payload = JSON.stringify({
-                  type: "message_status_update",
-                  sessionId,
-                  data: {
-                    messageId,
-                    whatsappMessageId: messageId,
-                    status: newStatus,
-                    sentAt: updateData.sentAt,
-                    deliveredAt: updateData.deliveredAt,
-                    readAt: updateData.readAt,
-                    chatId: key.remoteJid
-                  },
-                  timestamp: new Date().toISOString()
-                });
-                
-                clients.forEach(ws => {
-                  if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(payload);
-                  }
-                });
+              console.log(`[MSG-UPDATE] Updated Message ${messageId} status to ${newStatus}`);
+            }
+
+            // 2. Update ChatHistory model (Persistent Log)
+            const historyRecord = await ChatHistory.findOne({
+              where: {
+                deviceId: device.id,
+                messageId: messageId
               }
-            } else {
-              console.log(`[MSG-UPDATE] Message ${messageId} not found in database`);
+            });
+
+            if (historyRecord) {
+              // Only update timestamps if they are new, to avoid overwriting with later dates if processed twice
+              const historyUpdate = { status: newStatus };
+              if (newStatus === 'sent' && !historyRecord.sentAt) historyUpdate.sentAt = new Date();
+              if (newStatus === 'delivered' && !historyRecord.deliveredAt) historyUpdate.deliveredAt = new Date();
+              if (newStatus === 'read' && !historyRecord.readAt) historyUpdate.readAt = new Date();
+
+              await historyRecord.update(historyUpdate);
+              console.log(`[MSG-UPDATE] Updated ChatHistory ${messageId} status to ${newStatus}`);
+            }
+            
+            // Broadcast status update to WebSocket clients
+            const clients = this.service.wsClients.get(sessionId);
+            if (clients && clients.size > 0) {
+              const payload = JSON.stringify({
+                type: "message_status_update",
+                sessionId,
+                data: {
+                  messageId,
+                  whatsappMessageId: messageId,
+                  status: newStatus,
+                  sentAt: updateData.sentAt,
+                  deliveredAt: updateData.deliveredAt,
+                  readAt: updateData.readAt,
+                  chatId: key.remoteJid
+                },
+                timestamp: new Date().toISOString()
+              });
+              
+              clients.forEach(ws => {
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(payload);
+                }
+              });
             }
           } catch (updateError) {
             console.error(`[MSG-UPDATE] Error processing update:`, updateError);

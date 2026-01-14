@@ -341,13 +341,13 @@ export default function Devices() {
                   {/* Actions Row 1 */}
                   <div className="flex gap-2">
                      <Link 
-                        to={`/devices/${device.id}/ai-settings`}
+                        to={`/app/devices/${device.id}/ai-settings`}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground rounded-2xl transition-all font-bold text-sm"
                      >
                         <Brain className="w-4 h-4" /> {t('devices.aiSettings')}
                      </Link>
                      <Link 
-                        to={`/devices/${device.id}/chats`}
+                        to={`/app/devices/${device.id}/chats`}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
                      >
                         <MessageSquare className="w-4 h-4" /> {t('devices.chats')}
@@ -357,7 +357,7 @@ export default function Devices() {
                   {/* Actions Row 1.5 - Product Catalog */}
                   <div className="flex gap-2">
                      <Link 
-                        to={`/devices/${device.id}/products`}
+                        to={`/app/devices/${device.id}/products`}
                         className="w-full flex items-center justify-center gap-2 py-2.5 bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white rounded-2xl transition-all font-bold text-sm"
                      >
                         <Inventory className="w-4 h-4" /> Product Catalog (AI)

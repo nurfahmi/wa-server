@@ -53,25 +53,27 @@ export default function DashboardLayout() {
     return () => mainEl?.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const APP_NAME = import.meta.env.VITE_APP_NAME || 'BALES.IN';
+
   const navigation = [
-    { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
-    { name: t('nav.devices'), href: '/devices', icon: Smartphone, roles: ['user', 'superadmin'] },
-    { name: t('nav.agents'), href: '/agents', icon: User, roles: ['user', 'superadmin'] },
-    { name: t('nav.chats'), href: '/chats', icon: MessagesSquare, roles: ['user', 'superadmin', 'agent'] },
-    { name: t('nav.csManagement'), href: '/cs-dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
-    { name: t('nav.gallery'), href: '/gallery', icon: Image, roles: ['user', 'superadmin'] },
-    { name: t('nav.chatHistory') || 'Chat History', href: '/chat-history', icon: Archive, roles: ['user', 'superadmin'] },
+    { name: t('nav.dashboard'), href: '/app/dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
+    { name: t('nav.devices'), href: '/app/devices', icon: Smartphone, roles: ['user', 'superadmin'] },
+    { name: t('nav.agents'), href: '/app/agents', icon: User, roles: ['user', 'superadmin'] },
+    { name: t('nav.chats'), href: '/app/chats', icon: MessagesSquare, roles: ['user', 'superadmin', 'agent'] },
+    { name: t('nav.csManagement'), href: '/app/cs-dashboard', icon: LayoutDashboard, roles: ['user', 'superadmin'] },
+    { name: t('nav.gallery'), href: '/app/gallery', icon: Image, roles: ['user', 'superadmin'] },
+    { name: t('nav.chatHistory') || 'Chat History', href: '/app/chat-history', icon: Archive, roles: ['user', 'superadmin'] },
   ].filter(item => item.roles.includes(user?.role));
 
   const mobileNavItems = [
-    { name: t('nav.menu'), href: '/menu', icon: Menu },
-    { name: t('nav.chats'), href: '/chats', icon: MessagesSquare },
-    { name: t('nav.devices'), href: '/devices', icon: Smartphone },
-    { name: t('nav.stats'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.menu'), href: '/app/menu', icon: Menu },
+    { name: t('nav.chats'), href: '/app/chats', icon: MessagesSquare },
+    { name: t('nav.devices'), href: '/app/devices', icon: Smartphone },
+    { name: t('nav.stats'), href: '/app/dashboard', icon: LayoutDashboard },
   ];
 
   // Helper to check if we are on a nested route or specific page beyond the hub
-  const isAtHub = location.pathname === '/menu';
+  const isAtHub = location.pathname === '/app/menu';
   // const isNested = location.pathname.split('/').filter(Boolean).length > 1 || (!isAtHub && location.pathname !== '/dashboard');
 
   return (
@@ -94,7 +96,7 @@ export default function DashboardLayout() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                <MessageSquare className="w-6 h-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Balas Chat AI</span>
+            <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)} 
@@ -106,7 +108,7 @@ export default function DashboardLayout() {
 
         <nav className="flex-1 flex flex-col p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href || (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+            const isActive = location.pathname === item.href || (item.href !== '/app/dashboard' && location.pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}
@@ -136,12 +138,12 @@ export default function DashboardLayout() {
         <header className="hidden lg:flex items-center justify-between h-20 px-8 bg-card/80 backdrop-blur-xl border-b border-border sticky top-0 z-50 transition-all duration-300">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-black tracking-tight bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">
-              {location.pathname === '/dashboard' ? t('nav.dashboard') :
-               location.pathname === '/devices' ? t('nav.devices') :
-               location.pathname === '/agents' ? t('nav.agents') :
-               location.pathname === '/chats' ? t('nav.chats') :
-               location.pathname === '/cs-dashboard' ? t('nav.csManagement') :
-               location.pathname === '/gallery' ? t('nav.gallery') :
+              {location.pathname === '/app/dashboard' ? t('nav.dashboard') :
+               location.pathname === '/app/devices' ? t('nav.devices') :
+               location.pathname === '/app/agents' ? t('nav.agents') :
+               location.pathname === '/app/chats' ? t('nav.chats') :
+               location.pathname === '/app/cs-dashboard' ? t('nav.csManagement') :
+               location.pathname === '/app/gallery' ? t('nav.gallery') :
                location.pathname.split('/').filter(Boolean).pop()?.replace(/-/g, ' ').toUpperCase()}
             </h2>
           </div>
@@ -246,7 +248,7 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-3">
             {!isAtHub && (
                 <button 
-                  onClick={() => navigate('/menu')} 
+                  onClick={() => navigate('/app/menu')} 
                   className="p-2 -ml-2 hover:bg-muted rounded-full transition-colors animate-in slide-in-from-left duration-300"
                 >
                     <ChevronLeft className="w-6 h-6" />
@@ -347,7 +349,7 @@ export default function DashboardLayout() {
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[90] bg-card/80 backdrop-blur-2xl border-t border-border px-4 pb-safe-area-inset-bottom pt-3 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
           <div className="flex items-center justify-around max-w-md mx-auto relative">
             {mobileNavItems.map((item) => {
-              const isActive = location.pathname === item.href || (item.href !== '/menu' && location.pathname.startsWith(item.href));
+              const isActive = location.pathname === item.href || (item.href !== '/app/menu' && location.pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.name}

@@ -49,7 +49,7 @@ export default function MobileMenu() {
   const menuItems = [
     { 
       name: 'Dashboard', 
-      href: '/dashboard', 
+      href: '/app/dashboard', 
       icon: LayoutDashboard, 
       roles: ['user', 'superadmin'],
       description: 'System overview & real-time traffic analysis.',
@@ -57,7 +57,7 @@ export default function MobileMenu() {
     },
     { 
       name: 'Live Chats', 
-      href: '/chats', 
+      href: '/app/chats', 
       icon: MessagesSquare, 
       roles: ['user', 'superadmin', 'agent'],
       description: 'Manage active conversations & customer support.',
@@ -65,7 +65,7 @@ export default function MobileMenu() {
     },
     { 
       name: 'WA Devices', 
-      href: '/devices', 
+      href: '/app/devices', 
       icon: Smartphone, 
       roles: ['user', 'superadmin'],
       description: 'Connect & manage your WhatsApp accounts.',
@@ -73,7 +73,7 @@ export default function MobileMenu() {
     },
     { 
       name: 'CS Management', 
-      href: '/cs-dashboard', 
+      href: '/app/cs-dashboard', 
       icon: ShieldCheck, 
       roles: ['user', 'superadmin'],
       description: 'Team efficiency & automated handling stats.',
@@ -81,7 +81,7 @@ export default function MobileMenu() {
     },
     { 
       name: 'Agents/Team', 
-      href: '/agents', 
+      href: '/app/agents', 
       icon: User, 
       roles: ['user', 'superadmin'],
       description: 'Manage agent access & permissions.',
@@ -89,7 +89,7 @@ export default function MobileMenu() {
     },
     { 
       name: 'Media Gallery', 
-      href: '/gallery', 
+      href: '/app/gallery', 
       icon: Image, 
       roles: ['user', 'superadmin'],
       description: 'Shared images & file history.',

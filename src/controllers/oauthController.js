@@ -236,3 +236,17 @@ export const getMe = async (req, res) => {
   }
 };
 
+// Fetch available packages from Membership Hub
+export const getPackages = async (req, res) => {
+  try {
+    const data = await hub.getPackages();
+    if (!data.success || !data.packages || data.packages.length === 0) {
+      return res.json({ success: true, packages: [] });
+    }
+    res.json(data);
+  } catch (error) {
+    console.error("[OAUTH] Failed to fetch packages:", error);
+    res.json({ success: true, packages: [] });
+  }
+};
+

@@ -16,7 +16,7 @@ import { Device } from "../models/index.js";
  */
 export const getArchivedDevices = async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
+    const userId = req.user?.role === 'agent' ? req.user.managerId : (req.user?.id || req.query.userId);
     
     if (!userId) {
       return res.status(400).json({ error: "User ID is required" });
@@ -40,7 +40,7 @@ export const getArchivedDevices = async (req, res) => {
  */
 export const getActiveDevices = async (req, res) => {
   try {
-    const userId = req.user?.id || req.query.userId;
+    const userId = req.user?.role === 'agent' ? req.user.managerId : (req.user?.id || req.query.userId);
     
     if (!userId) {
       return res.status(400).json({ error: "User ID is required" });
@@ -73,8 +73,11 @@ export const archiveDevice = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
     
-    if (req.user && req.user.role !== 'superadmin' && String(device.userId) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Not authorized to archive this device" });
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to archive this device" });
+      }
     }
 
     const result = await ChatHistoryMigrationService.archiveDevice(deviceId, reason || 'manual');
@@ -104,8 +107,11 @@ export const unarchiveDevice = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
     
-    if (req.user && req.user.role !== 'superadmin' && String(device.userId) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Not authorized to unarchive this device" });
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to unarchive this device" });
+      }
     }
 
     const result = await ChatHistoryMigrationService.unarchiveDevice(deviceId);
@@ -136,8 +142,11 @@ export const getConversations = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
     
-    if (req.user && req.user.role !== 'superadmin' && String(device.userId) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Not authorized to view this device's history" });
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to view this device's history" });
+      }
     }
 
     const result = await ChatHistoryMigrationService.getConversationsByDevice(deviceId, {
@@ -178,8 +187,11 @@ export const getMessages = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
     
-    if (req.user && req.user.role !== 'superadmin' && String(device.userId) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Not authorized to view this device's history" });
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to view this device's history" });
+      }
     }
 
     const result = await ChatHistoryMigrationService.getMessagesByChat(deviceId, chatId, {
@@ -307,8 +319,11 @@ export const deleteArchivedDevice = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
     
-    if (req.user && req.user.role !== 'superadmin' && String(device.userId) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Not authorized to delete this device" });
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Not authorized to delete this device" });
+      }
     }
 
     if (device.status !== 'archived') {

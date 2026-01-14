@@ -81,7 +81,7 @@ export const ChatSidebar = ({
                           <button
                             key={d.id}
                             onClick={() => {
-                               navigate(`/devices/${d.id}/chats`);
+                               navigate(`/app/devices/${d.id}/chats`);
                                setShowDeviceDropdown(false);
                             }}
                             className={clsx(
@@ -105,7 +105,7 @@ export const ChatSidebar = ({
                           </button>
                         ))}
                         <Link 
-                          to="/devices" 
+                          to="/app/devices" 
                           className="flex items-center gap-3 p-3 mt-1 rounded-2xl hover:bg-muted text-primary transition-all text-left"
                         >
                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -139,7 +139,7 @@ export const ChatSidebar = ({
                  {isDark ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
               </button>
               <button 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/app/dashboard')}
                 className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground transition-colors focus:text-destructive"
                 title="Exit Chat"
               >
@@ -187,6 +187,7 @@ export const ChatSidebar = ({
           filter={filter}
           searchQuery={searchQuery}
           currentUserId={user?.id}
+          userRole={user?.role}
           t={t}
         />
 

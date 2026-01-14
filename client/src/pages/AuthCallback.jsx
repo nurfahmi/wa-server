@@ -43,7 +43,7 @@ export default function AuthCallback() {
            // res.data.token is our local JWT
            handleCallback(res.data.token).then(() => {
              console.log("[AUTH-CALLBACK] Token stored, navigating to dashboard...");
-             navigate("/dashboard", { replace: true });
+             navigate("/app/dashboard", { replace: true });
            });
         })
         .catch(err => {

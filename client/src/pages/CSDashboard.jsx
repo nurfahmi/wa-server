@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { 
   MessageCircle, 
@@ -39,6 +40,7 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function CSDashboard() {
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,11 +89,11 @@ export default function CSDashboard() {
             <button onClick={fetchData} className="p-2.5 bg-card border border-border text-muted-foreground rounded-xl hover:text-foreground transition-all">
                <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
             </button>
-            <Link to="/agents" className="flex items-center gap-2 px-6 py-3 bg-card border border-border text-foreground rounded-xl hover:bg-muted transition-all font-bold shadow-sm">
+            <Link to="/app/agents" className="flex items-center gap-2 px-6 py-3 bg-card border border-border text-foreground rounded-xl hover:bg-muted transition-all font-bold shadow-sm">
                <Users className="w-4 h-4 text-primary" />
                {t('csDashboard.team')}
             </Link>
-            <Link to="/chats" className="group flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 font-black uppercase tracking-wider text-xs">
+            <Link to="/app/chats" className="group flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 font-black uppercase tracking-wider text-xs">
                {t('csDashboard.liveInbox')}
                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -132,7 +134,7 @@ export default function CSDashboard() {
                     </div>
                     <h3 className="font-black text-xl tracking-tight">{t('csDashboard.priorityQueue')}</h3>
                  </div>
-                 <Link to="/chats" className="text-[10px] font-black text-primary hover:bg-primary/5 px-4 py-2 rounded-xl transition-all uppercase tracking-widest border border-primary/20">
+                 <Link to="/app/chats" className="text-[10px] font-black text-primary hover:bg-primary/5 px-4 py-2 rounded-xl transition-all uppercase tracking-widest border border-primary/20">
                     {t('csDashboard.liveView')}
                  </Link>
               </div>
@@ -145,7 +147,7 @@ export default function CSDashboard() {
                     </div>
                  ) : stats.priorityQueue.map(chat => (
                     <Link 
-                      to={`/chats?chatId=${chat.chatId}&deviceId=${chat.deviceId}`}
+                      to={`/app/chats?chatId=${chat.chatId}&deviceId=${chat.deviceId}`}
                       key={chat.id} 
                       className="p-6 hover:bg-muted/30 transition-all flex items-center gap-6 group cursor-pointer"
                     >
@@ -155,7 +157,7 @@ export default function CSDashboard() {
                        <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-1">
                              <h4 className="font-black text-foreground group-hover:text-primary transition-colors tracking-tight truncate pr-4">{chat.contactName || chat.phoneNumber}</h4>
-                             <span className="text-[10px] font-black text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-lg border border-border flex items-center gap-1 shrink-0 uppercase tracking-widest">
+                             <span className="text-[10px] font-black text-muted-foreground bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border flex items-center gap-1 shrink-0 uppercase tracking-widest">
                                 <Clock className="w-3 h-3"/> {new Date(chat.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                              </span>
                           </div>
@@ -225,11 +227,13 @@ export default function CSDashboard() {
                        </div>
                     ))}
                  </div>
-                 <div className="p-6 bg-muted/10 border-t border-border mt-2">
-                    <Link to="/agents" className="w-full flex justify-center py-4 text-[10px] font-black text-muted-foreground hover:text-foreground hover:bg-muted rounded-2xl transition-all border border-dashed border-border/50 uppercase tracking-widest">
-                       {t('csDashboard.teamSettings')}
-                    </Link>
-                 </div>
+                 {user?.role !== 'agent' && (
+                    <div className="p-6 bg-muted/10 border-t border-border mt-2">
+                      <Link to="/app/agents" className="w-full flex justify-center py-4 text-[10px] font-black text-muted-foreground hover:text-foreground hover:bg-muted rounded-2xl transition-all border border-dashed border-border/50 uppercase tracking-widest">
+                          {t('csDashboard.teamSettings')}
+                      </Link>
+                    </div>
+                 )}
               </div>
 
               {/* AI vs Human Stats Card */}

@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -24,7 +25,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (!user) return <Navigate to="/login" />;
   
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" />;
+    return <Navigate to="/app" />;
   }
   
   return children;
@@ -34,9 +35,14 @@ const DashboardRedirect = () => {
   const { user } = useAuth();
   const isMobile = window.innerWidth < 1024;
   
-  if (isMobile) return <Navigate to="/menu" />;
-  if (user?.role === 'agent') return <Navigate to="/chats" />;
-  return <Navigate to="/dashboard" />;
+  if (isMobile) return <Navigate to="/app/menu" />;
+  if (user?.role === 'agent') return <Navigate to="/app/chats" />;
+  return <Navigate to="/app/dashboard" />;
+};
+
+const RedirectToDeviceChats = () => {
+  const { deviceId } = useParams();
+  return <Navigate to={`/app/devices/${deviceId}/chats`} replace />;
 };
 
 function App() {
@@ -47,18 +53,28 @@ function App() {
           <Router>
             <AuthProvider>
               <Routes>
+                {/* Public Pages */}
+                <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
-                {/* ... routes ... */}
+                <Route path="/devices/:deviceId/chats" element={<RedirectToDeviceChats />} />
+                <Route path="/chats" element={<Navigate to="/app/chats" replace />} />
+                <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="/devices" element={<Navigate to="/app/devices" replace />} />
+                <Route path="/agents" element={<Navigate to="/app/agents" replace />} />
+                <Route path="/gallery" element={<Navigate to="/app/gallery" replace />} />
+                <Route path="/cs-dashboard" element={<Navigate to="/app/cs-dashboard" replace />} />
+                <Route path="/chat-history" element={<Navigate to="/app/chat-history" replace />} />
+                
                 {/* Full Screen Pages (No Dashboard Layout) */}
-                <Route path="/devices/:deviceId/chats" element={
+                <Route path="/app/devices/:deviceId/chats" element={
                   <ProtectedRoute>
                     <Chat />
                   </ProtectedRoute>
                 } />
 
                 {/* Dashboard Pages */}
-                <Route path="/" element={
+                <Route path="/app" element={
                   <ProtectedRoute>
                     <DashboardLayout />
                   </ProtectedRoute>

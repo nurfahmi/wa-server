@@ -187,7 +187,7 @@ export default function Chats() {
       
       // Navigate to the new chat
       const chatId = phoneNumber.includes("@") ? phoneNumber : `${phoneNumber}@s.whatsapp.net`;
-      navigate(`/devices/${device.id}/chats?chatId=${formatJid(chatId)}`);
+      navigate(`/app/devices/${device.id}/chats?chatId=${formatJid(chatId)}`);
 
     } catch (err) {
       console.error(err);
@@ -293,7 +293,7 @@ export default function Chats() {
       const shortId = formatJid(selectedChat.chatId);
       const currentUrlId = searchParams.get('chatId');
       if (currentUrlId !== shortId) {
-        navigate(`/devices/${deviceId}/chats?chatId=${shortId}`, { replace: true });
+        navigate(`/app/devices/${deviceId}/chats?chatId=${shortId}`, { replace: true });
       }
     }
   }, [selectedChat, deviceId, searchParams, navigate]);
@@ -373,12 +373,16 @@ export default function Chats() {
      // For HTTPS (Cloudflare Tunnel), don't specify port - it uses standard 443
      // For HTTP (localhost dev), use the configured port
      const wsPort = isSecure ? '' : `:${wsConfig.port}`;
-     const wsUrl = `${wsProtocol}//${wsHost}${wsPort}?token=${wsConfig.token}`;
+     const wsUrl = `${wsProtocol}//${wsHost}${wsPort}`;
      const ws = new WebSocket(wsUrl);
      wsRef.current = ws;
 
      ws.onopen = () => {
-       ws.send(JSON.stringify({ type: "subscribe", sessionId: device.sessionId }));
+       ws.send(JSON.stringify({ 
+         type: "subscribe", 
+         sessionId: device.sessionId,
+         token: wsConfig.token 
+       }));
      };
 
      ws.onmessage = (event) => {
@@ -797,10 +801,10 @@ export default function Chats() {
       />
 
       <ChatWindow 
+        user={user}
         selectedChat={selectedChat}
         setSelectedChat={setSelectedChat}
         messages={messages}
-        user={user}
         messageText={messageText}
         setMessageText={setMessageText}
         onSendMessage={handleSendMessage}

@@ -155,8 +155,9 @@ export const getUserDevices = async (req, res) => {
     // We might want a new route /devices for admin to see all. 
     // But for this specific function, it handles fetching by userId.
     
+    const ownerId = req.user.role === 'agent' ? req.user.managerId : req.user.id;
     const devices = await Device.findAll({
-      where: { userId },
+      where: { userId: String(ownerId) },
       order: [["lastConnection", "DESC"]],
     });
 
@@ -180,6 +181,14 @@ export const getDevice = async (req, res) => {
 
     if (!device) {
       return res.status(404).json({ error: "Device not found" });
+    }
+
+    // Security Check
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Access denied to this device" });
+      }
     }
 
     // Get current WhatsApp connection status
@@ -207,6 +216,14 @@ export const updateDevice = async (req, res) => {
     const device = await Device.findByPk(deviceId);
     if (!device) {
       return res.status(404).json({ error: "Device not found" });
+    }
+
+    // Security Check
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Access denied to this device" });
+      }
     }
 
     // Only update allowed fields
@@ -486,6 +503,14 @@ export const updateAISettings = async (req, res) => {
       return res.status(404).json({ error: "Device not found" });
     }
 
+    // Security Check
+    if (req.user && req.user.role !== 'superadmin') {
+      const ownerId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
+      if (String(device.userId) !== ownerId) {
+        return res.status(403).json({ error: "Access denied to this device" });
+      }
+    }
+
     // Only allow user-configurable settings (provider/model/temperature from env)
     const updates = {
       // Core AI settings
@@ -659,7 +684,9 @@ export const getSessions = async (req, res) => {
         status: {
           [Op.ne]: "deleted",
         },
-        ...(req.user && req.user.role !== 'superadmin' ? { userId: String(req.user.id) } : {})
+        ...(req.user && req.user.role !== 'superadmin' 
+          ? { userId: String(req.user.role === 'agent' ? req.user.managerId : req.user.id) } 
+          : {})
       },
       order: [["lastConnection", "DESC"]],
     });

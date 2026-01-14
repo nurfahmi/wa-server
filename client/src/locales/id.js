@@ -16,6 +16,23 @@ export const id = {
   next: "Lanjut",
   prev: "Sebelumnya",
   
+  common: {
+    loading: "Memuat...",
+    save: "Simpan",
+    cancel: "Batal",
+    delete: "Hapus",
+    edit: "Edit",
+    add: "Tambah",
+    search: "Cari",
+    filter: "Filter",
+    refresh: "Refresh",
+    close: "Tutup",
+    submit: "Kirim",
+    back: "Kembali",
+    next: "Lanjut",
+    prev: "Sebelumnya",
+  },
+  
   // Navigation
   nav: {
     dashboard: "Dashboard",
@@ -31,7 +48,8 @@ export const id = {
     logout: "Keluar",
     sidebar: "Menu",
     lightMode: "Mode Terang",
-    darkMode: "Mode Gelap"
+    darkMode: "Mode Gelap",
+    login: "Masuk"
   },
   
   // Auth
@@ -63,6 +81,7 @@ export const id = {
     welcomeBackBoss: "Hai Boss, Selamat Datang!",
     secureAuthorization: "Login aman untuk kelola bisnis kamu",
     signInWith: "Masuk dengan",
+    signInOrRegister: "Masuk atau Daftar",
     termsPrivacy: "Dengan masuk, kamu setuju dengan Syarat & Ketentuan serta Kebijakan Privasi kami. Data kamu dilindungi enkripsi 256-bit.",
     teamLogin: "Login sebagai Tim",
     accessWorkspace: "Akses workspace kamu",
@@ -642,5 +661,24 @@ export const id = {
     devices: "Perangkat",
     chats: "Chat",
     messages: "Pesan"
-  }
+  },
+  landing: {
+  heroTitle: "Balas Chat,",
+  heroSubtitle: "Lebih Cepat.",
+  heroDesc: "Ubah WhatsApp kamu jadi mesin penjualan 24/7. AI tangani pertanyaan customer, tim kamu fokus closing deals.",
+  ctaStart: "Coba Sekarang",
+  uspSecure: "Koneksi Aman",
+  uspSupport: "Support 24/7",
+  uspGlobal: "Jangkauan Global",
+  featuresTitle: "Semua yang Kamu Butuhkan untuk",
+  featuresSubtitle: "Kembangkan Bisnis",
+  featuresDesc: "Fitur powerful yang dirancang untuk bantu kamu handle lebih banyak customer dengan lebih sedikit effort.",
+  howItWorks: "Mulai dalam",
+  steps: "Langkah Mudah",
+  pricingTitle: "Harga",
+  pricingSubtitle: "Transparan",
+  pricingDesc: "Fitur premium untuk bisnis yang sedang berkembang pesat.",
+  loadingPlans: "Memuat paket terbaik...",
+  footerRights: "Hak cipta dilindungi."
+},
 };

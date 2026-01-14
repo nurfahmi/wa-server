@@ -138,22 +138,24 @@ export const ChatInfoPanel = ({
                        >
                           <User className="w-4 h-4" /> <span>{t('chats.name') || 'Name'}</span>
                        </button>
-                       <button 
-                         onClick={async () => {
-                            if (await showConfirm({
-                                title: t('chats.block'),
-                                message: t('chats.blockConfirm'),
-                                type: 'danger',
-                                confirmText: t('chats.block')
-                            })) {
-                                await showAlert({ title: t('modal.success'), message: t('chats.blockSuccess'), type: 'success' });
-                            }
-                         }}
-                         className="flex flex-col items-center justify-center gap-1.5 p-2 bg-red-500/5 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-red-500/10"
-                         title="Block Contact"
-                       >
-                          <ShieldCheck className="w-4 h-4" /> <span>{t('chats.block') || 'Block'}</span>
-                       </button>
+                       {user?.role !== 'agent' && (
+                         <button 
+                           onClick={async () => {
+                              if (await showConfirm({
+                                  title: t('chats.block'),
+                                  message: t('chats.blockConfirm'),
+                                  type: 'danger',
+                                  confirmText: t('chats.block')
+                              })) {
+                                  await showAlert({ title: t('modal.success'), message: t('chats.blockSuccess'), type: 'success' });
+                              }
+                           }}
+                           className="flex flex-col items-center justify-center gap-1.5 p-2 bg-red-500/5 text-red-600 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border border-red-500/10"
+                           title="Block Contact"
+                         >
+                           <ShieldCheck className="w-4 h-4" /> <span>{t('chats.block') || 'Block'}</span>
+                         </button>
+                       )}
                        <button 
                          onClick={() => {
                             const chatData = JSON.stringify({ contact: selectedChat, messages: messages }, null, 2);
@@ -269,7 +271,7 @@ export const ChatInfoPanel = ({
               <div className="space-y-2">
                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chats.aiControls') || 'AI Controls'}</label>
                  <div className="flex flex-col gap-1.5">
-                    <Link to={`/devices/${deviceId}/ai-settings`} className="flex items-center gap-2 py-1.5 px-3 bg-muted rounded-lg text-[9px] font-black uppercase border border-border hover:bg-accent transition-all">
+                    <Link to={`/app/devices/${deviceId}/ai-settings`} className="flex items-center gap-2 py-1.5 px-3 bg-muted rounded-lg text-[9px] font-black uppercase border border-border hover:bg-accent transition-all">
                        <Brain className="w-3 h-3 text-primary" /> Settings
                     </Link>
                     <button onClick={handleClearMemory} className="flex items-center gap-2 py-1.5 px-3 bg-muted rounded-lg text-[9px] font-black uppercase border border-border hover:bg-accent transition-all text-amber-600">

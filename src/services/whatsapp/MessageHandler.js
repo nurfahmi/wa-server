@@ -253,6 +253,9 @@ class MessageHandler {
             fromMe: isFromMe,
             senderName: isFromMe ? null : (message.pushName || null),
             agentName: isFromMe ? "External" : null, // Mark as External if sent from Phone
+            status: isFromMe ? "sent" : "delivered",
+            sentAt: isFromMe ? new Date() : null,
+            deliveredAt: isFromMe ? null : new Date(),
           });
           console.log(`[ChatHistory] Saved ${isFromMe ? 'outgoing (external)' : 'incoming'} message for ${phoneNumber}`);
         } else if (existing && mediaUrl && !existing.mediaUrl) {
@@ -1103,7 +1106,9 @@ class MessageHandler {
           senderName: agentName || "System",
           agentId: agentId,
           agentName: agentName,
-          isAiGenerated: !!options.isAiGenerated
+          isAiGenerated: !!options.isAiGenerated,
+          status: "sent",
+          sentAt: new Date()
         });
         console.log(`[ChatHistory] Successfully saved outgoing message to ${cleanPhone}`);
         

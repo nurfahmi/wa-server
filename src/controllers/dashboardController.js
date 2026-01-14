@@ -14,7 +14,7 @@ import WhatsAppService from "../services/WhatsAppService.js";
  */
 export const getDashboardStats = async (req, res) => {
   try {
-    const userId = String(req.user.id);
+    const userId = String(req.user.role === 'agent' ? req.user.managerId : req.user.id);
     const isSuperAdmin = req.user.role === 'superadmin';
 
     // 1. Device Stats

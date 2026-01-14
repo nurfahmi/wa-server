@@ -16,6 +16,23 @@ export const en = {
   next: "Next",
   prev: "Previous",
   
+  common: {
+    loading: "Loading...",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    edit: "Edit",
+    add: "Add",
+    search: "Search",
+    filter: "Filter",
+    refresh: "Refresh",
+    close: "Close",
+    submit: "Submit",
+    back: "Back",
+    next: "Next",
+    prev: "Previous",
+  },
+  
   // Navigation
   nav: {
     dashboard: "Dashboard",
@@ -31,7 +48,8 @@ export const en = {
     logout: "Sign Out",
     sidebar: "Sidebar",
     lightMode: "Light Mode",
-    darkMode: "Dark Mode"
+    darkMode: "Dark Mode",
+    login: "Sign In"
   },
   
   // Auth
@@ -63,13 +81,16 @@ export const en = {
     welcomeBackBoss: "Welcome Back Boss!",
     secureAuthorization: "Secure authorization for business management",
     signInWith: "Sign in with",
+    signInOrRegister: "Sign In or Register",
     termsPrivacy: "By signing in, you agree to our Terms of Service and Privacy Policy. Your data is protected with 256-bit encryption.",
     teamLogin: "Team Login",
     accessWorkspace: "Access your assigned workspace",
     emailAddress: "Email Address",
     securityPassword: "Security Password",
     verifying: "Verifying...",
-    loginToChat: "Login to Chat"
+    loginToChat: "Login to Chat",
+    emailPlaceholder: "e.g. sarah@business.com",
+    passwordPlaceholder: "Enter your password"
   },
   
   
@@ -635,5 +656,24 @@ export const en = {
     devices: "Devices",
     chats: "Chats",
     messages: "Messages"
-  }
+  },
+  landing: {
+  heroTitle: "Reply Faster,",
+  heroSubtitle: "Sell More.",
+  heroDesc: "Turn your WhatsApp into a 24/7 sales machine. AI handles customer inquiries, your team focuses on closing deals.",
+  ctaStart: "Start Now",
+  uspSecure: "Secure Connections",
+  uspSupport: "24/7 Support",
+  uspGlobal: "Global Reach",
+  featuresTitle: "Everything You Need to",
+  featuresSubtitle: "Scale Your Business",
+  featuresDesc: "Powerful features designed to help you handle more customers with less effort.",
+  howItWorks: "Get Started in",
+  steps: "Simple Steps",
+  pricingTitle: "Simple,",
+  pricingSubtitle: "Transparent Pricing",
+  pricingDesc: "Premium features for high-growth businesses.",
+  loadingPlans: "Loading optimal plans...",
+  footerRights: "All rights reserved."
+},
 };

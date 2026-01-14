@@ -8,6 +8,7 @@ import { MessageBubble } from "./MessageBubble";
 import { formatJid } from "../../utils/chatUtils";
 
 export const ChatWindow = ({
+  user,
   selectedChat,
   setSelectedChat,
   messages,
@@ -136,13 +137,15 @@ export const ChatWindow = ({
                 </div>
 
                 {/* Delete Chat Button */}
-                <button 
-                  onClick={() => handleDeleteChat(null)}
-                  className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
-                  title={t('chats.deleteChat')}
-                >
-                  <Trash2 className="w-5 h-5"/>
-                </button>
+                {user?.role !== 'agent' && (
+                  <button 
+                    onClick={() => handleDeleteChat(null)}
+                    className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
+                    title={t('chats.deleteChat')}
+                  >
+                    <Trash2 className="w-5 h-5"/>
+                  </button>
+                )}
 
                 <button 
                   onClick={() => setShowMessageSearch(!showMessageSearch)}

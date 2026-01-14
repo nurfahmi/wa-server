@@ -2,19 +2,28 @@ import { ContactData, Device, ChatSettings, ChatHistory, sequelize } from "../mo
 import { Op } from "sequelize";
 import whatsappService from "../services/WhatsAppService.js";
 
-// Helper function to validate device exists
-const validateDevice = async (deviceId) => {
+// Helper function to validate device exists and user has access
+const validateDevice = async (deviceId, user) => {
   const device = await Device.findByPk(deviceId);
   if (!device) {
     throw new Error("Device not found");
   }
+  
+  // Security Check: Ensure user owns device or is an agent of the owner
+  if (user && user.role !== 'superadmin') {
+    const ownerId = String(user.role === 'agent' ? user.managerId : user.id);
+    if (String(device.userId) !== ownerId) {
+      throw new Error("Access denied to this device");
+    }
+  }
+  
   return device;
 };
 
 export const getContacts = async (req, res) => {
   try {
     const { deviceId } = req.params;
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const contacts = await ContactData.findAll({
       where: {
@@ -25,8 +34,8 @@ export const getContacts = async (req, res) => {
 
     res.json({ contacts });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -37,7 +46,7 @@ export const getChats = async (req, res) => {
     const { deviceId } = req.params;
 
     // Validate device exists
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     // Use ChatSettings as the source for active chats (updated by MessageHandler)
     const chats = await ChatSettings.findAll({
@@ -60,8 +69,8 @@ export const getChats = async (req, res) => {
     res.json({ chats: mappedChats });
   } catch (error) {
     console.error("[getChats] Error fetching chats:", error);
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message, stack: error.stack });
   }
@@ -72,7 +81,7 @@ export const getGroups = async (req, res) => {
     const { deviceId } = req.params;
 
     // Validate device exists
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const groups = await ContactData.findAll({
       where: {
@@ -95,8 +104,8 @@ export const getGroups = async (req, res) => {
 
     res.json({ groups });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -299,7 +308,7 @@ export const getChatHistory = async (req, res) => {
     const { limit = 100, before } = req.query;
 
     // Validate device exists
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     // Build where clause
     const whereClause = {
@@ -325,8 +334,8 @@ export const getChatHistory = async (req, res) => {
       chatId: chatId,
     });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -338,7 +347,7 @@ export const updateChatSettings = async (req, res) => {
     const { deviceId, chatId } = req.params;
     const updates = req.body;
 
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const chatSettings = await ChatSettings.findOne({
       where: {
@@ -377,8 +386,8 @@ export const updateChatSettings = async (req, res) => {
       chatSettings: chatSettings.toJSON(),
     });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -390,7 +399,7 @@ export const takeoverChat = async (req, res) => {
     const { deviceId, chatId } = req.params;
     const { agentId, agentName } = req.body;
 
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const chatSettings = await ChatSettings.findOne({
       where: {
@@ -417,8 +426,8 @@ export const takeoverChat = async (req, res) => {
       chatSettings: chatSettings.toJSON(),
     });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -429,7 +438,7 @@ export const releaseChat = async (req, res) => {
   try {
     const { deviceId, chatId } = req.params;
 
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const chatSettings = await ChatSettings.findOne({
       where: {
@@ -454,8 +463,8 @@ export const releaseChat = async (req, res) => {
       chatSettings: chatSettings.toJSON(),
     });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -471,7 +480,7 @@ export const handoverChat = async (req, res) => {
       return res.status(400).json({ error: "toAgentId is required" });
     }
 
-    const device = await validateDevice(deviceId);
+    const device = await validateDevice(deviceId, req.user);
 
     const chatSettings = await ChatSettings.findOne({
       where: {
@@ -499,8 +508,8 @@ export const handoverChat = async (req, res) => {
       chatSettings: chatSettings.toJSON(),
     });
   } catch (error) {
-    if (error.message === "Device not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === "Device not found" || error.message === "Access denied to this device") {
+      return res.status(error.message === "Device not found" ? 404 : 403).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
   }
@@ -509,9 +518,10 @@ export const handoverChat = async (req, res) => {
 export const getCSDashboardStats = async (req, res) => {
   try {
     const userId = req.user.id;
+    const managerId = req.user.role === 'agent' ? req.user.managerId : userId;
     
-    // Get all devices for this user
-    const devices = await Device.findAll({ where: { userId } });
+    // Get all devices for this user (or manager if agent)
+    const devices = await Device.findAll({ where: { userId: managerId } });
     const deviceIds = devices.map(d => d.id);
 
     // 1. Chat Statistics

@@ -36,7 +36,7 @@ export const DeviceSelectionView = ({
                  <div className="col-span-full py-20 bg-card rounded-[3rem] border border-dashed border-border flex flex-col items-center">
                     <Smartphone className="w-20 h-20 text-muted-foreground opacity-20 mb-6" />
                     <p className="text-xl font-bold text-muted-foreground">{t('chats.noDevicesConnected') || 'No devices connected'}</p>
-                    <Link to="/devices" className="mt-4 text-primary font-black uppercase tracking-widest text-xs hover:underline">{t('chats.goToDevices') || 'Go to Devices Page →'}</Link>
+                    <Link to="/app/devices" className="mt-4 text-primary font-black uppercase tracking-widest text-xs hover:underline">{t('chats.goToDevices') || 'Go to Devices Page →'}</Link>
                  </div>
               ) : allDevices.map(d => (
                 <div 

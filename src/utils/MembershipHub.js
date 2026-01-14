@@ -115,7 +115,7 @@ class MembershipHub {
   async getPackages() {
     try {
       const response = await fetch(
-        `${this.hubUrl}/api/saas/services/${this.serviceId}/packages`,
+        `${this.hubUrl}/saas/api/packages/${this.serviceId}`,
         {
           headers: { Authorization: `Bearer ${this.apiKey}` },
         }
