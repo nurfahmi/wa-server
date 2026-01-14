@@ -109,13 +109,26 @@ export const createDevice = async (req, res) => {
       attributes: { include: ["apiKey"] }, // Explicitly include API key
     });
 
+    // Wait for QR code to be generated (up to 10 seconds, poll every 500ms)
+    let qrCode = null;
+    const maxWaitTime = 10000; // 10 seconds
+    const pollInterval = 500; // 500ms
+    const startTime = Date.now();
+    
+    while (!qrCode && (Date.now() - startTime) < maxWaitTime) {
+      qrCode = await WhatsAppService.getCurrentQR(result.sessionId);
+      if (!qrCode) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+
     res.json({
       message: "Device creation and session initialization started",
       device: {
         ...device.toJSON(),
         apiKey: device.apiKey, // Ensure API key is included in response
       },
-      qr: result.qr,
+      qr: qrCode,
     });
   } catch (error) {
     console.error("Error creating device:", error);
@@ -298,17 +311,17 @@ export const loginDevice = async (req, res) => {
     device.status = "connecting";
     await device.save();
 
-    // Get current QR code (it might be generated asynchronously)
+    // Wait for QR code to be generated (up to 10 seconds, poll every 500ms)
     let qrCode = null;
-    try {
-      // Wait a moment for QR generation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    const maxWaitTime = 10000; // 10 seconds
+    const pollInterval = 500; // 500ms
+    const startTime = Date.now();
+    
+    while (!qrCode && (Date.now() - startTime) < maxWaitTime) {
       qrCode = await WhatsAppService.getCurrentQR(device.sessionId);
-    } catch (qrError) {
-      console.warn(
-        `Could not get QR code for ${device.sessionId}:`,
-        qrError.message
-      );
+      if (!qrCode) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
     }
 
     res.json({
