@@ -161,7 +161,7 @@ export default function Login() {
                             <input 
                                type="email" 
                                required
-                               placeholder="e.g. sarah@business.com"
+                               placeholder={t("auth.emailPlaceholder") || "e.g. sarah@business.com"}
                                value={email}
                                onChange={e => setEmail(e.target.value)}
                                className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600 font-medium"
@@ -176,7 +176,7 @@ export default function Login() {
                             <input 
                                type={showPassword ? "text" : "password"}
                                required
-                               placeholder="Enter your password"
+                               placeholder={t("auth.passwordPlaceholder") || "Enter your password"}
                                value={password}
                                onChange={e => setPassword(e.target.value)}
                                className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600 font-medium"

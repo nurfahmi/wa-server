@@ -269,7 +269,7 @@ export default function Agents() {
                        value={newAgent.name}
                        onChange={e => setNewAgent({...newAgent, name: e.target.value})}
                        className="w-full px-6 py-4 bg-muted/30 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none font-medium"
-                       placeholder="e.g. John Doe"
+                       placeholder={t("agents.namePlaceholder") || "e.g. John Doe"}
                     />
                  </div>
 
@@ -283,7 +283,7 @@ export default function Agents() {
                        value={newAgent.email}
                        onChange={e => setNewAgent({...newAgent, email: e.target.value})}
                        className="w-full px-6 py-4 bg-muted/30 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none font-medium"
-                       placeholder="john@example.com"
+                       placeholder={t("agents.emailPlaceholder") || "john@example.com"}
                     />
                  </div>
 
@@ -297,7 +297,7 @@ export default function Agents() {
                        value={newAgent.password}
                        onChange={e => setNewAgent({...newAgent, password: e.target.value})}
                        className="w-full px-6 py-4 bg-muted/30 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none font-medium"
-                       placeholder="********"
+                       placeholder={t("agents.passwordPlaceholder") || "********"}
                     />
                  </div>
 

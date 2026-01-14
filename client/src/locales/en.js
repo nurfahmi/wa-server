@@ -28,7 +28,10 @@ export const en = {
     menu: "Menu",
     stats: "Stats",
     settings: "Settings",
-    logout: "Sign Out"
+    logout: "Sign Out",
+    sidebar: "Sidebar",
+    lightMode: "Light Mode",
+    darkMode: "Dark Mode"
   },
   
   // Auth
@@ -171,7 +174,9 @@ export const en = {
     deviceAlias: "Device Alias",
     generateQR: "Generate Connection QR",
     closeRefresh: "Close & Refresh List",
-    archive: "Archive"
+    archive: "Archive",
+    comingSoon: "Coming Soon",
+    comingSoonDesc: "Official WhatsApp Business API integration is under development. Stay tuned for updates!"
   },
   
   // Chats
@@ -264,7 +269,13 @@ export const en = {
     handoverNoAgents: "No other agents available for handover.",
     handoverNotesLabel: "Handover Notes (Optional)",
     handoverNotesPlaceholder: "Explain why you're transferring this chat...",
-    handoverConfirm: "Confirm Handover"
+    handoverConfirm: "Confirm Handover",
+    selectInbox: "Select Inbox",
+    selectInboxDesc: "Choose a WhatsApp device to start managing conversations.",
+    noDevicesConnected: "No devices connected",
+    goToDevices: "Go to Devices Page →",
+    deviceId: "Device ID",
+    openLiveInbox: "Open Live Inbox"
   },
   
   // Agents
@@ -333,7 +344,107 @@ export const en = {
     disabled: "Disabled",
     autoReply: "Auto Reply",
     workingHours: "Working Hours",
-    timezone: "Timezone"
+    timezone: "Timezone",
+    // Header
+    businessAiEngine: "Business AI Engine",
+    aiAgent: "AI Agent",
+    expertlyTunedFor: "Expertly tuned for",
+    unknownNumber: "unknown number",
+    testAgent: "Test Agent",
+    saveEngine: "Save Engine",
+    // Tabs
+    coreStatus: "Core Status",
+    aiStatus: "AI Status",
+    // Engine tab
+    agentIdentityName: "Agent Identity Name",
+    agentNamePlaceholder: "e.g. Sales Specialist",
+    primaryLanguage: "Primary Interaction Language",
+    languageIndonesian: "Bahasa Indonesia (Native Focus)",
+    languageMalaysian: "Bahasa Malaysia (Localized)",
+    languageEnglish: "English (Professional Universal)",
+    // Personality tab
+    agentPersonality: "Agent Personality",
+    definePersonality: "Define how your agent should sound and act",
+    brandVoice: "Brand Voice",
+    casualFriendly: "Casual & Friendly",
+    formalProfessional: "Formal & Professional",
+    expertTechnical: "Expert & Technical",
+    luxuryPremium: "Luxury & Premium",
+    interactionGoal: "Interaction Goal",
+    salesConversion: "Sales & Conversion",
+    leadCollection: "Lead Collection",
+    customerSupport: "Customer Support",
+    coreInstructions: "Core Instructions",
+    promptPlaceholder: "e.g. You are a helpful sales agent for IndoSofthouse...",
+    // Knowledge tab
+    businessIdentity: "Business Identity",
+    whoRepresenting: "Who are you representing?",
+    logo: "Logo",
+    upload: "Upload",
+    businessName: "Business Name",
+    category: "Category",
+    aboutUs: "About Us / General Knowledge...",
+    physicalPresence: "Physical Presence",
+    streetAddress: "Street Address",
+    streetPlaceholder: "123 Business Avenue",
+    city: "City",
+    zip: "Zip",
+    country: "Country",
+    productCatalog: "Product Catalog (Advanced)",
+    manageProducts: "Manage Products",
+    newProductManager: "New Product Manager Available",
+    productManagerDesc: "We have upgraded the product system! You can now add variants, stock tracking, and multiple images. Please use the new Product Manager to teach your AI about your inventory.",
+    businessFAQ: "Business FAQ",
+    addItem: "Add Item",
+    question: "Question?",
+    answer: "Answer...",
+    // Safety tab
+    safetyGuardrails: "Safety Guardrails",
+    strictBoundaries: "Strict Boundaries",
+    humanHandoverTriggers: "Human Handover Triggers",
+    handoverTriggersDesc: "Keywords that signal an agent is needed (e.g. boss, human, talk)",
+    handoverPlaceholder: "transfer, talk to human, boss",
+    businessOperatingHours: "Business Operating Hours",
+    aiHoursNote: "* AI will only trigger responses during these active hours.",
+    // Sidebar tips
+    engineTips: "Engine Tips",
+    switchingEngine: "Switching Engine",
+    switchingEngineDesc: "Toggle between OpenAI for speed or Google AI for deep reasoning.",
+    contextRetention: "Context Retention",
+    contextRetentionDesc: "Allows AI to remember previous messages in the chat for natural flow. Set 'History Depth' to control memory size.",
+    privacy: "Privacy",
+    privacyDesc: "All data is securely processed via your chosen engine.",
+    // Test modal
+    agentPreview: "Agent Preview",
+    chatWithEngine: "Chat with your configured engine",
+    inputPreview: "Input Preview",
+    testPlaceholder: "Send a message to test the AI logic...",
+    agentSays: "Agent says:",
+    reset: "Reset",
+    analyzingPattern: "Analyzing Pattern...",
+    generateResponse: "Generate Prototype Response",
+    // Product modal
+    editProduct: "Edit Product",
+    addNewProduct: "Add New Product",
+    productGallery: "Product Gallery",
+    add: "Add",
+    productName: "Product Name *",
+    productNamePlaceholder: "E.g. Premium Subscription",
+    currency: "Currency",
+    price: "Price *",
+    descriptionBenefits: "Description & Benefits",
+    descriptionPlaceholder: "Describe features, benefits, and what makes this product special...",
+    stockStatus: "Stock Status",
+    inStock: "In Stock",
+    outOfStock: "Out of Stock",
+    updateProduct: "Update Product",
+    addProduct: "Add Product",
+    // Alerts
+    settingsUpdated: "AI Business Settings updated successfully",
+    settingsFailed: "Failed to save AI settings",
+    uploadFailed: "Failed to upload image",
+    logoUploadFailed: "Failed to upload logo",
+    settingsNotFound: "Settings not found. Please ensure the device is connected."
   },
   
   // Gallery
@@ -346,7 +457,21 @@ export const en = {
     images: "Images",
     videos: "Videos",
     documents: "Docs",
-    allFiles: "All Files"
+    allFiles: "All Files",
+    gridView: "Grid View",
+    listView: "List View",
+    showing: "Showing",
+    of: "of",
+    files: "files",
+    page: "Page",
+    preview: "Preview",
+    fileName: "File Name",
+    type: "Type",
+    size: "Size",
+    date: "Date",
+    actions: "Actions",
+    deleteConfirm: "Are you sure you want to delete this file?",
+    deleteFailed: "Failed to delete file"
   },
   
   // Mobile Menu

@@ -286,7 +286,7 @@ export default function DashboardLayout() {
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-2xl hover:bg-muted transition-colors text-foreground"
                     >
                       {isDark ? <Sun className="w-4.5 h-4.5 text-muted-foreground" /> : <Moon className="w-4.5 h-4.5 text-muted-foreground" />}
-                      {isDark ? 'Light Mode' : 'Dark Mode'}
+                      {isDark ? (t('nav.lightMode') || 'Light Mode') : (t('nav.darkMode') || 'Dark Mode')}
                     </button>
                     
                     {/* Language Switcher */}
@@ -377,7 +377,7 @@ export default function DashboardLayout() {
               <div className="w-12 h-8 rounded-full flex items-center justify-center mb-1">
                 <MoreHorizontal className="w-6 h-6 stroke-[2px]" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Sidebar</span>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('nav.sidebar') || 'Sidebar'}</span>
             </button>
           </div>
         </nav>

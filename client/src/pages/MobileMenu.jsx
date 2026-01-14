@@ -114,30 +114,6 @@ export default function MobileMenu() {
         ))}
       </div>
 
-      {/* Quick Actions / Integration Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-primary p-8 rounded-[3rem] text-primary-foreground shadow-2xl shadow-primary/20 relative overflow-hidden group">
-         <div className="relative z-10 flex flex-col gap-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-               <Zap className="w-6 h-6 fill-white" />
-            </div>
-            <div>
-               <h3 className="text-2xl font-black tracking-tight">System Status</h3>
-               <p className="opacity-80 font-medium text-sm mt-1">All WhatsApp nodes are currently operational and healthy.</p>
-            </div>
-            <div className="flex gap-3 mt-2">
-               <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl text-[10px] font-black tracking-widest uppercase border border-white/10 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Core Engine
-               </div>
-               <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl text-[10px] font-black tracking-widest uppercase border border-white/10 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> DB Cluster
-               </div>
-            </div>
-         </div>
-         
-         <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:scale-110 transition-transform duration-1000" />
-         <Smartphone className="absolute -right-8 -bottom-8 w-48 h-48 text-white/10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-      </div>
-
       <div className="pt-4 flex flex-col items-center gap-4">
          <div className="flex items-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
             <MessageSquare className="w-6 h-6" />

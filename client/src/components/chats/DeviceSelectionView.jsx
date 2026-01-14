@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Smartphone, RefreshCw, ArrowRight } from "lucide-react";
 import clsx from "clsx";
+import { useLanguage } from "../../context/LanguageContext";
 
 export const DeviceSelectionView = ({
   allDevices,
@@ -9,13 +10,14 @@ export const DeviceSelectionView = ({
   fetchAllDevices,
   navigate
 }) => {
+  const { t } = useLanguage();
   return (
      <div className="space-y-12">
         <div className="max-w-6xl w-full space-y-12">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
-                 <h1 className="text-4xl font-black tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">Select Inbox</h1>
-                 <p className="text-muted-foreground mt-2 text-lg font-medium">Choose a WhatsApp device to start managing conversations.</p>
+                 <h1 className="text-4xl font-black tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-500">{t('chats.selectInbox') || 'Select Inbox'}</h1>
+                 <p className="text-muted-foreground mt-2 text-lg font-medium">{t('chats.selectInboxDesc') || 'Choose a WhatsApp device to start managing conversations.'}</p>
               </div>
               <button 
                 onClick={fetchAllDevices}
@@ -33,8 +35,8 @@ export const DeviceSelectionView = ({
               ) : allDevices.length === 0 ? (
                  <div className="col-span-full py-20 bg-card rounded-[3rem] border border-dashed border-border flex flex-col items-center">
                     <Smartphone className="w-20 h-20 text-muted-foreground opacity-20 mb-6" />
-                    <p className="text-xl font-bold text-muted-foreground">No devices connected</p>
-                    <Link to="/devices" className="mt-4 text-primary font-black uppercase tracking-widest text-xs hover:underline">Go to Devices Page →</Link>
+                    <p className="text-xl font-bold text-muted-foreground">{t('chats.noDevicesConnected') || 'No devices connected'}</p>
+                    <Link to="/devices" className="mt-4 text-primary font-black uppercase tracking-widest text-xs hover:underline">{t('chats.goToDevices') || 'Go to Devices Page →'}</Link>
                  </div>
               ) : allDevices.map(d => (
                 <div 
@@ -58,9 +60,9 @@ export const DeviceSelectionView = ({
                          </div>
                       </div>
                       <h3 className="text-2xl font-black tracking-tight mb-2 group-hover:text-primary transition-colors">{d.name || d.sessionId}</h3>
-                      <p className="text-sm font-medium text-muted-foreground opacity-70 mb-6">Device ID: {d.id}</p>
+                      <p className="text-sm font-medium text-muted-foreground opacity-70 mb-6">{t('chats.deviceId') || 'Device ID'}: {d.id}</p>
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-primary group-hover:translate-x-1 transition-transform">
-                         Open Live Inbox <ArrowRight className="w-4 h-4" />
+                         {t('chats.openLiveInbox') || 'Open Live Inbox'} <ArrowRight className="w-4 h-4" />
                       </div>
                    </div>
                    <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>

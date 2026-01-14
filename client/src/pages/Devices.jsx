@@ -454,7 +454,7 @@ export default function Devices() {
                                value={newSessionId}
                                onChange={(e) => setNewSessionId(e.target.value)}
                                className="w-full pl-12 pr-4 py-3.5 bg-muted/30 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-medium"
-                               placeholder="e.g. Sales iPhone 15"
+                               placeholder={t("devices.aliasPlaceholder") || "e.g. Sales iPhone 15"}
                             />
                         </div>
                      </div>
@@ -502,15 +502,15 @@ export default function Devices() {
             <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Clock className="w-10 h-10 text-blue-500" />
             </div>
-            <h3 className="text-2xl font-bold mb-2">Coming Soon</h3>
+            <h3 className="text-2xl font-bold mb-2">{t('devices.comingSoon') || 'Coming Soon'}</h3>
             <p className="text-muted-foreground mb-6">
-              Official WhatsApp Business API integration is under development. Stay tuned for updates!
+              {t('devices.comingSoonDesc') || 'Official WhatsApp Business API integration is under development. Stay tuned for updates!'}
             </p>
             <button 
               onClick={() => setShowComingSoonModal(false)}
               className="w-full py-3 bg-primary text-primary-foreground rounded-2xl font-bold hover:bg-primary/90 transition-all"
             >
-              Got it!
+              {t('modal.ok') || 'Got it!'}
             </button>
           </div>
         </div>

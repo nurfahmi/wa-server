@@ -237,27 +237,6 @@ export default function Dashboard() {
                  )}
               </div>
            </div>
-
-           {/* Health Status */}
-           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold mb-6">{t('dashboard.serviceHealth')}</h3>
-              <div className="space-y-4">
-                 {[
-                    { name: t('dashboard.coreEngine'), status: t('dashboard.operational'), color: 'bg-green-500' },
-                    { name: t('dashboard.database'), status: t('dashboard.operational'), color: 'bg-green-500' },
-                    { name: t('dashboard.baileyClusters'), status: t('dashboard.healthy'), color: 'bg-green-500' },
-                    { name: t('dashboard.aiService'), status: t('dashboard.active'), color: 'bg-green-500' }
-                 ].map(svc => (
-                    <div key={svc.name} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
-                       <span className="text-sm font-medium">{svc.name}</span>
-                       <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-tight opacity-70">{svc.status}</span>
-                          <div className={clsx("w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]", svc.color === 'bg-green-500' ? 'text-green-500' : 'text-amber-500', svc.color)}></div>
-                       </div>
-                    </div>
-                 ))}
-              </div>
-           </div>
         </div>
       </div>
     </div>

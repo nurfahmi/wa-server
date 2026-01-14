@@ -41,11 +41,13 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useModal } from "../context/ModalContext";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function AISettings() {
   const { deviceId } = useParams();
   // const navigate = useNavigate();
   const { showAlert } = useModal();
+  const { t } = useLanguage();
   const [device, setDevice] = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -376,17 +378,17 @@ export default function AISettings() {
     );
   }
 
-  if (!settings) return <div className="p-8 text-center">Settings not found. Please ensure the device is connected.</div>;
+  if (!settings) return <div className="p-8 text-center">{t('aiSettings.settingsNotFound')}</div>;
 
   // const systemDefaults = settings._systemDefaults || {};
   const currentProvider = providers.find(p => p.id === settings.aiProvider);
   // const availableModels = currentProvider?.models || [];
 
   const TABS = [
-    { id: "engine", label: "Brain & Engine", icon: Cpu },
-    { id: "personality", label: "Personality", icon: Bot },
-    { id: "knowledge", label: "Knowledge Base", icon: Building2 },
-    { id: "safety", label: "Safety & Hours", icon: Shield },
+    { id: "engine", label: t('aiSettings.brainEngine'), icon: Cpu },
+    { id: "personality", label: t('aiSettings.personality'), icon: Bot },
+    { id: "knowledge", label: t('aiSettings.knowledgeBase'), icon: Building2 },
+    { id: "safety", label: t('aiSettings.safetyHours'), icon: Shield },
   ];
 
   return (
@@ -403,10 +405,10 @@ export default function AISettings() {
           <div>
             <div className="flex items-center gap-2 mb-1">
                 <Brain className="w-4 h-4 text-primary" />
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Business AI Engine</span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t('aiSettings.businessAiEngine')}</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight">{device?.alias || "AI Agent"}</h1>
-            <p className="text-sm text-muted-foreground">Expertly tuned for <span className="text-foreground font-bold">{device?.phoneNumber || "unknown number"}</span></p>
+            <h1 className="text-3xl font-black tracking-tight">{device?.alias || t('aiSettings.aiAgent')}</h1>
+            <p className="text-sm text-muted-foreground">{t('aiSettings.expertlyTunedFor')} <span className="text-foreground font-bold">{device?.phoneNumber || t('aiSettings.unknownNumber')}</span></p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -414,7 +416,7 @@ export default function AISettings() {
                 onClick={() => setShowTestModal(true)}
                 className="px-6 py-3 bg-muted hover:bg-accent text-foreground rounded-2xl font-bold transition-all border border-border flex items-center gap-2"
             >
-                <Play className="w-4 h-4 text-primary fill-current" /> Test Agent
+                <Play className="w-4 h-4 text-primary fill-current" /> {t('aiSettings.testAgent')}
             </button>
             <button 
                 onClick={() => handleSave()}
@@ -422,7 +424,7 @@ export default function AISettings() {
                 className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black hover:bg-primary/90 transition-all flex items-center gap-2 shadow-xl shadow-primary/20"
             >
                 {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                Save Engine
+                {t('aiSettings.saveEngine')}
             </button>
         </div>
       </div>
@@ -459,7 +461,7 @@ export default function AISettings() {
                       <h2 className="text-lg font-black flex items-center gap-2"><Cpu className="w-4 h-4 text-indigo-500"/> Core Status</h2>
                       <div className="flex gap-4">
                          <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
-                            <span className="text-xs font-black uppercase tracking-widest opacity-60 text-emerald-600">AI Status</span>
+                            <span className="text-xs font-black uppercase tracking-widest opacity-60 text-emerald-600">{t('aiSettings.aiStatus')}</span>
                             <button 
                                onClick={() => setSettings({...settings, aiEnabled: !settings.aiEnabled})}
                                className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiEnabled ? "bg-primary" : "bg-muted")}
@@ -468,7 +470,7 @@ export default function AISettings() {
                             </button>
                          </div>
                          <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
-                            <span className="text-xs font-black uppercase tracking-widest opacity-60">Auto Reply</span>
+                            <span className="text-xs font-black uppercase tracking-widest opacity-60">{t('aiSettings.autoReply')}</span>
                             <button 
                                onClick={() => setSettings({...settings, aiAutoReply: !settings.aiAutoReply})}
                                className={clsx("w-12 h-6 rounded-full transition-all relative", settings.aiAutoReply ? "bg-emerald-500" : "bg-muted")}
@@ -479,35 +481,27 @@ export default function AISettings() {
                       </div>
                    </div>
 
-                   {/* Configuration moved to .env / Admin Panel */}
-                   <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center gap-3">
-                      <Info className="w-4 h-4 text-blue-500" />
-                      <p className="text-xs text-blue-600 font-medium">
-                         AI Provider and Model are managed via system environment variables.
-                      </p>
-                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
                      <div className="space-y-2">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Agent Identity Name</label>
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.agentIdentityName')}</label>
                         <input 
                            type="text" 
                            value={settings.aiBotName || ""}
                            onChange={e => setSettings({...settings, aiBotName: e.target.value})}
                            className="w-full px-6 py-4 bg-muted/20 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold"
-                           placeholder="e.g. Sales Specialist"
+                           placeholder={t('aiSettings.agentNamePlaceholder')}
                         />
                      </div>
                      <div className="space-y-2">
-                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Primary Interaction Language</label>
+                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.primaryLanguage')}</label>
                         <select 
                            value={settings.aiLanguage || "id"}
                            onChange={e => setSettings({...settings, aiLanguage: e.target.value})}
                            className="w-full px-6 py-4 bg-muted/20 border border-border rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold appearance-none cursor-pointer"
                         >
-                           <option value="id">Bahasa Indonesia (Native Focus)</option>
-                           <option value="ms">Bahasa Malaysia (Localized)</option>
-                           <option value="en">English (Professional Universal)</option>
+                           <option value="id">{t('aiSettings.languageIndonesian')}</option>
+                           <option value="ms">{t('aiSettings.languageMalaysian')}</option>
+                           <option value="en">{t('aiSettings.languageEnglish')}</option>
                         </select>
                      </div>
                   </div>
@@ -524,53 +518,53 @@ export default function AISettings() {
                         <Brain className="w-5 h-5" />
                      </div>
                      <div>
-                        <h2 className="text-lg font-black">Agent Personality</h2>
-                        <p className="text-xs text-muted-foreground">Define how your agent should sound and act</p>
+                        <h2 className="text-lg font-black">{t('aiSettings.agentPersonality')}</h2>
+                        <p className="text-xs text-muted-foreground">{t('aiSettings.definePersonality')}</p>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
-                           <Bot className="w-3.5 h-3.5 text-primary" /> Brand Voice
+                           <Bot className="w-3.5 h-3.5 text-primary" /> {t('aiSettings.brandVoice')}
                         </label>
                         <select 
                            value={settings.aiBrandVoice || "casual"}
                            onChange={e => setSettings({...settings, aiBrandVoice: e.target.value})}
                            className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold capitalize cursor-pointer"
                         >
-                           <option value="casual">Casual & Friendly</option>
-                           <option value="formal">Formal & Professional</option>
-                           <option value="expert">Expert & Technical</option>
-                           <option value="luxury">Luxury & Premium</option>
+                           <option value="casual">{t('aiSettings.casualFriendly')}</option>
+                           <option value="formal">{t('aiSettings.formalProfessional')}</option>
+                           <option value="expert">{t('aiSettings.expertTechnical')}</option>
+                           <option value="luxury">{t('aiSettings.luxuryPremium')}</option>
                         </select>
                      </div>
 
                      <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
-                           <Goal className="w-3.5 h-3.5 text-emerald-500" /> Interaction Goal
+                           <Goal className="w-3.5 h-3.5 text-emerald-500" /> {t('aiSettings.interactionGoal')}
                         </label>
                         <select 
                            value={settings.aiPrimaryGoal || "conversion"}
                            onChange={e => setSettings({...settings, aiPrimaryGoal: e.target.value})}
                            className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all font-bold cursor-pointer"
                         >
-                           <option value="conversion">Sales & Conversion</option>
-                           <option value="leads">Lead Collection</option>
-                           <option value="support">Customer Support</option>
+                           <option value="conversion">{t('aiSettings.salesConversion')}</option>
+                           <option value="leads">{t('aiSettings.leadCollection')}</option>
+                           <option value="support">{t('aiSettings.customerSupport')}</option>
                         </select>
                      </div>
                   </div>
 
                   <div className="space-y-4 pt-4">
                      <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" /> Core Instructions
+                        <MessageSquare className="w-4 h-4 text-primary" /> {t('aiSettings.coreInstructions')}
                      </label>
                      <textarea 
                         value={settings.aiPromptTemplate || ""}
                         onChange={e => setSettings({...settings, aiPromptTemplate: e.target.value})}
                         className="w-full h-64 px-6 py-4 bg-muted/20 border border-border rounded-3xl focus:ring-2 focus:ring-primary outline-none transition-all font-medium resize-none leading-relaxed"
-                        placeholder="e.g. You are a helpful sales agent for IndoSofthouse..."
+                        placeholder={t('aiSettings.promptPlaceholder')}
                      />
                   </div>
                </div>
@@ -587,14 +581,14 @@ export default function AISettings() {
                          <Building2 className="w-5 h-5" />
                       </div>
                       <div>
-                         <h2 className="text-lg font-black">Business Identity</h2>
-                         <p className="text-xs text-muted-foreground">Who are you representing?</p>
+                         <h2 className="text-lg font-black">{t('aiSettings.businessIdentity')}</h2>
+                         <p className="text-xs text-muted-foreground">{t('aiSettings.whoRepresenting')}</p>
                       </div>
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div className="md:col-span-1 space-y-2">
-                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Logo</label>
+                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.logo')}</label>
                          <div className="relative group aspect-square border-2 border-dashed border-border rounded-2xl overflow-hidden hover:border-primary transition-all flex flex-col items-center justify-center bg-muted/20">
                             {settings.aiBusinessProfile?.logo ? (
                                <img src={settings.aiBusinessProfile.logo} className="w-full h-full object-contain p-4" alt="Logo" />
@@ -602,7 +596,7 @@ export default function AISettings() {
                                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
                                   <Upload className="w-6 h-6 text-muted-foreground mb-2" />
                                   <input type="file" className="hidden" accept="image/*" onChange={handleBusinessLogoUpload} />
-                                  <span className="text-[10px] font-black uppercase tracking-tighter">Upload</span>
+                                  <span className="text-[10px] font-black uppercase tracking-tighter">{t('aiSettings.upload')}</span>
                                </label>
                             )}
                          </div>
@@ -613,13 +607,13 @@ export default function AISettings() {
                                value={settings.aiBusinessProfile?.name || ""}
                                onChange={e => setSettings({...settings, aiBusinessProfile: {...settings.aiBusinessProfile, name: e.target.value}})}
                                className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm"
-                               placeholder="Business Name"
+                               placeholder={t('aiSettings.businessName')}
                             />
                             <input 
                                value={settings.aiBusinessProfile?.category || ""}
                                onChange={e => setSettings({...settings, aiBusinessProfile: {...settings.aiBusinessProfile, category: e.target.value}})}
                                className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm"
-                               placeholder="Category"
+                               placeholder={t('aiSettings.category')}
                             />
                          </div>
                          <textarea 
@@ -634,7 +628,7 @@ export default function AISettings() {
                                }));
                             }}
                             className="w-full h-24 px-4 py-3 bg-muted/20 border border-border rounded-xl outline-none resize-none text-sm font-medium"
-                            placeholder="About Us / General Knowledge..."
+                            placeholder={t('aiSettings.aboutUs')}
                          />
                       </div>
                    </div>
@@ -646,37 +640,37 @@ export default function AISettings() {
                       <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
                          <MapPin className="w-5 h-5" />
                       </div>
-                      <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Physical Presence</h2>
+                      <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground">{t('aiSettings.physicalPresence')}</h2>
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2 space-y-2">
-                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Street Address</label>
+                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.streetAddress')}</label>
                          <input 
                             value={settings.aiBusinessAddress?.street || ""}
                             onChange={e => setSettings({...settings, aiBusinessAddress: {...settings.aiBusinessAddress, street: e.target.value}})}
                             className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm"
-                            placeholder="123 Business Avenue"
+                            placeholder={t('aiSettings.streetPlaceholder')}
                          />
                       </div>
                       <input 
                          value={settings.aiBusinessAddress?.city || ""}
                          onChange={e => setSettings({...settings, aiBusinessAddress: {...settings.aiBusinessAddress, city: e.target.value}})}
                          className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm"
-                         placeholder="City"
+                         placeholder={t('aiSettings.city')}
                       />
                       <div className="grid grid-cols-2 gap-4">
                          <input 
                             value={settings.aiBusinessAddress?.zip || ""}
                             onChange={e => setSettings({...settings, aiBusinessAddress: {...settings.aiBusinessAddress, zip: e.target.value}})}
                             className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm font-mono"
-                            placeholder="Zip"
+                            placeholder={t('aiSettings.zip')}
                          />
                          <input 
                             value={settings.aiBusinessAddress?.country || ""}
                             onChange={e => setSettings({...settings, aiBusinessAddress: {...settings.aiBusinessAddress, country: e.target.value}})}
                             className="w-full px-4 py-3 bg-muted/20 border border-border rounded-xl font-bold text-sm"
-                            placeholder="Country"
+                            placeholder={t('aiSettings.country')}
                          />
                       </div>
                    </div>
@@ -686,23 +680,23 @@ export default function AISettings() {
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
                    <div className="flex items-center justify-between">
                       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                         <Package className="w-4 h-4 text-primary" /> Product Catalog (Advanced)
+                         <Package className="w-4 h-4 text-primary" /> {t('aiSettings.productCatalog')}
                       </h3>
                       <Link 
                          to={`/devices/${deviceId}/products`}
                          className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-xs uppercase shadow-lg shadow-primary/20 flex items-center gap-2 hover:bg-primary/90 transition-all"
                       >
-                         <Edit className="w-3 h-3" /> Manage Products
+                         <Edit className="w-3 h-3" /> {t('aiSettings.manageProducts')}
                       </Link>
                    </div>
                    <div className="p-8 border-2 border-dashed border-border rounded-xl bg-muted/10 text-center">
                       <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                          <ShoppingBag className="w-8 h-8 text-primary" />
                       </div>
-                      <h4 className="font-bold text-lg mb-2">New Product Manager Available</h4>
+                      <h4 className="font-bold text-lg mb-2">{t('aiSettings.newProductManager')}</h4>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                         We have upgraded the product system! You can now add variants, stock tracking, and multiple images. 
-                         Please use the new <b>Product Manager</b> to teach your AI about your inventory.
+                         {t('aiSettings.productManagerDesc')} 
+                         
                       </p>
                    </div>
                 </div>
@@ -711,7 +705,7 @@ export default function AISettings() {
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
                    <div className="flex items-center justify-between">
                       <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                         <Info className="w-4 h-4 text-amber-500" /> Business FAQ
+                         <Info className="w-4 h-4 text-amber-500" /> {t('aiSettings.businessFAQ')}
                       </h3>
                       <button onClick={addFAQ} className="px-3 py-1.5 bg-primary text-white rounded-lg font-bold text-[10px] uppercase">
                          Add Item
@@ -723,8 +717,8 @@ export default function AISettings() {
                             <button onClick={() => removeFAQ(i)} className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
                                <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                            <input value={faq.question} onChange={e => updateFAQ(i, 'question', e.target.value)} className="w-full bg-transparent font-bold text-xs mb-2 outline-none border-b border-border/50 pb-1" placeholder="Question?" />
-                            <textarea value={faq.answer} onChange={e => updateFAQ(i, 'answer', e.target.value)} className="w-full bg-transparent text-xs text-muted-foreground outline-none resize-none h-12" placeholder="Answer..." />
+                            <input value={faq.question} onChange={e => updateFAQ(i, 'question', e.target.value)} className="w-full bg-transparent font-bold text-xs mb-2 outline-none border-b border-border/50 pb-1" placeholder={t('aiSettings.question')} />
+                            <textarea value={faq.answer} onChange={e => updateFAQ(i, 'answer', e.target.value)} className="w-full bg-transparent text-xs text-muted-foreground outline-none resize-none h-12" placeholder={t('aiSettings.answer')} />
                          </div>
                       ))}
                    </div>
@@ -739,10 +733,10 @@ export default function AISettings() {
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                          <Shield className="w-6 h-6 text-red-500" />
-                         <h2 className="text-lg font-black">Safety Guardrails</h2>
+                         <h2 className="text-lg font-black">{t('aiSettings.safetyGuardrails')}</h2>
                       </div>
                       <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-2xl border border-border">
-                          <span className="text-[10px] font-black uppercase opacity-60">Strict Boundaries</span>
+                          <span className="text-[10px] font-black uppercase opacity-60">{t('aiSettings.strictBoundaries')}</span>
                           <button 
                                onClick={() => setSettings({...settings, aiBoundariesEnabled: !settings.aiBoundariesEnabled})}
                                className={clsx("w-10 h-5 rounded-full relative transition-all", settings.aiBoundariesEnabled ? "bg-primary" : "bg-muted")}
@@ -753,13 +747,13 @@ export default function AISettings() {
                   </div>
 
                   <div className="space-y-4">
-                     <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Human Handover Triggers</label>
-                     <p className="text-[11px] text-muted-foreground">Keywords that signal an agent is needed (e.g. boss, human, talk)</p>
+                     <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">{t('aiSettings.humanHandoverTriggers')}</label>
+                     <p className="text-[11px] text-muted-foreground">{t('aiSettings.handoverTriggersDesc')}</p>
                      <input 
                         value={Array.isArray(settings.aiHandoverTriggers) ? settings.aiHandoverTriggers.join(', ') : settings.aiHandoverTriggers || ""}
                         onChange={e => setSettings({...settings, aiHandoverTriggers: e.target.value})}
                         className="w-full px-5 py-4 bg-muted/20 border border-border rounded-2xl font-bold"
-                        placeholder="transfer, talk to human, boss"
+                        placeholder={t('aiSettings.handoverPlaceholder')}
                      />
                   </div>
 
@@ -767,7 +761,7 @@ export default function AISettings() {
                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                            <Calendar className="w-5 h-5 text-primary" />
-                           <h3 className="font-bold">Business Operating Hours</h3>
+                           <h3 className="font-bold">{t('aiSettings.businessOperatingHours')}</h3>
                         </div>
                         <button 
                               onClick={() => setSettings({...settings, aiOperatingHours: { ...settings.aiOperatingHours, enabled: !settings.aiOperatingHours.enabled }})}
@@ -800,50 +794,14 @@ export default function AISettings() {
 
         {/* Sidebar Infobar */}
         <div className="space-y-8">
-           <div className="bg-gradient-to-br from-[#1e1a2d] to-[#0f0e1a] rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors" />
-              <div className="flex items-center gap-3 mb-8">
-                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
-                    <Zap className="w-6 h-6 text-primary" />
-                 </div>
-                 <div>
-                    <h3 className="font-bold text-lg leading-tight">System Status</h3>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Live Sync</p>
-                 </div>
-              </div>
-
-              <div className="space-y-4">
-                 {[
-                    { label: "Active Engine", value: currentProvider?.name || "OpenAI" },
-                    { label: "Current Model", value: settings.aiModel || "gpt-3.5-turbo" },
-                    { label: "Memory", value: settings.conversationMemoryEnabled ? "Enabled" : "Disabled" },
-                    { label: "Language", value: settings.aiLanguage?.toUpperCase() || "ID" }
-                 ].map(item => (
-                    <div key={item.label} className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
-                       <span className="text-[10px] font-black uppercase tracking-widest opacity-40">{item.label}</span>
-                       <span className="font-bold text-sm text-primary-foreground">{item.value}</span>
-                    </div>
-                 ))}
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-white/10 px-1">
-                 <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Global Opts</span>
-                 </div>
-                 <p className="text-[11px] leading-relaxed opacity-60 italic">
-                    Model selection affects response speed and token usage. Recommended models provide the best balance for WhatsApp business logic.
-                 </p>
-              </div>
-           </div>
 
            <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-sm">
-              <h4 className="font-black text-xs uppercase tracking-widest mb-6 opacity-60">Engine Tips</h4>
+              <h4 className="font-black text-xs uppercase tracking-widest mb-6 opacity-60">{t('aiSettings.engineTips')}</h4>
               <div className="space-y-6">
                  {[
-                    { icon: Globe, label: "Switching Engine", text: "Toggle between OpenAI for speed or Google AI for deep reasoning." },
-                    { icon: Clock, label: "Context Retention", text: "Allows AI to remember previous messages in the chat for natural flow. Set 'History Depth' to control memory size." },
-                    { icon: Lock, label: "Privacy", text: "All data is securely processed via your chosen engine." }
+                    { icon: Globe, label: t('aiSettings.switchingEngine'), text: t('aiSettings.switchingEngineDesc') },
+                    { icon: Clock, label: t('aiSettings.contextRetention'), text: t('aiSettings.contextRetentionDesc') },
+                    { icon: Lock, label: t('aiSettings.privacy'), text: t('aiSettings.privacyDesc') }
                  ].map((tip, i) => (
                     <div key={i} className="flex gap-4">
                        <tip.icon className="w-5 h-5 text-primary shrink-0" />
@@ -868,8 +826,8 @@ export default function AISettings() {
                        <RefreshCw className={clsx("w-7 h-7", testing && "animate-spin")} />
                     </div>
                     <div>
-                       <h3 className="text-xl font-black">Agent Preview</h3>
-                       <p className="text-xs text-muted-foreground mt-0.5">Chat with your configured engine</p>
+                       <h3 className="text-xl font-black">{t('aiSettings.agentPreview')}</h3>
+                       <p className="text-xs text-muted-foreground mt-0.5">{t('aiSettings.chatWithEngine')}</p>
                     </div>
                  </div>
                  <button onClick={() => setShowTestModal(false)} className="p-3 hover:bg-muted rounded-full transition-colors text-muted-foreground">
@@ -879,12 +837,12 @@ export default function AISettings() {
 
               <div className="p-8 space-y-6">
                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Input Preview</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('aiSettings.inputPreview')}</label>
                     <textarea 
                        value={testMessage}
                        onChange={e => setTestMessage(e.target.value)}
                        className="w-full h-32 px-6 py-5 bg-muted/20 border border-border rounded-[2rem] focus:ring-2 focus:ring-primary outline-none transition-all font-medium leading-relaxed"
-                       placeholder="Send a message to test the AI logic..."
+                       placeholder={t('aiSettings.testPlaceholder')}
                        autoFocus
                     />
                  </div>
@@ -892,7 +850,7 @@ export default function AISettings() {
                  {testResponse && (
                     <div className="space-y-2 animate-in slide-in-from-top-4 duration-500">
                        <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Agent says:
+                          <CheckCircle2 className="w-3 h-3" /> {t('aiSettings.agentSays')}
                        </label>
                        <div className="p-6 bg-primary/5 border border-primary/20 rounded-[2rem] text-foreground font-medium leading-relaxed relative">
                           {testResponse}
@@ -912,7 +870,7 @@ export default function AISettings() {
                        disabled={testing || !testMessage.trim()}
                        className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-black hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/30"
                     >
-                       {testing ? "Analyzing Pattern..." : "Generate Prototype Response"}
+                       {testing ? t('aiSettings.analyzingPattern') : t('aiSettings.generateResponse')}
                     </button>
                  </div>
               </div>
@@ -933,14 +891,14 @@ export default function AISettings() {
               
               <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
                  <ShoppingBag className="w-6 h-6 text-primary" /> 
-                 {editingProductIndex !== null ? "Edit Product" : "Add New Product"}
+                 {editingProductIndex !== null ? "Edit Product" : t('aiSettings.addNewProduct')}
               </h3>
               
               <div className="space-y-5">
                  {/* Image Upload */}
                  <div className="space-y-2">
                     <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
-                       <Image className="w-3 h-3" /> Product Gallery
+                       <Image className="w-3 h-3" /> {t('aiSettings.productGallery')}
                     </label>
                     
                     <div className="relative">
@@ -973,7 +931,7 @@ export default function AISettings() {
                            ) : (
                               <>
                                  <Plus className="w-5 h-5 text-muted-foreground" />
-                                 <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground mt-1">Add</span>
+                                 <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground mt-1">{t('aiSettings.add')}</span>
                               </>
                            )}
                            <input 
@@ -994,7 +952,7 @@ export default function AISettings() {
                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Product Name *</label>
                         <input 
                            autoFocus
-                           placeholder="E.g. Premium Subscription" 
+                           placeholder={t('aiSettings.productNamePlaceholder')} 
                            value={productForm.name}
                            onChange={e => setProductForm({...productForm, name: e.target.value})}
                            className="w-full px-4 py-3 bg-muted/30 border border-border rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -1002,7 +960,7 @@ export default function AISettings() {
                      </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                           <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Currency</label>
+                           <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.currency')}</label>
                            <div className="relative group">
                               <select 
                                  value={productForm.currency || "IDR"}
@@ -1033,9 +991,9 @@ export default function AISettings() {
 
                  {/* Description */}
                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Description & Benefits</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.descriptionBenefits')}</label>
                     <textarea 
-                       placeholder="Describe features, benefits, and what makes this product special..." 
+                       placeholder={t('aiSettings.descriptionPlaceholder')} 
                        value={productForm.description}
                        onChange={e => setProductForm({...productForm, description: e.target.value})}
                        rows={4}
@@ -1045,7 +1003,7 @@ export default function AISettings() {
 
                  {/* Stock Status */}
                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">Stock Status</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1">{t('aiSettings.stockStatus')}</label>
                     <div className="flex gap-3">
                        <button 
                           onClick={() => setProductForm({...productForm, inStock: true})}
@@ -1086,7 +1044,7 @@ export default function AISettings() {
                        className="flex-1 px-6 py-3 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                        <Save className="w-4 h-4" />
-                       {editingProductIndex !== null ? "Update Product" : "Add Product"}
+                       {editingProductIndex !== null ? "Update Product" : t('aiSettings.addProduct')}
                     </button>
                  </div>
               </div>
