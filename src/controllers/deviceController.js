@@ -116,7 +116,6 @@ export const createDevice = async (req, res) => {
         apiKey: device.apiKey, // Ensure API key is included in response
       },
       qr: result.qr,
-      wsEndpoint: result.wsEndpoint,
     });
   } catch (error) {
     console.error("Error creating device:", error);
@@ -312,14 +311,10 @@ export const loginDevice = async (req, res) => {
       );
     }
 
-    // Provide WebSocket endpoint for real-time updates
-    const wsEndpoint = `ws://localhost:3001/?token=test123`;
-
     res.json({
       message: "Device login initiated. Scan QR code to connect.",
       device,
       qr: qrCode,
-      wsEndpoint: wsEndpoint,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

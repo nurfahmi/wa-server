@@ -364,7 +364,16 @@ export default function Chats() {
   useEffect(() => {
      if (!wsConfig || !device?.sessionId) return;
      
-     const wsUrl = `ws://${window.location.hostname}:${wsConfig.port}?token=${wsConfig.token}`;
+     // Determine WebSocket URL based on current protocol
+     // When behind Cloudflare Tunnel (HTTPS), use wss:// without port (uses 443)
+     // When on localhost (HTTP), use ws:// with the configured port
+     const isSecure = window.location.protocol === 'https:';
+     const wsProtocol = isSecure ? 'wss:' : 'ws:';
+     const wsHost = window.location.hostname;
+     // For HTTPS (Cloudflare Tunnel), don't specify port - it uses standard 443
+     // For HTTP (localhost dev), use the configured port
+     const wsPort = isSecure ? '' : `:${wsConfig.port}`;
+     const wsUrl = `${wsProtocol}//${wsHost}${wsPort}?token=${wsConfig.token}`;
      const ws = new WebSocket(wsUrl);
      wsRef.current = ws;
 

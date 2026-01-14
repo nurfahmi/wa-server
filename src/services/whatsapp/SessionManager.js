@@ -62,7 +62,6 @@ class SessionManager {
         await this.initializeSession(sessionId, existingDevice);
         return {
           sessionId,
-          wsEndpoint: `ws://localhost:${config.wsPort}?token=${config.apiToken}`,
         };
       }
 
@@ -83,7 +82,6 @@ class SessionManager {
 
       return {
         sessionId,
-        wsEndpoint: `ws://localhost:${config.wsPort}?token=${config.apiToken}`,
       };
     } catch (error) {
       console.error("Error creating WhatsApp session:", error);
@@ -789,7 +787,6 @@ class SessionManager {
       console.log(`[RELOGIN] Relogin process completed for ${sessionId}`);
       return {
         sessionId,
-        wsEndpoint: `ws://localhost:${config.wsPort}?token=${config.apiToken}`,
       };
     } catch (error) {
       console.error(`[RELOGIN] Error during relogin for ${sessionId}:`, error);
